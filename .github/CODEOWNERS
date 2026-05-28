@@ -1,0 +1,45 @@
+# =====================================================
+# CODEOWNERS — auto-asigna reviewers según los archivos del PR
+# =====================================================
+# La sintaxis es: <patrón>  <@usuario1> <@usuario2>
+# Los últimos patrones matched ganan (orden importa).
+#
+# Owner principal: @gonzalocvv (el founder).
+# Cuando se sumen los otros 2 devs, agregar sus usuarios.
+# =====================================================
+
+# Default: el founder revisa todo lo que no tenga match más específico
+*                               @gonzalocvv
+
+# ----- Backend / API / Lógica de negocio -----
+/src/services/                  @gonzalocvv
+/src/repositories/              @gonzalocvv
+/src/lib/match-engine.ts        @gonzalocvv
+/src/lib/inngest/               @gonzalocvv
+/src/app/api/                   @gonzalocvv
+/prisma/                        @gonzalocvv
+
+# ----- Frontend / UI / Componentes -----
+/src/components/                @gonzalocvv
+/src/hooks/                     @gonzalocvv
+/src/app/[locale]/              @gonzalocvv
+/messages/                      @gonzalocvv
+
+# ----- Seguridad / Auth / Config -----
+/src/lib/auth.ts                @gonzalocvv
+/src/lib/supabase/              @gonzalocvv
+/src/middleware.ts              @gonzalocvv
+
+# ----- Documentación y procesos -----
+/docs/                          @gonzalocvv
+/.github/                       @gonzalocvv
+README.md                       @gonzalocvv
+CLAUDE.md                       @gonzalocvv
+CONTRIBUTING.md                 @gonzalocvv
+
+# ----- Infraestructura crítica -----
+package.json                    @gonzalocvv
+pnpm-lock.yaml                  @gonzalocvv
+tsconfig.json                   @gonzalocvv
+next.config.mjs                 @gonzalocvv
+.env.example                    @gonzalocvv
