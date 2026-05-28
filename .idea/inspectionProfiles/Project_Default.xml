@@ -1,0 +1,12 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="ES6PreferShortImport" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="JSUnusedLocalSymbols" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="TypeScriptCheckImport" enabled="true" level="ERROR" enabled_by_default="true" />
+    <inspection_tool class="TypeScriptUnresolvedReference" enabled="true" level="ERROR" enabled_by_default="true" />
+    <inspection_tool class="TypeScriptValidateTypes" enabled="true" level="ERROR" enabled_by_default="true" />
+    <inspection_tool class="UnnecessaryLocalVariableJS" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="MissingRequiredEnvVariable" enabled="true" level="WARNING" enabled_by_default="true" />
+  </profile>
+</component>

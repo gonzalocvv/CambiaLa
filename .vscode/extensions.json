@@ -1,0 +1,21 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "Prisma.prisma",
+    "eamodio.gitlens",
+    "usernamehw.errorlens",
+    "yoavbls.pretty-ts-errors",
+    "streetsidesoftware.code-spell-checker",
+    "mikestead.dotenv",
+    "bierner.markdown-mermaid",
+    "GitHub.copilot",
+    "GitHub.copilot-chat",
+    "anthropic.claude-code"
+  ],
+  "unwantedRecommendations": [
+    "octref.vetur",
+    "hookyqr.beautify"
+  ]
+}

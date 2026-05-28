@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Documentación del proyecto
+    url: https://www.notion.so/36de548e6cdd81cda047e4a5c0f4ad91
+    about: Antes de abrir un issue, revisar la documentación de Notion
+  - name: 💬 Discusión general
+    url: https://github.com/[org]/figus-uy/discussions
+    about: Para preguntas, ideas o discusión sin issue formal

@@ -1,0 +1,114 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Testing
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+playwright/.cache/
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Production
+*.tsbuildinfo
+next-env.d.ts
+
+# Misc
+.DS_Store
+*.pem
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local env files
+.env
+.env*.local
+.env.development
+.env.production
+!.env.example
+
+# IDE — VS Code (commitear solo config compartida)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# IDE — JetBrains (WebStorm/IntelliJ) — commitear solo config compartida
+.idea/*
+!.idea/codeStyles/
+!.idea/inspectionProfiles/
+!.idea/prettier.xml
+!.idea/jsLinters/
+!.idea/vcs.xml
+!.idea/runConfigurations/
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/shelf/
+.idea/dictionaries/
+.idea/contentModel.xml
+.idea/dataSources/
+.idea/dataSources.local.xml
+.idea/sqlDataSources.xml
+.idea/dynamic.xml
+.idea/uiDesigner.xml
+.idea/dbnavigator.xml
+.idea/httpRequests/
+*.iml
+*.iws
+*.ipr
+
+# IDE — otros editores
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Claude / Cursor / Continue — config per-user
+.claude/settings.local.json
+.cursor/
+.continue/
+
+# Vercel
+.vercel/
+
+# Prisma
+prisma/migrations/dev/
+
+# Inngest local
+.inngest/
+
+# Bundle analysis
+.next/analyze/
+analyze/
+
+# Logs
+logs/
+*.log
+
+# Operating System
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Sentry
+.sentryclirc
+
+# Cache
+.cache/
+.turbo/
+
+# Lock files de otros package managers (usamos pnpm)
+package-lock.json
+yarn.lock

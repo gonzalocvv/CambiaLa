@@ -1,0 +1,32 @@
+{
+  "name": "figus-uy",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plataforma C2C para intercambio de figuritas del Mundial 2026 en Uruguay",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "test:e2e": "playwright test",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "db:reset": "prisma migrate reset",
+    "inngest:dev": "npx inngest-cli dev"
+  },
+  "license": "UNLICENSED"
+}
