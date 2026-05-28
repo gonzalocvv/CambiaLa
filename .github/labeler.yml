@@ -1,0 +1,75 @@
+# =====================================================
+# Auto-label PRs based on changed files
+# =====================================================
+
+backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/services/**
+          - src/repositories/**
+          - src/app/api/**
+          - src/lib/match-engine.ts
+          - src/lib/inngest/**
+          - prisma/**
+
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/app/**
+          - '!src/app/api/**'
+          - src/components/**
+          - src/hooks/**
+          - messages/**
+          - public/**
+
+auth:
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/lib/auth.ts
+          - src/lib/supabase/**
+          - src/middleware.ts
+          - src/app/login/**
+          - src/app/onboarding/**
+
+database:
+  - changed-files:
+      - any-glob-to-any-file:
+          - prisma/**
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.test.ts'
+          - '**/*.test.tsx'
+          - '**/*.spec.ts'
+          - '**/*.spec.tsx'
+          - tests/**
+          - e2e/**
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - docs/**
+
+ci-cd:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/**
+          - vercel.json
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - package.json
+          - pnpm-lock.yaml
+
+config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '*.config.*'
+          - tsconfig.json
+          - .env.example
+          - .gitignore
+          - .prettierrc.json
+          - .eslintrc*

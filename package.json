@@ -1,19 +1,19 @@
 {
-  "name": "figus-uy",
+  "name": "cambiala",
   "version": "0.1.0",
   "private": true,
-  "description": "Plataforma C2C para intercambio de figuritas del Mundial 2026 en Uruguay",
+  "description": "CambiaLa — Plataforma C2C para intercambio de figuritas del Mundial 2026 en Uruguay",
   "engines": {
     "node": ">=20.0.0",
-    "pnpm": ">=8.0.0"
+    "pnpm": ">=9.0.0"
   },
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "pnpm@10.34.1",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "lint:fix": "next lint --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -26,7 +26,35 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset",
-    "inngest:dev": "npx inngest-cli dev"
+    "inngest:dev": "npx inngest-cli@latest dev"
   },
-  "license": "UNLICENSED"
+  "dependencies": {
+    "@prisma/client": "^7.8.0",
+    "@tanstack/react-query": "^5.100.14",
+    "next": "16.2.6",
+    "prisma": "^7.8.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@tailwindcss/postcss": "4.3.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "20.19.41",
+    "@types/react": "19.2.15",
+    "@types/react-dom": "19.2.3",
+    "@vitest/coverage-v8": "^4.1.7",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.2.6",
+    "jsdom": "^29.1.1",
+    "prettier": "^3.8.3",
+    "prettier-plugin-tailwindcss": "^0.8.0",
+    "tailwindcss": "4.3.0",
+    "tsx": "^4.22.3",
+    "typescript": "5.9.3",
+    "vitest": "^4.1.7"
+  }
 }

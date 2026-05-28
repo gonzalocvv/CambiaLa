@@ -1,0 +1,42 @@
+name: Lighthouse CI
+
+# NOTA: este workflow está deshabilitado hasta que el proyecto tenga
+# preview deploys configurados en Vercel.
+# Activar cuando:
+# 1. El repo esté conectado a Vercel
+# 2. Existan los secrets VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+# 3. Las rutas /album y demás estén implementadas
+
+on:
+  # Comentado hasta que esté listo:
+  # pull_request:
+  #   branches: [develop, main]
+  workflow_dispatch:
+
+jobs:
+  lighthouse:
+    name: Lighthouse Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Wait for Vercel preview
+        uses: patrickedqvist/wait-for-vercel-preview@v1.3.1
+        id: vercel_preview
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          max_timeout: 600
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          urls: |
+            ${{ steps.vercel_preview.outputs.url }}/
+            ${{ steps.vercel_preview.outputs.url }}/login
+            ${{ steps.vercel_preview.outputs.url }}/como-funciona
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          # configPath: ./lighthouserc.json   # crear cuando estén las páginas

@@ -14,8 +14,5 @@
     "GitHub.copilot-chat",
     "anthropic.claude-code"
   ],
-  "unwantedRecommendations": [
-    "octref.vetur",
-    "hookyqr.beautify"
-  ]
+  "unwantedRecommendations": ["octref.vetur", "hookyqr.beautify"]
 }

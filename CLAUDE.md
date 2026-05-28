@@ -4,7 +4,9 @@ Este archivo es el contexto persistente que Claude Code lee al iniciar cada sesi
 
 ## Qué es este proyecto
 
-**Figus Mundial** — plataforma web C2C para que coleccionistas uruguayos intercambien figuritas del álbum Panini Mundial 2026.
+**CambiaLa** — plataforma web C2C para que coleccionistas uruguayos intercambien figuritas del álbum Panini Mundial 2026.
+
+**Branding**: nombre `CambiaLa` (camelCase, sin espacio). Paleta: azul marino (`#1E3A8A`) + naranja (`#F97316`). Modo claro y oscuro.
 
 - Mercado: Uruguay (Montevideo principalmente).
 - Ciclo principal: mayo-julio 2026 (durante el Mundial).
@@ -12,6 +14,7 @@ Este archivo es el contexto persistente que Claude Code lee al iniciar cada sesi
 - Side project con equipo de 3 personas part-time.
 
 **Lo que hace**:
+
 - Cada usuario carga qué figuritas tiene y cuáles le faltan.
 - El sistema calcula automáticamente con quién puede cambiar.
 - Notifica al instante cuando aparece un match.
@@ -25,6 +28,7 @@ Este archivo es el contexto persistente que Claude Code lee al iniciar cada sesi
 **TODA la documentación del producto, arquitectura y plan vive en Notion**: https://www.notion.so/36de548e6cdd81cda047e4a5c0f4ad91
 
 Si necesitás contexto profundo sobre cualquier feature o decisión, consultar Notion primero. La documentación está organizada en 9 bloques temáticos (0 a 8):
+
 - **Bloque 0**: Glosario.
 - **Bloque 1**: Visión, mercado, personas, journey.
 - **Bloque 2**: Requerimientos funcionales/no funcionales, user stories, casos de uso, matriz de trazabilidad.
@@ -71,6 +75,7 @@ Domain Layer (puro)   → src/lib/match-engine.ts, src/types/, src/lib/validatio
 ```
 
 **Reglas**:
+
 - Presentation NO importa Prisma directamente. Siempre via Service.
 - Services NO importan Request/Response. No saben de HTTP.
 - Repositories NO importan Services. Solo Prisma y tipos.
@@ -116,20 +121,20 @@ Domain Layer (puro)   → src/lib/match-engine.ts, src/types/, src/lib/validatio
 
 Ver **4.6 ADRs** en Notion. Resumen:
 
-| Decisión | Razón |
-|---|---|
-| Next.js 14 App Router | SSR + RSC + ecosistema + facilidad para Claude |
-| Supabase | Auth + DB + Storage + RLS en uno |
-| Prisma | Tipado fuerte, migraciones excelentes, DX |
-| Inngest | Jobs async sin gestionar Redis |
-| Magic link + Google OAuth | Sin passwords, baja fricción |
-| PWA, no app nativa en MVP | Ciclo del Mundial es corto |
-| Polling 10s en chat (MVP) | Simple. Realtime en F2 |
-| Solo Mundial 2026 en MVP (UI) | Foco. Schema soporta multi |
-| Sin ponderación por rareza | La economía del cambio se negocia en chat |
-| CUIDs sobre UUIDs | Más cortos, URL-safe |
-| RLS de Supabase activo | Defense in depth |
-| Rate limit in-memory (MVP) → Redis (F2) | Pragmático |
+| Decisión                                | Razón                                          |
+| --------------------------------------- | ---------------------------------------------- |
+| Next.js 14 App Router                   | SSR + RSC + ecosistema + facilidad para Claude |
+| Supabase                                | Auth + DB + Storage + RLS en uno               |
+| Prisma                                  | Tipado fuerte, migraciones excelentes, DX      |
+| Inngest                                 | Jobs async sin gestionar Redis                 |
+| Magic link + Google OAuth               | Sin passwords, baja fricción                   |
+| PWA, no app nativa en MVP               | Ciclo del Mundial es corto                     |
+| Polling 10s en chat (MVP)               | Simple. Realtime en F2                         |
+| Solo Mundial 2026 en MVP (UI)           | Foco. Schema soporta multi                     |
+| Sin ponderación por rareza              | La economía del cambio se negocia en chat      |
+| CUIDs sobre UUIDs                       | Más cortos, URL-safe                           |
+| RLS de Supabase activo                  | Defense in depth                               |
+| Rate limit in-memory (MVP) → Redis (F2) | Pragmático                                     |
 
 ## Features prioritarias del MVP (orden de implementación)
 
@@ -147,6 +152,7 @@ Total: 6-7 semanas con equipo de 3 part-time.
 ## Lo que NO se hace en MVP
 
 Features explícitamente fuera de scope MVP (ver 2.1 sección "Won't have"):
+
 - App nativa (PWA es suficiente).
 - Mapa de coleccionistas → F2.
 - Matches indirectos / triángulos → F3.
