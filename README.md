@@ -1,7 +1,8 @@
-# Figus Mundial
+# CambiaLa
 
+> Cambiá las figuritas que te faltan. Sin caos.
 > Plataforma web para que coleccionistas uruguayos intercambien figuritas del Mundial 2026.
-> Carga tu álbum, te avisamos cuando aparece alguien de tu barrio con las que necesitás.
+> Cargá tu álbum, te avisamos cuando aparece alguien de tu barrio con las que necesitás.
 
 ## Stack
 
@@ -44,18 +45,18 @@ pnpm inngest:dev     # http://localhost:8288
 
 ## Scripts disponibles
 
-| Comando | Qué hace |
-|---|---|
-| `pnpm dev` | Dev server con hot reload |
-| `pnpm build` | Build de producción |
-| `pnpm start` | Servir el build |
-| `pnpm lint` | ESLint |
-| `pnpm type-check` | TypeScript sin emit |
-| `pnpm test` | Vitest unit tests |
-| `pnpm test:e2e` | Playwright E2E |
-| `pnpm db:seed` | Cargar álbum Mundial 2026 |
-| `pnpm db:reset` | Reset DB local (CUIDADO en prod) |
-| `pnpm prisma studio` | UI para inspeccionar DB |
+| Comando              | Qué hace                         |
+| -------------------- | -------------------------------- |
+| `pnpm dev`           | Dev server con hot reload        |
+| `pnpm build`         | Build de producción              |
+| `pnpm start`         | Servir el build                  |
+| `pnpm lint`          | ESLint                           |
+| `pnpm type-check`    | TypeScript sin emit              |
+| `pnpm test`          | Vitest unit tests                |
+| `pnpm test:e2e`      | Playwright E2E                   |
+| `pnpm db:seed`       | Cargar álbum Mundial 2026        |
+| `pnpm db:reset`      | Reset DB local (CUIDADO en prod) |
+| `pnpm prisma studio` | UI para inspeccionar DB          |
 
 ## Estructura del proyecto
 
@@ -99,6 +100,7 @@ Toda la documentación del producto, arquitectura, decisiones, requerimientos y 
 📚 [App TBD] — Documentación Completa del Proyecto: https://www.notion.so/36de548e6cdd81cda047e4a5c0f4ad91
 
 Páginas clave para arrancar:
+
 - **2.1 Requerimientos Funcionales** — qué hace el producto
 - **4.2 Arquitectura de Software** — cómo está organizado el código
 - **4.3 Modelo de Datos** — schema Prisma comentado

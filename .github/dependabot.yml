@@ -1,0 +1,87 @@
+version: 2
+updates:
+  # =====================================================
+  # Actualizaciones de npm (pnpm)
+  # =====================================================
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: America/Montevideo
+    open-pull-requests-limit: 5
+    target-branch: develop
+    labels:
+      - dependencies
+      - automated
+    commit-message:
+      prefix: chore
+      prefix-development: chore
+      include: scope
+    # Agrupar updates menores y de patch para reducir ruido
+    groups:
+      next:
+        patterns:
+          - 'next'
+          - '@next/*'
+          - 'eslint-config-next'
+      react:
+        patterns:
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
+      typescript:
+        patterns:
+          - 'typescript'
+          - '@types/*'
+          - 'tsx'
+      testing:
+        patterns:
+          - 'vitest'
+          - '@vitest/*'
+          - '@testing-library/*'
+          - 'playwright'
+          - '@playwright/*'
+      linting:
+        patterns:
+          - 'eslint'
+          - 'eslint-*'
+          - '@typescript-eslint/*'
+          - 'prettier'
+          - 'prettier-*'
+      prisma:
+        patterns:
+          - 'prisma'
+          - '@prisma/*'
+      supabase:
+        patterns:
+          - '@supabase/*'
+      inngest:
+        patterns:
+          - 'inngest'
+          - '@inngest/*'
+    # Mayor updates (breaking) van en PR separados
+    ignore:
+      # Bloquear major updates automáticos de Next.js (los hacemos manualmente)
+      - dependency-name: 'next'
+        update-types: [version-update:semver-major]
+
+  # =====================================================
+  # Actualizaciones de GitHub Actions
+  # =====================================================
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+      time: '09:00'
+      timezone: America/Montevideo
+    open-pull-requests-limit: 3
+    target-branch: develop
+    labels:
+      - github-actions
+      - automated
+    commit-message:
+      prefix: ci
+      include: scope

@@ -28,7 +28,7 @@ Describir el testing que hiciste. Ejemplos:
 - [ ] Tests unitarios nuevos / actualizados
 - [ ] Tests de integración nuevos / actualizados
 - [ ] Tests E2E nuevos / actualizados
-- [ ] Probado manualmente en preview (URL: ___)
+- [ ] Probado manualmente en preview (URL: \_\_\_)
 - [ ] Lighthouse audit corrido
 - [ ] Probado en mobile real (iOS / Android)
 

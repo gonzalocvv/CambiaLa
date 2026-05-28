@@ -1,0 +1,165 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+  workflow_dispatch:
+
+# Cancela runs anteriores del mismo PR cuando hay un push nuevo
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 20
+  PNPM_VERSION: 9
+
+jobs:
+  # =====================================================
+  # Job 1: Setup y validación rápida (lint + type-check)
+  # =====================================================
+  lint-and-type:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run linter
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm type-check
+
+      - name: Check formatting
+        run: pnpm format:check
+
+  # =====================================================
+  # Job 2: Tests unitarios (Vitest)
+  # =====================================================
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: lint-and-type
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm prisma:generate
+
+      - name: Run unit tests
+        run: pnpm test --run --coverage
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
+  # =====================================================
+  # Job 3: Build de producción
+  # =====================================================
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: lint-and-type
+
+    env:
+      # Variables mock para el build (no se conecta a servicios reales)
+      NEXT_PUBLIC_SUPABASE_URL: 'https://mock.supabase.co'
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'mock-key'
+      SUPABASE_SERVICE_ROLE_KEY: 'mock-service-key'
+      DATABASE_URL: 'postgresql://mock:mock@localhost:5432/mock'
+      DIRECT_URL: 'postgresql://mock:mock@localhost:5432/mock'
+      RESEND_API_KEY: 'mock-resend'
+      RESEND_FROM_EMAIL: 'test@example.com'
+      NEXT_PUBLIC_BASE_URL: 'http://localhost:3000'
+      INNGEST_SIGNING_KEY: 'mock-inngest'
+      INNGEST_EVENT_KEY: 'mock-event'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm prisma:generate
+
+      - name: Build
+        run: pnpm build
+
+      - name: Check bundle size
+        run: |
+          # TODO: agregar verificación de bundle size cuando esté el budget
+          # ver Notion 7.5 Performance Budget Detallado
+          echo "Build OK"
+
+  # =====================================================
+  # Job 4: Resumen
+  # =====================================================
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [lint-and-type, test, build]
+    if: always()
+    steps:
+      - name: Check all jobs status
+        run: |
+          if [ "${{ needs.lint-and-type.result }}" != "success" ] || \
+             [ "${{ needs.test.result }}" != "success" ] || \
+             [ "${{ needs.build.result }}" != "success" ]; then
+            echo "Uno o más jobs fallaron"
+            exit 1
+          fi
+          echo "Todos los checks pasaron"
