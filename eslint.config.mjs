@@ -12,7 +12,15 @@ const eslintConfig = defineConfig([
     'out/**',
     'build/**',
     'next-env.d.ts',
+    // Generated directories:
+    'coverage/**',
   ]),
+  {
+    rules: {
+      // Use logger from @/lib/logger instead of console.log.
+      'no-console': ['error', { allow: ['warn', 'error', 'info', 'debug'] }],
+    },
+  },
 ]);
 
 export default eslintConfig;
