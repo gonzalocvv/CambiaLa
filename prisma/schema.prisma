@@ -1,0 +1,226 @@
+// =====================================================
+// Prisma schema — CambiaLa
+// =====================================================
+// Source of truth del modelo de datos.
+// Documentado en Notion: 4.3 Modelo de Datos, 4.5 Diagrama ER.
+//
+// Comandos útiles:
+//   pnpm prisma:generate   - regenera el cliente TypeScript
+//   pnpm prisma:migrate    - crea + aplica migration en dev
+//   pnpm prisma:studio     - abre UI para inspeccionar la DB
+//   pnpm db:reset          - reset completo de la DB local (DEV ONLY)
+// =====================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// =====================================================
+// USERS
+// =====================================================
+
+model User {
+  id             String  @id @default(cuid())
+  email          String  @unique
+  username       String? @unique
+  name           String?
+  avatarUrl      String?
+  bio            String?
+  city           String?
+  neighborhood   String?
+  whatsapp       String?
+  lat            Float?
+  lng            Float?
+  geoGranularity String  @default("none") // none | neighborhood | exact
+  role           String  @default("user") // user | admin
+  publicProfile  Boolean @default(false)
+  isSuspended    Boolean @default(false)
+
+  // Notificaciones
+  notifyOnMatch    Boolean @default(true)
+  emailFrequency   String  @default("instant") // instant | daily | weekly | never
+  pushEnabled      Boolean @default(false)
+  pushSubscription Json?
+
+  // Matchmaking
+  participatesInMatchmaking Boolean @default(true)
+  matchRadius               String  @default("department") // neighborhood | department | country
+  offerUniques              Boolean @default(false)
+  acceptUnbalanced          Boolean @default(true)
+
+  // Plan
+  isPro        Boolean   @default(false)
+  proExpiresAt DateTime?
+
+  // Reputación
+  reputation      Float @default(0)
+  tradesCompleted Int   @default(0)
+
+  // Timestamps
+  createdAt        DateTime  @default(now())
+  lastSeenAt       DateTime  @default(now())
+  onboardingDoneAt DateTime?
+
+  // Relaciones
+  stickers        UserSticker[]
+  matchesAsA      Match[]        @relation("UserA")
+  matchesAsB      Match[]        @relation("UserB")
+  ratingsGiven    Rating[]       @relation("Rater")
+  ratingsReceived Rating[]       @relation("Rated")
+  notifications   Notification[]
+  messages        Message[]
+
+  @@index([city, neighborhood])
+  @@index([lastSeenAt])
+}
+
+// =====================================================
+// ALBUMS (multi-album ready desde día 1)
+// =====================================================
+
+model Album {
+  id            String    @id @default(cuid())
+  slug          String    @unique // "mundial-2026", "copa-america-2027"
+  name          String
+  totalStickers Int
+  releasedAt    DateTime?
+  isActive      Boolean   @default(true)
+
+  stickers Sticker[]
+
+  @@index([isActive])
+}
+
+// =====================================================
+// STICKERS (figuritas del catálogo)
+// =====================================================
+
+model Sticker {
+  id        String  @id @default(cuid())
+  albumId   String
+  number    String // "URU9", "ARG10", "FWC1"
+  name      String?
+  team      String // "URU", "ARG", "BRA", "FWC"
+  rarity    String  @default("comun") // comun | dificil | muy_dificil | especial
+  isSpecial Boolean @default(false)
+
+  album        Album         @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  userStickers UserSticker[]
+
+  @@unique([albumId, number])
+  @@index([albumId, team])
+}
+
+// =====================================================
+// USER STICKERS (estado del álbum por usuario)
+// =====================================================
+
+model UserSticker {
+  id        String   @id @default(cuid())
+  userId    String
+  stickerId String
+  count     Int      @default(0)
+  // 0 = falta
+  // 1 = tengo una (no repetida)
+  // 2+ = repetidas (count-1 disponibles para cambiar)
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sticker Sticker @relation(fields: [stickerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stickerId])
+  @@index([userId, count])
+}
+
+// =====================================================
+// MATCHES
+// =====================================================
+
+model Match {
+  id      String @id @default(cuid())
+  userAId String
+  userBId String
+
+  score Int // min(|A→B|, |B→A|)
+  aToB  Json // ["URU9", "ARG12"] — sticker numbers que A da a B
+  bToA  Json // ["BRA5"] — sticker numbers que B da a A
+
+  status String @default("active") // active | inactive | trading | completed
+
+  lastUpdated DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  userA    User      @relation("UserA", fields: [userAId], references: [id])
+  userB    User      @relation("UserB", fields: [userBId], references: [id])
+  messages Message[]
+  ratings  Rating[]
+
+  @@unique([userAId, userBId])
+  @@index([userAId, status])
+  @@index([userBId, status])
+  @@index([score])
+}
+
+// =====================================================
+// MESSAGES (chat 1-a-1 dentro de un match)
+// =====================================================
+
+model Message {
+  id         String    @id @default(cuid())
+  matchId    String
+  fromUserId String
+  body       String // max 1000 chars (validar en service)
+  createdAt  DateTime  @default(now())
+  readAt     DateTime?
+
+  match    Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  fromUser User  @relation(fields: [fromUserId], references: [id])
+
+  @@index([matchId, createdAt])
+}
+
+// =====================================================
+// RATINGS (reseñas post-trade)
+// =====================================================
+
+model Rating {
+  id      String  @id @default(cuid())
+  matchId String
+  raterId String
+  ratedId String
+  stars   Int // 1-5 (validar en service)
+  comment String? // max 200 chars (validar en service)
+
+  createdAt DateTime @default(now())
+
+  match Match @relation(fields: [matchId], references: [id])
+  rater User  @relation("Rater", fields: [raterId], references: [id])
+  rated User  @relation("Rated", fields: [ratedId], references: [id])
+
+  @@unique([matchId, raterId]) // una review por usuario por match
+  @@index([ratedId])
+}
+
+// =====================================================
+// NOTIFICATIONS
+// =====================================================
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String // new_match | new_message | trade_completed | rating_received
+  payload   Json
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+}
