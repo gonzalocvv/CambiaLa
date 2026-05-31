@@ -3,6 +3,33 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-05-31 — Corrida 7
+
+- **Ítem**: S0.5 — Catálogo Mundial 2026 (~900 figuritas en JSON)
+- **Rama**: `claude/s05-catalog-mundial-2026`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, auto-merge habilitado (esperando CI)
+
+### Qué se hizo
+
+- `prisma/data/generate-mundial-2026.mjs`: script generador idempotente (Node.js ESM), define las 48 selecciones + sección FWC y sus jugadores
+- `prisma/data/mundial-2026.json`: catálogo versionado con **896 figuritas**
+  - FWC: 80 stickers (trofeo, sedes, grupos, estrellas foil)
+  - 48 selecciones × 17 stickers = 816 (escudo isSpecial + foto grupal + 15 jugadores)
+  - Raridades: especial=97, muy_dificil=26, dificil=143, comun=630
+  - 0 duplicados, 0 campos inválidos
+- Gate completo: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅, build ✅
+
+### Próximo paso
+
+**S0.6** — Seed script `prisma/seed.ts` que lee `prisma/data/mundial-2026.json` y popula `Album` + `Sticker` de forma idempotente (upsert por slug/number). No requiere Supabase real — el script puede correr con cualquier DB Postgres.
+
+### ⚠️ Bloqueos conocidos
+
+- Ítems 🔒 (Supabase, Resend, Inngest, Sentry, PostHog) requieren credenciales que tiene que crear Gonza.
+
+---
+
 ## 2026-05-31 — Corrida 6
 
 - **Ítem**: S0.4 — Logger estructurado + ESLint no-console

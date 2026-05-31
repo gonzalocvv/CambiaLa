@@ -43,7 +43,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **S0.2** next-intl con locale `es` (uruguayo) + estructura de `messages/`. Cero strings hardcodeados en JSX. (M)
 - [x] **S0.3** Estructura de capas: crear carpetas `src/services/`, `src/repositories/`, `src/lib/`, `src/types/`, `src/lib/validations/` con README de capa y singleton de PrismaClient (`src/lib/prisma.ts`). (M)
 - [x] **S0.4** Logger estructurado (`src/lib/logger.ts`), cero `console.log`. (S)
-- [ ] **S0.5** Catálogo Mundial 2026: definir dataset de ~900 figuritas (número, nombre opcional, equipo, rareza, is_special) como JSON versionado en `prisma/data/`. (M) ⛔ base de RF-201/202
+- [x] **S0.5** Catálogo Mundial 2026: definir dataset de ~900 figuritas (número, nombre opcional, equipo, rareza, is_special) como JSON versionado en `prisma/data/`. (M) ⛔ base de RF-201/202
 - [ ] **S0.6** Seed script `prisma/seed.ts` que carga el catálogo (idempotente). (M) — **RF-202** ⛔ bloqueante
 - [ ] **S0.7** 🔒 Supabase + migrations corriendo + `.env.local` real. (M) — requiere credenciales tuyas
 
