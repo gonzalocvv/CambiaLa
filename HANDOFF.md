@@ -8,6 +8,11 @@
 - **Ítem**: RF-301/302/303/304/305/306 — Motor de matches (función pura + TDD 100%)
 - **Rama**: `claude/rf301-match-engine`
 - **PR**: (pendiente — ver abajo)
+## 2026-05-31 — Corrida 8
+
+- **Ítem**: S0.6 — Seed script `prisma/seed.ts` (carga catálogo idempotente)
+- **Rama**: `claude/s06-seed-script`
+- **PR**: (ver abajo)
 - **Estado**: ✅ completo, PR abierto con auto-merge habilitado
 
 ### Qué se hizo
@@ -35,6 +40,45 @@ Próximo ítem autónomo recomendado: **RF-308** — persistencia del match en D
 
 - RF-307 🔒 Inngest — requiere credenciales reales.
 - S0.7 🔒 Supabase — toda la capa de Auth (Sprint 1) bloqueada.
+- `prisma/seed.ts`: script TypeScript ejecutable con `tsx` que lee `prisma/data/mundial-2026.json` y hace upsert idempotente del `Album` + 896 `Sticker` en lotes de 100 dentro de `$transaction`. Usa el logger estructurado. No usa `console.log`.
+- `package.json`: agregada clave `"prisma": { "seed": "tsx prisma/seed.ts" }` para que `prisma db seed` lo encuentre automáticamente.
+- Gate completo: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅, build ✅
+
+### Próximo paso
+
+**RF-301** — Motor de matches: función pura en `src/lib/match-engine.ts` con TDD obligatorio, cobertura 100%. Es 100% autónomo (lógica pura, sin Supabase, sin DB real).
+
+### ⚠️ Bloqueos conocidos
+
+- S0.7 🔒 (Supabase + DATABASE_URL real) — bloqueado hasta que Gonza cree el proyecto en Supabase.
+- Sprint 1 completo depende del seed corriendo contra una DB real (S0.7).
+
+---
+
+## 2026-05-31 — Corrida 7
+
+- **Ítem**: S0.5 — Catálogo Mundial 2026 (~900 figuritas en JSON)
+- **Rama**: `claude/s05-catalog-mundial-2026`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, auto-merge habilitado (esperando CI)
+
+### Qué se hizo
+
+- `prisma/data/generate-mundial-2026.mjs`: script generador idempotente (Node.js ESM), define las 48 selecciones + sección FWC y sus jugadores
+- `prisma/data/mundial-2026.json`: catálogo versionado con **896 figuritas**
+  - FWC: 80 stickers (trofeo, sedes, grupos, estrellas foil)
+  - 48 selecciones × 17 stickers = 816 (escudo isSpecial + foto grupal + 15 jugadores)
+  - Raridades: especial=97, muy_dificil=26, dificil=143, comun=630
+  - 0 duplicados, 0 campos inválidos
+- Gate completo: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅, build ✅
+
+### Próximo paso
+
+**S0.6** — Seed script `prisma/seed.ts` que lee `prisma/data/mundial-2026.json` y popula `Album` + `Sticker` de forma idempotente (upsert por slug/number). No requiere Supabase real — el script puede correr con cualquier DB Postgres.
+
+### ⚠️ Bloqueos conocidos
+
+- Ítems 🔒 (Supabase, Resend, Inngest, Sentry, PostHog) requieren credenciales que tiene que crear Gonza.
 
 ---
 
