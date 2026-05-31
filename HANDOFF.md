@@ -7,12 +7,7 @@
 
 - **Ítem**: RF-301/302/303/304/305/306 — Motor de matches (función pura + TDD 100%)
 - **Rama**: `claude/rf301-match-engine`
-- **PR**: (pendiente — ver abajo)
-## 2026-05-31 — Corrida 8
-
-- **Ítem**: S0.6 — Seed script `prisma/seed.ts` (carga catálogo idempotente)
-- **Rama**: `claude/s06-seed-script`
-- **PR**: (ver abajo)
+- **PR**: #23
 - **Estado**: ✅ completo, PR abierto con auto-merge habilitado
 
 ### Qué se hizo
@@ -40,6 +35,18 @@ Próximo ítem autónomo recomendado: **RF-308** — persistencia del match en D
 
 - RF-307 🔒 Inngest — requiere credenciales reales.
 - S0.7 🔒 Supabase — toda la capa de Auth (Sprint 1) bloqueada.
+
+---
+
+## 2026-05-31 — Corrida 8
+
+- **Ítem**: S0.6 — Seed script `prisma/seed.ts` (carga catálogo idempotente)
+- **Rama**: `claude/s06-seed-script`
+- **PR**: #22 (cerrado, superseded por PR #21)
+- **Estado**: ✅ completo
+
+### Qué se hizo
+
 - `prisma/seed.ts`: script TypeScript ejecutable con `tsx` que lee `prisma/data/mundial-2026.json` y hace upsert idempotente del `Album` + 896 `Sticker` en lotes de 100 dentro de `$transaction`. Usa el logger estructurado. No usa `console.log`.
 - `package.json`: agregada clave `"prisma": { "seed": "tsx prisma/seed.ts" }` para que `prisma db seed` lo encuentre automáticamente.
 - Gate completo: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅, build ✅
