@@ -9,6 +9,7 @@
   },
   "packageManager": "pnpm@10.34.1",
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
