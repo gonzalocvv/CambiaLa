@@ -15,7 +15,7 @@ export default function Home() {
           </p>
 
           <div className="inline-block">
-            <span className="inline-flex items-center rounded-full bg-orange-500/10 px-6 py-3 text-base font-medium text-orange-400 ring-1 ring-inset ring-orange-500/30">
+            <span className="inline-flex items-center rounded-full bg-orange-500/10 px-6 py-3 text-base font-medium text-orange-400 ring-1 ring-orange-500/30 ring-inset">
               🇺🇾 Próximamente
             </span>
           </div>
@@ -39,12 +39,12 @@ export default function Home() {
         {/* Glow decorativo arriba */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 -translate-y-1/2 mx-auto h-32 w-32 rounded-full bg-orange-500/20 blur-3xl md:w-64"
+          className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-32 w-32 -translate-y-1/2 rounded-full bg-orange-500/20 blur-3xl md:w-64"
         />
 
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-orange-400">
+            <p className="text-sm font-semibold tracking-[0.2em] text-orange-400 uppercase">
               Paso a paso
             </p>
             <h2 className="mt-4 text-4xl font-bold tracking-tight text-white md:text-5xl">
@@ -63,8 +63,8 @@ export default function Home() {
               </div>
               <h3 className="mt-6 text-2xl font-semibold text-white">Cargá tu álbum</h3>
               <p className="mt-3 text-base leading-relaxed text-slate-400">
-                Marcá qué figuritas tenés, cuáles te faltan y cuáles repetidas podés cambiar.
-                Tarda 5 minutos.
+                Marcá qué figuritas tenés, cuáles te faltan y cuáles repetidas podés cambiar. Tarda
+                5 minutos.
               </p>
             </div>
 
@@ -75,8 +75,8 @@ export default function Home() {
               </div>
               <h3 className="mt-6 text-2xl font-semibold text-white">Buscamos tu match</h3>
               <p className="mt-3 text-base leading-relaxed text-slate-400">
-                Cruzamos tu álbum con el de otros coleccionistas de tu barrio o ciudad. Vos
-                elegís hasta dónde compartir tu ubicación.
+                Cruzamos tu álbum con el de otros coleccionistas de tu barrio o ciudad. Vos elegís
+                hasta dónde compartir tu ubicación.
               </p>
             </div>
 
@@ -87,8 +87,8 @@ export default function Home() {
               </div>
               <h3 className="mt-6 text-2xl font-semibold text-white">Cambiá y completá</h3>
               <p className="mt-3 text-base leading-relaxed text-slate-400">
-                Te avisamos por mail cuando aparece un match. Coordinás por chat y arreglás
-                cuándo y dónde encontrarse.
+                Te avisamos por mail cuando aparece un match. Coordinás por chat y arreglás cuándo y
+                dónde encontrarse.
               </p>
             </div>
           </div>
