@@ -3,6 +3,41 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-05-31 — Corrida 9
+
+- **Ítem**: RF-301/302/303/304/305/306 — Motor de matches (función pura + TDD 100%)
+- **Rama**: `claude/rf301-match-engine`
+- **PR**: (pendiente — ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge habilitado
+
+### Qué se hizo
+
+- **Acción previa**: PR #22 (`claude/s06-seed-script`) tenía conflictos con `develop` porque su contenido fue squash-mergeado vía PR #21. Se cerró como superseded.
+- `src/types/match.ts`: tipos de dominio (`UserCollectionInput`, `MatchResult`, `MatchRadius`, `FindMatchesOptions`) — sin deps de Prisma.
+- `src/lib/match-engine.ts`: motor puro, cero side effects:
+  - `computeMatch(userA, userB)` — RF-301 + RF-306: sticker ausente de una lista = count 0 implícito.
+  - `isActiveUser(user, opts)` — RF-303: ventana de 30 días inyectable para tests.
+  - `isSameLocation(a, b, radius)` — RF-302: soporta `neighborhood | department | country`.
+  - `findMatchesForUser(target, pool, opts)` — aplica RF-302/303/304 + ordena por score desc.
+  - RF-305: `offerUniques=false` → sólo count >= 2; `true` → count >= 1.
+  - RF-306: sin ponderación de rareza.
+- `src/lib/__tests__/match-engine.test.ts`: 34 tests, 100% coverage (stmts/branches/funcs/lines).
+- `vitest.config.ts`: alias `@/` → `src/` para resolución de imports en tests.
+- Gate: format ✅, lint ✅ (0 errores 0 warnings), type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (100%), build ✅
+
+### Próximo paso
+
+RF-307 🔒 (Inngest job) y Sprint 1 completo dependen de Supabase 🔒.
+
+Próximo ítem autónomo recomendado: **RF-308** — persistencia del match en DB (`src/repositories/match.repository.ts` + `src/services/match.service.ts`). Requiere mock de Prisma pero no Supabase real. O bien las **páginas estáticas RF-801/802/803/804/805** (100% autónomas, SSG, no requieren credenciales).
+
+### ⚠️ Bloqueos conocidos
+
+- RF-307 🔒 Inngest — requiere credenciales reales.
+- S0.7 🔒 Supabase — toda la capa de Auth (Sprint 1) bloqueada.
+
+---
+
 ## 2026-05-31 — Corrida 6
 
 - **Ítem**: S0.4 — Logger estructurado + ESLint no-console

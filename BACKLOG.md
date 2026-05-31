@@ -97,12 +97,12 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ### Match engine (módulo 300) — **TDD obligatorio, cobertura 100%** (RF-301 es pura lógica, ideal autónomo)
 
-- [ ] **RF-301** Motor de matches: `A.tiene ∩ B.necesita ≠ ∅ Y B.tiene ∩ A.necesita ≠ ∅`, score = `min(|A→B|, |B→A|)`. Función pura en `src/lib/match-engine.ts` + tests. (M)
-- [ ] **RF-306** Sin ponderación por rareza en el cálculo (rareza solo visual). (M)
-- [ ] **RF-305** Opción no ofrecer únicas (`offerUniques=false` default → no figuritas count=1). (M)
-- [ ] **RF-302** Filtro por departamento por default (configurable a todo Uruguay / mismo barrio). (M)
-- [ ] **RF-303** Filtro de usuarios activos (`lastSeenAt < 30 días`). (M)
-- [ ] **RF-304** Filtro de participación (`participatesInMatchmaking=true`). (M)
+- [x] **RF-301** Motor de matches: `A.tiene ∩ B.necesita ≠ ∅ Y B.tiene ∩ A.necesita ≠ ∅`, score = `min(|A→B|, |B→A|)`. Función pura en `src/lib/match-engine.ts` + tests. (M)
+- [x] **RF-306** Sin ponderación por rareza en el cálculo (rareza solo visual). (M)
+- [x] **RF-305** Opción no ofrecer únicas (`offerUniques=false` default → no figuritas count=1). (M)
+- [x] **RF-302** Filtro por departamento por default (configurable a todo Uruguay / mismo barrio). (M)
+- [x] **RF-303** Filtro de usuarios activos (`lastSeenAt < 30 días`). (M)
+- [x] **RF-304** Filtro de participación (`participatesInMatchmaking=true`). (M)
 - [ ] **RF-307** 🔒 Recalcular matches via job Inngest al actualizar sticker (no en request HTTP). (M)
 - [ ] **RF-308** Persistencia del match en DB (`aToB`, `bToA` JSON arrays, `score`). (M)
 - [ ] **RF-309** TTL de matches: `inactive` si un participante no se loguea en 30 días + job de limpieza diario. (M)
