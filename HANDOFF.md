@@ -3,6 +3,30 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-05-31 — Corrida 8
+
+- **Ítem**: S0.6 — Seed script `prisma/seed.ts` (carga catálogo idempotente)
+- **Rama**: `claude/s06-seed-script`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge habilitado
+
+### Qué se hizo
+
+- `prisma/seed.ts`: script TypeScript ejecutable con `tsx` que lee `prisma/data/mundial-2026.json` y hace upsert idempotente del `Album` + 896 `Sticker` en lotes de 100 dentro de `$transaction`. Usa el logger estructurado. No usa `console.log`.
+- `package.json`: agregada clave `"prisma": { "seed": "tsx prisma/seed.ts" }` para que `prisma db seed` lo encuentre automáticamente.
+- Gate completo: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅, build ✅
+
+### Próximo paso
+
+**RF-301** — Motor de matches: función pura en `src/lib/match-engine.ts` con TDD obligatorio, cobertura 100%. Es 100% autónomo (lógica pura, sin Supabase, sin DB real).
+
+### ⚠️ Bloqueos conocidos
+
+- S0.7 🔒 (Supabase + DATABASE_URL real) — bloqueado hasta que Gonza cree el proyecto en Supabase.
+- Sprint 1 completo depende del seed corriendo contra una DB real (S0.7).
+
+---
+
 ## 2026-05-31 — Corrida 7
 
 - **Ítem**: S0.5 — Catálogo Mundial 2026 (~900 figuritas en JSON)
