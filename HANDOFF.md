@@ -1,0 +1,168 @@
+# HANDOFF — auto-builder de CambiaLa
+
+> Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
+> Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
+
+## 2026-05-31 — Corrida 6
+
+- **Ítem**: S0.4 — Logger estructurado + ESLint no-console
+- **Rama**: `feat/s04-logger`
+- **PR**: https://github.com/gonzalocvv/CambiaLa/pull/18
+- **Estado**: ✅ completo, auto-merge habilitado (esperando CI)
+
+### Qué se hizo
+
+- `src/lib/logger.ts`: logger isomorfo sin deps externas, niveles debug/info/warn/error, JSON en producción y texto legible en dev
+- `eslint.config.mjs`: regla `no-console` (prohíbe `console.log`; permite warn/error/info/debug) + `coverage/**` en globalIgnores (eliminaba un warning preexistente)
+- `src/lib/README.md`: entrada de logger.ts documentada
+- Gate completo: format ✅, lint ✅ (0 errores, 0 warnings), type-check ✅, format:check ✅, test:coverage ✅, build ✅
+
+### Próximo paso
+
+Siguiente ítem libre: **S0.5** — Catálogo Mundial 2026: definir dataset de ~900 figuritas como JSON versionado en `prisma/data/`. Es 100% autónomo (solo JSON + lógica, no requiere Supabase).
+
+### ⚠️ Bloqueos conocidos
+
+- Ítems 🔒 (Supabase, Resend, Inngest, Sentry, PostHog) requieren credenciales que tiene que crear Gonza.
+
+---
+
+## 2026-05-31 — Corrida 5
+
+- **Ítem**: fix CI del PR #17 (S0.3)
+- **Rama**: `feat/s03-layer-structure`
+- **PR**: https://github.com/gonzalocvv/CambiaLa/pull/17
+- **Estado**: 🚧 fix pusheado, esperando CI — intentos: 1/3
+
+### Qué se hizo
+
+- CI rojo: `error TS2305: Module '"@prisma/client"' has no exported member 'PrismaClient'` — el Job 1 de Lint & Type Check no corría `prisma generate` antes del `type-check`.
+- Fix: agregado `"postinstall": "prisma generate"` en `package.json` (para Vercel/local) + paso explícito `pnpm prisma:generate` en el job lint-and-type del CI workflow.
+- Gate local completo: format ✅, lint ✅ (1 warning preexistente, 0 errores), type-check ✅, format:check ✅, test:coverage ✅, build ✅
+
+### Próximo paso
+
+Esperar que CI pase en PR #17. Si pasa: mergea y la próxima corrida arranca **S0.4** (logger estructurado). Si falla de nuevo (intento 2/3), revisar qué nuevo error apareció.
+
+### ⚠️ Bloqueos conocidos
+
+- Ítems 🔒 (Supabase, Resend, Inngest, Sentry, PostHog) requieren credenciales que tiene que crear Gonza.
+
+---
+
+## 2026-05-31 — Corrida 4
+
+- **Ítem**: S0.3 — Estructura de capas + singleton PrismaClient
+- **Rama**: `feat/s03-layer-structure`
+- **PR**: https://github.com/gonzalocvv/CambiaLa/pull/17
+- **Estado**: ✅ completo, auto-merge habilitado (esperando CI)
+
+### Qué se hizo
+
+- `src/lib/prisma.ts`: singleton PrismaClient con guard de hot-reload (`globalThis` en dev, nueva instancia en prod)
+- READMEs en `src/services/`, `src/repositories/`, `src/lib/`, `src/types/`, `src/lib/validations/` documentando reglas de cada capa e imports permitidos
+- Borrados archivos `.next/types/*.d 2.ts` (duplicados macOS que rompían `tsc --noEmit`)
+- Gate completo: format ✅, lint ✅ (2 warnings preexistentes en coverage, no errores), type-check ✅, prisma:generate ✅, test:coverage ✅, build ✅
+
+### Próximo paso
+
+Siguiente ítem libre: **S0.4** — Logger estructurado (`src/lib/logger.ts`), cero `console.log`. Después S0.5/S0.6 (catálogo + seed — autónomos, no requieren Supabase para escribir el JSON/script).
+
+### ⚠️ Bloqueos conocidos
+
+- Ítems 🔒 (Supabase, Resend, Inngest, Sentry, PostHog) requieren credenciales que tiene que crear Gonza.
+
+---
+
+## Formato de cada entrada
+
+- **Fecha/hora**
+- **Ítem** trabajado (RF-id / Sx.y)
+- **Rama** + **PR** (URL)
+- **Estado**: ✅ hecho / 🚧 WIP / ⛔ bloqueado
+- **Próximo paso**: dónde sigue la próxima corrida
+- **⚠️ Necesita decisión** (si aplica)
+
+---
+
+## 2026-05-31 — Corrida 3
+
+- **Ítem**: S0.2 — next-intl locale `es` + estructura `messages/`
+- **Rama**: `feat/s02-next-intl`
+- **PR**: https://github.com/gonzalocvv/CambiaLa/pull/16
+- **Estado**: ✅ completo, auto-merge habilitado (esperando CI)
+
+### Qué se hizo
+
+- Instalado `next-intl 4.13.0`
+- `src/i18n/request.ts`: config del servidor, locale fijo `es`, sin i18n routing (MVP mono-idioma)
+- `messages/es.json`: todos los strings de la landing extraídos (namespaces `Metadata` y `Home`)
+- `next.config.ts`: envuelto con `createNextIntlPlugin`
+- `layout.tsx`: async + `NextIntlClientProvider` + `generateMetadata` via `getTranslations`
+- `page.tsx`: async server component, cero strings hardcodeados, footer usa `t.rich()` para el corazón coloreado
+- Build, type-check, lint, format:check y tests: todos ✅
+
+### Próximo paso
+
+Siguiente ítem libre: **S0.3** — Estructura de capas: crear `src/services/`, `src/repositories/`, `src/lib/`, `src/types/`, `src/lib/validations/` con README de capa y singleton de PrismaClient (`src/lib/prisma.ts`). Las carpetas `services/`, `repositories/`, `lib/` y `types/` ya existen vacías; hay que agregar el README de capa y `prisma.ts`.
+
+### ⚠️ Bloqueos conocidos
+
+- Ítems 🔒 (Supabase, Resend, Inngest, Sentry, PostHog) requieren credenciales que tiene que crear Gonza.
+
+---
+
+## 2026-05-31 — Corrida 2
+
+- **Ítem**: S0.1b — Polish componentes base shadcn/ui
+- **Rama**: `feat/s01b-component-polish`
+- **PR**: https://github.com/gonzalocvv/CambiaLa/pull/15
+- **Estado**: ✅ completo, auto-merge habilitado (esperando CI)
+
+### Qué se hizo
+
+- Instalado `tw-animate-css` + importado en `globals.css` → animaciones de Dialog/Overlay vivas
+- Fuente Geist agregada vía `next/font/google` en `layout.tsx` con variables `--font-geist-sans`/`--font-geist-mono`
+- Eliminadas clases `ring-offset-*` de button, input, badge y dialog (no funcionan en Tailwind v4)
+- `accent-foreground` corregido: texto oscuro `#1e293b` sobre naranja `#f97316` (WCAG AA ✅)
+- `ThemeProvider` (next-themes) NO implementado — la review lo marcó como opcional; queda pendiente si se decide en el futuro
+
+### Próximo paso
+
+Siguiente ítem libre: **S0.2** — next-intl con locale `es` + estructura `messages/`. Instalar `next-intl`, configurar `i18n/routing.ts`, crear `messages/es.json`, envolver el layout con el provider.
+
+### ⚠️ Bloqueos conocidos
+
+- Ítems 🔒 (Supabase, Resend, Inngest, Sentry, PostHog) requieren credenciales que tiene que crear Gonza.
+
+---
+
+## 2026-05-31 — Corrida 1
+
+- **Ítem**: S0.1 — shadcn/ui base
+- **Rama**: `feat/s01-shadcn-base`
+- **PR**: https://github.com/gonzalocvv/CambiaLa/pull/13
+- **Estado**: ✅ completo, auto-merge habilitado (esperando CI)
+
+### Qué se hizo
+
+- Instaladas deps: `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`, `@radix-ui/react-slot`, `@radix-ui/react-dialog`, `@radix-ui/react-label`
+- `components.json` configurado para shadcn/ui con Tailwind v4
+- `globals.css` reescrito: tokens CSS con paleta CambiaLa (azul `#1E3A8A` + naranja `#F97316`), dark mode via `@custom-variant dark` (class-based), `@theme inline` para utilities Tailwind v4
+- `src/lib/utils.ts` con `cn()` helper
+- Componentes en `src/components/ui/`: button, input, label, card, badge, dialog
+
+### Próximo paso
+
+Siguiente ítem libre: **S0.2** — next-intl con locale `es` + estructura `messages/`. Instalar `next-intl`, configurar `i18n/routing.ts`, crear `messages/es.json` vacío, envolver el layout con el provider.
+
+### ⚠️ Bloqueos conocidos
+
+- Ítems 🔒 (Supabase, Resend, Inngest, Sentry, PostHog) requieren credenciales/servicios que tiene que crear Gonza.
+- Auto-merge del PR #13: si el repo no tiene habilitado el auto-merge en Settings, Gonza debe habilitarlo una vez en Settings → General → Allow auto-merge.
+
+---
+
+## (historial)
+
+**Primera corrida:** S0.1 shadcn/ui base (esta entrada arriba).
