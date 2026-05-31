@@ -1,0 +1,29 @@
+{
+  "Metadata": {
+    "title": "CambiaLa — Cambia tus figuritas del Mundial 2026",
+    "description": "Plataforma para coleccionistas uruguayos. Cargá tu álbum, te avisamos cuando aparece alguien para cambiar."
+  },
+  "Home": {
+    "hero": {
+      "titlePrefix": "Cambia",
+      "titleHighlight": "La",
+      "subtitle": "Cambiá las figuritas del Mundial 2026, sin caos.",
+      "badge": "🇺🇾 Próximamente",
+      "descriptionLine1": "Plataforma para coleccionistas uruguayos del Mundial 2026.",
+      "descriptionLine2": "Cargá tu álbum, te avisamos cuando aparece alguien para cambiar.",
+      "scrollHint": "¿Cómo funciona?"
+    },
+    "howItWorks": {
+      "eyebrow": "Paso a paso",
+      "title": "¿Cómo funciona?",
+      "subtitle": "En tres pasos. Sin chat caótico, sin Marketplace, sin spam.",
+      "step1Title": "Cargá tu álbum",
+      "step1Desc": "Marcá qué figuritas tenés, cuáles te faltan y cuáles repetidas podés cambiar. Tarda 5 minutos.",
+      "step2Title": "Buscamos tu match",
+      "step2Desc": "Cruzamos tu álbum con el de otros coleccionistas de tu barrio o ciudad. Vos elegís hasta dónde compartir tu ubicación.",
+      "step3Title": "Cambiá y completá",
+      "step3Desc": "Te avisamos por mail cuando aparece un match. Coordinás por chat y arreglás cuándo y dónde encontrarse."
+    },
+    "footer": "Hecho con <heart>♥</heart> en Uruguay"
+  }
+}
