@@ -5,25 +5,32 @@
 
 ## 2026-05-31 — Corrida 8
 
-- **Ítem**: S0.6 — Seed script `prisma/seed.ts` (carga catálogo idempotente)
+- **Ítem**: S0.6 — Seed script `prisma/seed.ts`
 - **Rama**: `claude/s06-seed-script`
 - **PR**: (ver abajo)
-- **Estado**: ✅ completo, PR abierto con auto-merge habilitado
+- **Estado**: ✅ completo, auto-merge habilitado (esperando CI)
 
 ### Qué se hizo
 
-- `prisma/seed.ts`: script TypeScript ejecutable con `tsx` que lee `prisma/data/mundial-2026.json` y hace upsert idempotente del `Album` + 896 `Sticker` en lotes de 100 dentro de `$transaction`. Usa el logger estructurado. No usa `console.log`.
-- `package.json`: agregada clave `"prisma": { "seed": "tsx prisma/seed.ts" }` para que `prisma db seed` lo encuentre automáticamente.
+- `prisma/seed.ts`: script idempotente con `tsx`
+  - Upsert del álbum por `slug` (crea o actualiza)
+  - `createMany` con `skipDuplicates: true` en batches de 200 para los 896 stickers
+  - Reporta cuántos stickers nuevos se insertaron vs total en DB
+  - Conecta/desconecta PrismaClient con `finally`
+- `package.json`: agregado `prisma.seed = "tsx prisma/seed.ts"` para que `prisma migrate reset` invoque el seed automáticamente
 - Gate completo: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅, build ✅
 
 ### Próximo paso
 
-**RF-301** — Motor de matches: función pura en `src/lib/match-engine.ts` con TDD obligatorio, cobertura 100%. Es 100% autónomo (lógica pura, sin Supabase, sin DB real).
+**S0.7** está 🔒 (requiere Supabase real). Sprint 0 queda técnicamente completo en lo autónomo.
+
+Siguiente ítem autónomo libre: **RF-301** — Motor de matches (`src/lib/match-engine.ts`), función pura + tests 100% cobertura. No requiere DB ni servicios externos. Es el ítem más crítico del Sprint 2 y 100% autónomo.
 
 ### ⚠️ Bloqueos conocidos
 
-- S0.7 🔒 (Supabase + DATABASE_URL real) — bloqueado hasta que Gonza cree el proyecto en Supabase.
-- Sprint 1 completo depende del seed corriendo contra una DB real (S0.7).
+- **S0.7** 🔒 Supabase + migrations + `.env.local` real — requiere que Gonza cree el proyecto en Supabase.
+- Todos los ítems del Sprint 1 (RF-101 a RF-116) dependen de Supabase Auth 🔒.
+- RF-307 (Inngest), RF-406 (Resend) también 🔒.
 
 ---
 
