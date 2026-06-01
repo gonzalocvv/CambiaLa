@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
 import MatchCard from '@/components/matches/match-card';
@@ -15,6 +16,9 @@ export default async function MatchesPage() {
       </main>
     );
   }
+
+  // RF-111: block matches until onboarding is complete
+  if (!session.onboardingDoneAt) redirect('/onboarding');
 
   const matches = await matchService.getActiveMatchesWithPartners(session.userId);
 

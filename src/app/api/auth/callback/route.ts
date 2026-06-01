@@ -19,11 +19,13 @@ export async function GET(request: Request) {
   }
 
   // RF-103: auto-register on first login
-  await userService.getOrCreate({
+  const user = await userService.getOrCreate({
     email: data.user.email,
     name: data.user.user_metadata?.full_name as string | undefined,
     avatarUrl: data.user.user_metadata?.avatar_url as string | undefined,
   });
 
-  return NextResponse.redirect(`${origin}${next}`);
+  // RF-108: redirect to onboarding if not completed yet
+  const destination = user.onboardingDoneAt ? next : '/onboarding';
+  return NextResponse.redirect(`${origin}${destination}`);
 }
