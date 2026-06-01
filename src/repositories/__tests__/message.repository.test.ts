@@ -75,3 +75,28 @@ describe('messageRepository.countByMatch', () => {
     expect(mockPrisma.message.count).toHaveBeenCalledWith({ where: { matchId: 'match-1' } });
   });
 });
+
+describe('messageRepository.countUnread', () => {
+  it('counts messages from other users with readAt null', async () => {
+    mockPrisma.message.count.mockResolvedValue(3);
+
+    const result = await messageRepository.countUnread('match-1', 'user-b');
+
+    expect(result).toBe(3);
+    expect(mockPrisma.message.count).toHaveBeenCalledWith({
+      where: {
+        matchId: 'match-1',
+        fromUserId: { not: 'user-b' },
+        readAt: null,
+      },
+    });
+  });
+
+  it('returns 0 when all messages are read or sent by the user', async () => {
+    mockPrisma.message.count.mockResolvedValue(0);
+
+    const result = await messageRepository.countUnread('match-1', 'user-a');
+
+    expect(result).toBe(0);
+  });
+});
