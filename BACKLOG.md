@@ -55,13 +55,13 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ### Auth (módulo 100)
 
-- [ ] **RF-101** Login con magic link (email → link de un solo uso, válido 10 min). (M) 🔒 Supabase Auth — _(auditoría 2026-06-01: **S0.7 ya NO bloquea** — el proyecto Supabase existe. Falta: implementar el código de auth (`src/lib/auth.ts` es stub `return null`) + confirmar settings de email/SMTP del magic link en el dashboard de Supabase)_
+- [x] **RF-101** Login con magic link (email → link de un solo uso, válido 10 min). (M) — _Corrida 18: `@supabase/ssr` + `getSession()` real + página `/auth/login` + callback route_
 - [ ] **RF-102** Login con Google OAuth (un click). (M) 🔒 — _(auditoría 2026-06-01: requiere configurar el provider Google (client ID/secret) en el dashboard de Supabase — NO verificable desde el repo — + implementar el código)_
-- [ ] **RF-103** Registro automático en primer login (sin form de signup). (M)
-- [ ] **RF-104** Verificación de email implícita (magic link / Google). (M)
-- [ ] **RF-105** Sesión persistente (cookie HTTPOnly+Secure+SameSite=Lax). (M)
-- [ ] **RF-106** Logout (invalida cookies). (M)
-- [ ] **RF-107** Recuperación de cuenta (nuevo magic link). (M)
+- [x] **RF-103** Registro automático en primer login (sin form de signup). (M) — _Corrida 18: `userRepository.upsertByEmail()` en el auth callback_
+- [x] **RF-104** Verificación de email implícita (magic link / Google). (M) — _Corrida 18: Supabase maneja el OTP; el magic link es el mecanismo de verificación_
+- [x] **RF-105** Sesión persistente (cookie HTTPOnly+Secure+SameSite=Lax). (M) — _Corrida 18: middleware.ts con `@supabase/ssr` refresca cookies automáticamente_
+- [x] **RF-106** Logout (invalida cookies). (M) — _Corrida 18: POST `/api/auth/logout` llama `supabase.auth.signOut()`_
+- [x] **RF-107** Recuperación de cuenta (nuevo magic link). (M) — _Corrida 18: mismo flujo de magic link (Supabase re-envía el OTP si se pide desde la misma página)_
 
 ### Onboarding (módulo 100)
 
