@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 
 export type Session = {
   userId: string;
+  onboardingDoneAt: Date | null;
 };
 
 export async function getSession(): Promise<Session | null> {
@@ -20,5 +21,5 @@ export async function getSession(): Promise<Session | null> {
   const dbUser = await userRepository.findByEmail(user.email);
   if (!dbUser) return null;
 
-  return { userId: dbUser.id };
+  return { userId: dbUser.id, onboardingDoneAt: dbUser.onboardingDoneAt };
 }
