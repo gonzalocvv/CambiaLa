@@ -48,7 +48,10 @@ describe('userRepository.upsertByEmail', () => {
   it('creates a new user on first login', async () => {
     const user = makeDbUser();
     mockUserPrisma.upsert.mockResolvedValue(user);
-    const result = await userRepository.upsertByEmail({ email: 'test@example.com', name: 'Test User' });
+    const result = await userRepository.upsertByEmail({
+      email: 'test@example.com',
+      name: 'Test User',
+    });
     expect(result).toEqual(user);
     expect(mockUserPrisma.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
