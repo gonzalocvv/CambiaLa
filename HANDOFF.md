@@ -3,6 +3,42 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 21
+
+- **Ítem**: RF-204 + RF-205 — Filtros del álbum + búsqueda por número/nombre
+- **Rama**: `claude/rf204-rf205-album-filters-search`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge (REBASE) solicitado
+
+### Qué se hizo
+
+- `messages/es.json`: 10 nuevas claves en namespace `Album` — `filterAll`, `filterMissing`, `filterHave`, `filterDuplicates`, `filterSpecials`, `searchPlaceholder`, `searchClear`, `teamFilterAll`, `emptyFilter`, `resultsCount`.
+- `src/app/album/AlbumClient.tsx`: 3 nuevos estados (`activeFilter`, `selectedTeam`, `searchQuery`) + lógica de filtrado client-side:
+  - **RF-204** — Pills scrollables (Todas / Me faltan / Tengo / Repetidas / Especiales) + select de equipo con todos los equipos del álbum en orden de aparición (FWC primero, luego los 48 países).
+  - **RF-205** — Input de búsqueda case-insensitive por número (`URU9`) o nombre (`SUÁREZ`); botón ✕ para limpiar.
+  - `filteredStickers`: useMemo que combina los 3 filtros antes de agrupar por equipo.
+  - Estado vacío ("No hay figuritas…") cuando ningún sticker pasa el filtro.
+  - Contador de resultados cuando hay filtro activo.
+  - Botón "Todas ✕" para limpiar todos los filtros a la vez.
+  - Stats bar y progress bar muestran totales globales (no filtrados) — comportamiento esperado.
+- Gate: format ✅, lint ✅ (0 errores), type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (155 tests, 100%), build ✅ (`/album` como `ƒ Dynamic`).
+
+### Próximo paso
+
+1. **RF-404 + RF-405** — Badge campana en navbar con contador no leídas (refresh 60s) + dropdown de últimas 10. El servicio de notificaciones ya existe (RF-401/402/403). Falta el componente UI del header.
+2. **RF-409** — Trigger de notificación al crear match nuevo (ambas partes): llamar `notificationService.createNotification` desde `matchService.saveMatchResult`.
+3. **RF-901/902/907** — Settings básico: editar username/ciudad/barrio + logout desde settings.
+
+RF-404 + RF-405 son buena próxima corrida: el navbar ya existe, solo hay que agregar el ícono de campana con polling.
+
+### ⚠️ Bloqueos conocidos
+
+- RF-102 🔒 Google OAuth — requiere configurar el provider en el dashboard de Supabase.
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- RF-406 🔒 Resend — email transaccional custom.
+
+---
+
 ## 2026-06-01 — Corrida 20
 
 - **Ítem**: RF-203 + RF-206 + RF-207 + RF-208 + RF-209 + RF-210 + RF-211 — Vista de mi álbum completa
