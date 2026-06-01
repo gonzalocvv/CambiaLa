@@ -3,6 +3,49 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 27
+
+- **Ítem**: RF-601 + RF-602 + RF-603 + RF-604 — Reseñas post-trade (sistema completo de ratings)
+- **Rama**: `claude/rf601-ratings`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge (REBASE) solicitado
+
+### Qué se hizo
+
+- `src/lib/validations/rating.schema.ts`: schemas Zod — `CreateRatingSchema` (stars 1-5, comment opcional max 200), `RatingItemSchema`, `GetRatingsResponseSchema`, `CreateRatingResponseSchema`.
+- `src/repositories/rating.repository.ts`: 4 métodos — `create`, `findByMatch` (asc), `findByRater` (unique by matchId+raterId), `getReputationStats(ratedId)` (aggregate avg+count).
+- `src/repositories/user.repository.ts`: nuevo método `updateReputation(userId, {reputation, tradesCompleted})`.
+- `src/services/rating.service.ts`: `createRating(matchId, raterId, stars, comment?)` — valida participante + match completado + no ya calificado; crea rating; recalcula reputación del rated via aggregate + update. `getRatingsForMatch(matchId, userId)` — retorna `{ratings, hasRated}`. Error classes: `RatingMatchNotFoundError`, `RatingNotCompletedError`, `AlreadyRatedError`.
+- `GET /api/matches/[id]/ratings` — 401/404/200 `{ratings, hasRated}`.
+- `POST /api/matches/[id]/ratings` — 401/400/404/409(not-completed)/409(already-rated)/201 `{rating}`.
+- `src/components/matches/rating-modal.tsx` (client): selector de 5 estrellas con hover + aria labels; textarea comentario con contador; llamada a POST; maneja 409 como éxito (idempotente); `router.refresh()` post-envío.
+- `src/app/matches/[id]/page.tsx`: carga `ratingService.getRatingsForMatch` en paralelo (SSR); muestra `RatingModal` cuando `match.status === 'completed' && !hasRated`.
+- `messages/es.json`: namespace `Rating` con 9 claves (title, subtitle, starsLabel, starN, commentPlaceholder, submit, sending, error, thankYou).
+- Tests: 253 tests (+32 vs corrida anterior), branches 100%, lines 100%.
+  - 8 tests en `rating.repository.test.ts`
+  - 11 tests en `rating.service.test.ts`
+  - 10 tests en `ratings/route.test.ts`
+  - 1 test en `user.repository.test.ts` (updateReputation)
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (253 tests, branches 100%, lines 100%), build ✅ (`/api/matches/[id]/ratings` como `ƒ Dynamic`).
+
+### Próximo paso
+
+1. **RF-511** — Vista "Conversaciones" — lista todos los chats del usuario (matches con ≥1 mensaje), incluidos inactivos, por último mensaje. Data lista, falta UI.
+2. **RF-512** — Conversación persistente entre rematches (M): chat accesible aunque el match esté inactivo; solo 404 si nunca matchearon. Sin cambio de schema.
+3. **RF-802–808** — Páginas estáticas SSG (100% autónomas): `/como-funciona`, `/privacidad`, `/terminos`, `/contacto`, `/precios`, `sitemap.xml`, `robots.txt`.
+4. **RF-112** — Avatar upload ⚠️ pendiente decisión de Gonza sobre almacenamiento.
+
+RF-802–808 son 100% autónomas y añaden SEO/credibilidad. RF-512 completa el ciclo del chat.
+
+### ⚠️ Bloqueos conocidos
+
+- RF-102 🔒 Google OAuth — requiere configurar el provider en el dashboard de Supabase.
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- RF-406 🔒 Resend — email transaccional custom.
+- RF-112 ⚠️ Avatar upload — pendiente de decisión: Supabase Storage vs URL externa (validar host del origen para evitar SSRF).
+
+---
+
 ## 2026-06-01 — Corrida 26
 
 - **Ítem**: RF-506 — Indicador de no leídos en el match card
