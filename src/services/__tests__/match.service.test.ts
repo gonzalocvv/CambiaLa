@@ -11,12 +11,20 @@ const mockRepo = vi.hoisted(() => ({
   markInactiveByLastSeen: vi.fn(),
 }));
 
+const mockMessageRepo = vi.hoisted(() => ({
+  countUnread: vi.fn(),
+}));
+
 const mockNotificationService = vi.hoisted(() => ({
   createNotification: vi.fn(),
 }));
 
 vi.mock('@/repositories/match.repository', () => ({
   matchRepository: mockRepo,
+}));
+
+vi.mock('@/repositories/message.repository', () => ({
+  messageRepository: mockMessageRepo,
 }));
 
 vi.mock('@/services/notification.service', () => ({
@@ -59,6 +67,7 @@ beforeEach(() => {
   // Default: no existing match (new match scenario) and notifications resolve cleanly
   mockRepo.findByUsers.mockResolvedValue(null);
   mockNotificationService.createNotification.mockResolvedValue({ id: 'notif-1' });
+  mockMessageRepo.countUnread.mockResolvedValue(0);
 });
 
 describe('matchService.saveMatchResult', () => {
@@ -322,6 +331,48 @@ describe('matchService.getActiveMatchesWithPartners', () => {
     expect(results[0].createdAt).toBe(NOW.toISOString());
     expect(results[0].lastUpdated).toBe(NOW.toISOString());
   });
+
+  it('includes unreadCount from messageRepository.countUnread', async () => {
+    mockRepo.findActiveByUserWithPartners.mockResolvedValue([
+      makeMatchWithPartners('user-a', 'user-b', { id: 'match-unread' }),
+    ]);
+    mockMessageRepo.countUnread.mockResolvedValue(4);
+
+    const results = await matchService.getActiveMatchesWithPartners('user-a');
+
+    expect(mockMessageRepo.countUnread).toHaveBeenCalledWith('match-unread', 'user-a');
+    expect(results[0].unreadCount).toBe(4);
+  });
+
+  it('sets unreadCount 0 when no unread messages', async () => {
+    mockRepo.findActiveByUserWithPartners.mockResolvedValue([
+      makeMatchWithPartners('user-a', 'user-b'),
+    ]);
+    mockMessageRepo.countUnread.mockResolvedValue(0);
+
+    const results = await matchService.getActiveMatchesWithPartners('user-a');
+
+    expect(results[0].unreadCount).toBe(0);
+  });
+
+  it('fetches unread counts in parallel for multiple matches', async () => {
+    mockRepo.findActiveByUserWithPartners.mockResolvedValue([
+      makeMatchWithPartners('user-a', 'user-b', { id: 'match-1' }),
+      makeMatchWithPartners('user-a', 'user-c', {
+        id: 'match-2',
+        score: 1,
+        aToB: ['X'],
+        bToA: ['Y'],
+      }),
+    ]);
+    mockMessageRepo.countUnread.mockResolvedValueOnce(2).mockResolvedValueOnce(0);
+
+    const results = await matchService.getActiveMatchesWithPartners('user-a');
+
+    expect(results[0].unreadCount).toBe(2);
+    expect(results[1].unreadCount).toBe(0);
+    expect(mockMessageRepo.countUnread).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('matchService.getMatchDetailForUser', () => {
@@ -379,6 +430,7 @@ describe('matchService.getMatchDetailForUser', () => {
     expect(result!.youGive).toEqual(['URU1', 'ARG2', 'BRA3']);
     expect(result!.youGet).toEqual(['ESP4', 'FRA5', 'GER6']);
     expect(result!.partner.id).toBe('user-b');
+    expect(result!.unreadCount).toBe(0);
   });
 
   it('returns match from user-b perspective when user is userB', async () => {

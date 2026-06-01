@@ -3,6 +3,7 @@ import type { Match } from '@prisma/client';
 import type { MatchResult } from '@/types/match';
 import type { ActiveMatchItem, MatchStatus } from '@/lib/validations/match.schema';
 import { matchRepository } from '@/repositories/match.repository';
+import { messageRepository } from '@/repositories/message.repository';
 import { notificationService } from '@/services/notification.service';
 
 // Typed view of a Match record with decoded JSON arrays.
@@ -105,6 +106,7 @@ export const matchService = {
       status: m.status as MatchStatus,
       youGive: isA ? (m.aToB as string[]) : (m.bToA as string[]),
       youGet: isA ? (m.bToA as string[]) : (m.aToB as string[]),
+      unreadCount: 0,
       partner: {
         id: partner.id,
         username: partner.username,
@@ -121,10 +123,14 @@ export const matchService = {
     };
   },
 
-  // Returns matches with partner data normalised to the requesting user's perspective.
+  // Returns matches with partner data normalised to the requesting user's perspective,
+  // including the count of unread messages per match.
   async getActiveMatchesWithPartners(userId: string): Promise<ActiveMatchItem[]> {
     const matches = await matchRepository.findActiveByUserWithPartners(userId);
-    return matches.map((m) => {
+    const unreadCounts = await Promise.all(
+      matches.map((m) => messageRepository.countUnread(m.id, userId)),
+    );
+    return matches.map((m, i) => {
       const isA = m.userAId === userId;
       const partner = isA ? m.userB : m.userA;
       return {
@@ -133,6 +139,7 @@ export const matchService = {
         status: m.status as MatchStatus,
         youGive: isA ? (m.aToB as string[]) : (m.bToA as string[]),
         youGet: isA ? (m.bToA as string[]) : (m.aToB as string[]),
+        unreadCount: unreadCounts[i],
         partner: {
           id: partner.id,
           username: partner.username,
