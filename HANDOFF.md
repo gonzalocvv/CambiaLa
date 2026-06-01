@@ -54,6 +54,44 @@ Gonza propone evaluar **email + contraseña** en vez de magic link ("la gente ve
 
 ---
 
+## 2026-06-01 — Corrida 28
+
+- **Ítem**: RF-511 — Vista "Conversaciones"
+- **Rama**: `claude/rf511-conversations-view`
+- **PR**: https://github.com/gonzalocvv/CambiaLa/pull/45
+- **Estado**: ✅ completo, PR abierto con auto-merge (REBASE) solicitado
+
+### Qué se hizo
+
+- `src/repositories/match.repository.ts`: nuevo tipo `MatchWithPartnersAndMessages` + método `findWithLastMessageByUser(userId)` — query `match.findMany` con `messages: { some: {} }` + `include: { userA, userB, messages: { take: 1, orderBy: createdAt desc } }`, sorted in-memory por timestamp del último mensaje desc. 3 tests nuevos.
+- `src/lib/validations/message.schema.ts`: nuevos schemas — `ConversationLastMessageSchema`, `ConversationItemSchema` (con `MatchPartnerSchema` importado de match.schema), `GetConversationsResponseSchema` + tipos inferidos.
+- `src/services/message.service.ts`: nuevo método `getConversationsForUser(userId)` — llama `matchRepository.findWithLastMessageByUser`, fetch paralelo de unread counts, construye `ConversationItem[]` con perspectiva del usuario (isA/isB) y `lastMessage.isMine`. 5 tests nuevos.
+- `GET /api/conversations` — 401 sin sesión, 200 `{ conversations }`. 3 tests.
+- `src/components/chat/conversation-card.tsx`: server component async — avatar/iniciales del partner, preview del último mensaje (60 chars), prefijo "Vos: " si es propio, badge de no leídos (naranja), badges de estado (Completado/Inactivo), nombre en negrita si hay no leídos. Tokens de color únicamente.
+- `src/app/conversations/page.tsx`: server component SSR — auth guard (mensaje i18n si no hay sesión), onboarding guard (redirect), lista de `ConversationCard`, estado vacío.
+- `src/components/layout/app-navbar.tsx`: link "Chats" → `/conversations` agregado entre "Mis matches" y la campana.
+- `messages/es.json`: namespace `Conversations` (8 claves: title, empty, notAuthenticated, unknownUser, youPrefix, unreadMessages, statusCompleted, statusInactive) + `AppNav.conversations`.
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (264 tests, branches 100%, lines 100%), build ✅ (`/conversations` y `/api/conversations` como `ƒ Dynamic`).
+
+### Próximo paso
+
+1. **RF-512** — Conversación persistente entre rematches (M): chat accesible aunque el match esté inactivo; solo 404 si nunca matchearon. Sin cambio de schema. Refinamiento de RF-501.
+2. **RF-513** — Señal de confianza (S): "ya hablaron · última vez X", "se conocen desde X" + reputación/estrellas en el detalle del match.
+3. **RF-802–808** — Páginas estáticas SSG (100% autónomas): `/como-funciona`, `/privacidad`, `/terminos`, `/contacto`, `/precios`, `sitemap.xml`, `robots.txt`.
+4. **RF-701–709** — Perfil público `/u/[username]` SSR (si `publicProfile=true`).
+
+RF-512 (M) es el siguiente hito: cierra el ciclo del chat para rematches.
+RF-802–808 son 100% autónomas y aportan SEO sin dependencias externas.
+
+### ⚠️ Bloqueos conocidos
+
+- RF-102 🔒 Google OAuth — requiere configurar el provider en el dashboard de Supabase.
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- RF-406 🔒 Resend — email transaccional custom.
+- RF-112 ⚠️ Avatar upload — pendiente de decisión: Supabase Storage vs URL externa.
+
+---
+
 ## 2026-06-01 — Corrida 27
 
 - **Ítem**: RF-601 + RF-602 + RF-603 + RF-604 — Reseñas post-trade (sistema completo de ratings)
