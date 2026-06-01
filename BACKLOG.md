@@ -120,7 +120,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **RF-503** Input + envío (máx 1000 chars). (M) — _Corrida 24: textarea + POST /api/matches/[id]/messages + Enter para enviar_
 - [x] **RF-504** Persistencia de mensajes en DB asociados al match. (M) — _Corrida 24: messageRepository.create + findByMatch_
 - [x] **RF-505** Polling cada 10s para mensajes nuevos. (M) — _Corrida 24: setInterval en ChatPanel_
-- [ ] **RF-506** Indicador de no leídos en el match card. (S)
+- [x] **RF-506** Indicador de no leídos en el match card. (S) — _Corrida 26: countUnread en messageRepository + unreadCount en ActiveMatchItem + badge naranja en MatchCard_
 - [ ] **RF-511** Vista "Conversaciones" — lista todos los chats del usuario (matches con ≥1 mensaje), incluidos inactivos, por último mensaje. (S) — falta UI; data lista.
 - [ ] **RF-512** Conversación persistente entre rematches — chat por par de usuarios, sobrevive a match inactivo; leer + escribir aunque no haya match activo; 404 solo si nunca matchearon. Refina RF-501. (M) — sin cambio de schema.
 - [ ] **RF-513** Señal de confianza — "ya hablaron · última vez X", "se conocen desde X" (Match.createdAt) + reputación/estrellas. (S) — data lista (mensajes, Rating, reputation).

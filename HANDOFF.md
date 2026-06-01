@@ -3,6 +3,44 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 26
+
+- **Ítem**: RF-506 — Indicador de no leídos en el match card
+- **Rama**: `claude/rf506-unread-badge`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge (REBASE) solicitado
+
+### Qué se hizo
+
+- `src/repositories/message.repository.ts`: nuevo método `countUnread(matchId, userId)` — `prisma.message.count` con `{ matchId, fromUserId: { not: userId }, readAt: null }`. 2 tests nuevos.
+- `src/lib/validations/match.schema.ts`: campo `unreadCount: z.number().int().min(0).default(0)` agregado a `ActiveMatchItemSchema`.
+- `src/services/match.service.ts`: importa `messageRepository`. `getActiveMatchesWithPartners` usa `Promise.all` para fetchear unread counts en paralelo para todos los matches y los agrega al resultado. `getMatchDetailForUser` retorna `unreadCount: 0` (el detalle muestra el chat directamente, no necesita el badge). 5 tests nuevos + mock de `messageRepository`.
+- `src/components/matches/match-card.tsx`: badge naranja (`bg-accent text-accent-foreground`) sobre el avatar mostrando el count cuando `unreadCount > 0`; trunca a `99+`. También corrige la clase cruda `bg-slate-200 dark:bg-slate-700` del fallback de avatar → `bg-muted` (token).
+- `messages/es.json`: clave `unreadMessages` en namespace `MatchCard` — `"{count, plural, one {1 mensaje sin leer} other {# mensajes sin leer}}"`.
+- Tests: 221 tests (+5 vs corrida anterior), branches 100%, lines 100%.
+  - 2 tests en `message.repository.test.ts` (countUnread: happy path + zero)
+  - 3 tests en `match.service.test.ts` (unreadCount presente, cero, paralelo para múltiples matches)
+  - 3 factories de tests de rutas actualizadas con `unreadCount: 0`
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (221 tests, branches 100%, lines 100%), build ✅.
+
+### Próximo paso
+
+1. **RF-601–604** — Reseñas post-trade (1-5 estrellas + comentario): ciclo completo mark-completed → reseña. Rating model ya existe en el schema Prisma. Requiere: `ratingRepository`, `ratingService`, `POST /api/matches/[id]/ratings`, UI modal post-completed.
+2. **RF-802–808** — Páginas estáticas SSG (100% autónomas): `/como-funciona`, `/privacidad`, `/terminos`, `/contacto`, `/precios`, `sitemap.xml`, `robots.txt`. Sin credenciales, puro SSG.
+3. **RF-512** — Conversación persistente entre rematches (M): chat accesible aunque el match esté inactivo; solo 404 si nunca matchearon.
+4. **RF-112** — Avatar upload ⚠️ pendiente decisión de Gonza sobre almacenamiento.
+
+RF-601-604 completan el ciclo del MVP (match → chat → completar → reseña). Las páginas estáticas (RF-802–808) son 100% autónomas y aportan SEO/credibilidad.
+
+### ⚠️ Bloqueos conocidos
+
+- RF-102 🔒 Google OAuth — requiere configurar el provider en el dashboard de Supabase.
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- RF-406 🔒 Resend — email transaccional custom.
+- RF-112 ⚠️ Avatar upload — pendiente de decisión: Supabase Storage vs URL externa (validar host del origen para evitar SSRF).
+
+---
+
 ## 2026-06-01 — Corrida 25
 
 - **Ítem**: RF-113 + RF-114 + RF-116 — Bio del partner visible, WhatsApp y toggle perfil público
