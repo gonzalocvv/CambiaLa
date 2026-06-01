@@ -140,6 +140,25 @@ describe('messageService.getMessages', () => {
       MessageAccessError,
     );
   });
+
+  // RF-512: chat persists after match goes inactive or completed
+  it('allows reading messages from an inactive match', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch({ status: 'inactive' }));
+    mockMessageRepo.findByMatch.mockResolvedValue([makeDbMessage()]);
+
+    const result = await messageService.getMessages('match-1', 'user-a');
+
+    expect(result).toHaveLength(1);
+  });
+
+  it('allows reading messages from a completed match', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch({ status: 'completed' }));
+    mockMessageRepo.findByMatch.mockResolvedValue([makeDbMessage()]);
+
+    const result = await messageService.getMessages('match-1', 'user-b');
+
+    expect(result).toHaveLength(1);
+  });
 });
 
 describe('messageService.sendMessage', () => {
@@ -169,6 +188,30 @@ describe('messageService.sendMessage', () => {
     await expect(messageService.sendMessage('nonexistent', 'user-a', 'hola')).rejects.toThrow(
       MatchNotFoundError,
     );
+  });
+
+  // RF-512: writing messages works regardless of match status
+  it('allows sending messages to an inactive match', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch({ status: 'inactive' }));
+    mockMessageRepo.create.mockResolvedValue(makeDbMessage({ body: '¿Seguimos cambiando?' }));
+
+    const result = await messageService.sendMessage('match-1', 'user-a', '¿Seguimos cambiando?');
+
+    expect(result.body).toBe('¿Seguimos cambiando?');
+    expect(mockMessageRepo.create).toHaveBeenCalledWith(
+      'match-1',
+      'user-a',
+      '¿Seguimos cambiando?',
+    );
+  });
+
+  it('allows sending messages to a completed match', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch({ status: 'completed' }));
+    mockMessageRepo.create.mockResolvedValue(makeDbMessage({ body: '¡Gracias por el cambio!' }));
+
+    const result = await messageService.sendMessage('match-1', 'user-b', '¡Gracias por el cambio!');
+
+    expect(result.body).toBe('¡Gracias por el cambio!');
   });
 });
 
