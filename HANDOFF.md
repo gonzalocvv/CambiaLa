@@ -3,6 +3,44 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 12
+
+- **Ítem**: RF-310 — `GET /api/matches`: lista de matches activos para el usuario autenticado, ordenados por score desc
+- **Rama**: `claude/rf310-matches-list-api`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge solicitado
+
+### Qué se hizo
+
+- `src/lib/auth.ts`: stub `getSession(): Promise<Session | null>` — retorna `null` hasta que Supabase esté listo (🔒 S0.7). Permite escribir y testear la API route sin credenciales reales.
+- `src/lib/validations/match.schema.ts`: nuevos schemas Zod — `MatchPartnerSchema`, `ActiveMatchItemSchema` (con `youGive`/`youGet` ya desde la perspectiva del usuario), `GetMatchesResponseSchema`.
+- `src/repositories/match.repository.ts`: nuevo método `findActiveByUserWithPartners(userId)` — `findMany` con `include: { userA: true, userB: true }` + tipo `MatchWithPartners = Prisma.MatchGetPayload<{include: {userA: true; userB: true}}>`.
+- `src/services/match.service.ts`: nuevo método `getActiveMatchesWithPartners(userId)` — normaliza perspectiva: si el usuario es A → `youGive=aToB, youGet=bToA`, si es B → inverso. Extrae campos públicos del partner.
+- `src/app/api/matches/route.ts`: `GET` handler — llama `getSession()`, devuelve 401 si null, 200 con `{ matches }` si autenticado.
+- Tests: 67 tests (+11 vs corrida anterior), 100% coverage (stmts/branches/funcs/lines).
+  - 2 tests nuevos en `match.repository.test.ts` (findActiveByUserWithPartners)
+  - 5 tests nuevos en `match.service.test.ts` (getActiveMatchesWithPartners)
+  - 4 tests nuevos en `route.test.ts` (GET /api/matches: 401, 200, vacío, orden)
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅, build ✅ (ruta `/api/matches` aparece como `ƒ Dynamic` en el build output)
+
+### ⚠️ Nota sobre autenticación
+
+`src/lib/auth.ts` siempre retorna `null` hasta que Supabase esté disponible (S0.7 🔒). Cuando se integre Supabase Auth, reemplazar el cuerpo de `getSession()` con la llamada `createServerClient` de `@supabase/ssr`.
+
+### Próximo paso
+
+Próximos ítems autónomos (sin credenciales):
+- **RF-311** — Match card: componente UI (avatar/username del otro, barrio, score, "te da X / le das Y"). Puede implementarse como componente puro ya que la forma de los datos viene definida por `ActiveMatchItem` de RF-310.
+- **RF-802 a RF-808** — Páginas estáticas SSG (`/como-funciona`, `/precios`, `/privacidad`, `/terminos`, `/contacto`): 100% autónomas.
+- **RF-401** — Tabla `Notification` + API routes `GET /api/notifications` y `PATCH /api/notifications/[id]`: pura lógica DB + Zod, similar en estructura a RF-310.
+
+### ⚠️ Bloqueos conocidos
+
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- S0.7 🔒 Supabase — toda la capa de Auth (Sprint 1) bloqueada. `getSession()` retorna null hasta que esté listo.
+
+---
+
 ## 2026-06-01 — Corrida 11
 
 - **Ítem**: RF-309 — TTL de matches: batch cleanup (repository + service + tests)
