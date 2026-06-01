@@ -12,6 +12,8 @@ type Props = {
   initialBio: string;
   initialCity: string;
   initialNeighborhood: string;
+  initialWhatsapp: string;
+  initialPublicProfile: boolean;
 };
 
 export default function SettingsForm({
@@ -19,6 +21,8 @@ export default function SettingsForm({
   initialBio,
   initialCity,
   initialNeighborhood,
+  initialWhatsapp,
+  initialPublicProfile,
 }: Props) {
   const t = useTranslations('Settings');
   const router = useRouter();
@@ -26,6 +30,8 @@ export default function SettingsForm({
 
   const [name, setName] = useState(initialName);
   const [bio, setBio] = useState(initialBio);
+  const [whatsapp, setWhatsapp] = useState(initialWhatsapp);
+  const [publicProfile, setPublicProfile] = useState(initialPublicProfile);
   const [city, setCity] = useState(initialCity);
   const [neighborhood, setNeighborhood] = useState(initialNeighborhood);
 
@@ -33,16 +39,30 @@ export default function SettingsForm({
   const [locationSaveState, setLocationSaveState] = useState<SaveState>('idle');
   const [profileError, setProfileError] = useState('');
   const [locationError, setLocationError] = useState('');
+  const [whatsappError, setWhatsappError] = useState('');
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
     setProfileSaveState('saving');
     setProfileError('');
+    setWhatsappError('');
+
+    if (whatsapp && !/^\+598\d{8}$/.test(whatsapp)) {
+      setWhatsappError(t('whatsappError'));
+      setProfileSaveState('error');
+      return;
+    }
+
     try {
       const res = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name || undefined, bio: bio || undefined }),
+        body: JSON.stringify({
+          name: name || undefined,
+          bio: bio || undefined,
+          whatsapp: whatsapp || undefined,
+          publicProfile,
+        }),
       });
       if (!res.ok) {
         const data = (await res.json()) as { error?: string };
@@ -154,6 +174,47 @@ export default function SettingsForm({
             <p className="text-muted-foreground mt-1 text-right text-xs">
               {t('bioHint', { count: bio.length })}
             </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="settings-whatsapp"
+              className="text-foreground mb-1 block text-sm font-medium"
+            >
+              {t('whatsappLabel')}
+            </label>
+            <input
+              id="settings-whatsapp"
+              type="tel"
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(e.target.value)}
+              placeholder={t('whatsappPlaceholder')}
+              className="border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-primary w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+            />
+            <p className="text-muted-foreground mt-1 text-xs">{t('whatsappHint')}</p>
+            {whatsappError && <p className="text-destructive mt-1 text-xs">{whatsappError}</p>}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-foreground text-sm font-medium">{t('publicProfileLabel')}</p>
+              <p className="text-muted-foreground text-xs">{t('publicProfileSubtitle')}</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={publicProfile}
+              onClick={() => setPublicProfile((v) => !v)}
+              className={`focus:ring-primary relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none ${
+                publicProfile ? 'bg-primary' : 'bg-muted'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  publicProfile ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
           </div>
 
           {profileSaveState === 'error' && profileError && (
