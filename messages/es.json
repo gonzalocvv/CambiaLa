@@ -31,6 +31,23 @@
     "stickersExchange": "te da {youGet} / le das {youGive}",
     "trades": "{count, plural, one {1 cambio} other {# cambios}}"
   },
+  "Auth": {
+    "login": {
+      "title": "Iniciá sesión",
+      "subtitle": "Te mandamos un link al mail. Sin contraseña.",
+      "emailLabel": "Tu email",
+      "emailPlaceholder": "vos@ejemplo.com",
+      "submitButton": "Mandarme el link",
+      "submitting": "Enviando…",
+      "successTitle": "¡Listo! Revisá tu mail",
+      "successMessage": "Te mandamos un link a {email}. Hacé click y entrás.",
+      "successHint": "Si no ves el mail, revisá la carpeta de spam.",
+      "errorGeneric": "Algo salió mal. Intentá de nuevo.",
+      "errorInvalidEmail": "El email no parece válido.",
+      "backToHome": "← Volver al inicio",
+      "callbackError": "Hubo un problema al iniciar sesión. Intentá de nuevo."
+    }
+  },
   "Home": {
     "nav": {
       "login": "Iniciá sesión",
