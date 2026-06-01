@@ -126,7 +126,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **RF-506** Indicador de no leídos en el match card. (S) — _Corrida 26: countUnread en messageRepository + unreadCount en ActiveMatchItem + badge naranja en MatchCard_
 - [x] **RF-511** Vista "Conversaciones" — lista todos los chats del usuario (matches con ≥1 mensaje), incluidos inactivos, por último mensaje. (S) — _Corrida 28: /conversations + ConversationCard + GET /api/conversations + navbar link_
 - [x] **RF-512** Conversación persistente entre rematches — chat por par de usuarios, sobrevive a match inactivo; leer + escribir aunque no haya match activo; 404 solo si nunca matchearon. Refina RF-501. (M) — _Corrida 30: badge "Inactivo" + nota en match detail; tests documentan que assertParticipant no filtra por status (read+write funcionan en inactive y completed)._
-- [ ] **RF-513** Señal de confianza — "ya hablaron · última vez X", "se conocen desde X" (Match.createdAt) + reputación/estrellas. (S) — data lista (mensajes, Rating, reputation).
+- [x] **RF-513** Señal de confianza — "ya hablaron · última vez X", "se conocen desde X" (Match.createdAt) + reputación/estrellas. (S) — _Corrida 33: formatRelativeDate puro + trust signal section en match detail_
 
 ### Reseñas (módulo 600)
 
