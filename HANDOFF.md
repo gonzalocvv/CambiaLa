@@ -3,6 +3,48 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 25
+
+- **Ítem**: RF-113 + RF-114 + RF-116 — Bio del partner visible, WhatsApp y toggle perfil público
+- **Rama**: `claude/tender-archimedes-I34eF`
+- **PR**: https://github.com/gonzalocvv/CambiaLa/pull/41
+- **Estado**: ✅ completo, PR abierto con auto-merge (REBASE) solicitado
+
+### Qué se hizo
+
+- `src/lib/validations/settings.schema.ts`: `UpdateProfileSchema` extiende con `whatsapp` (regex `/^\+598\d{8}$/`, opcional) y `publicProfile` (boolean opcional). `GetSettingsResponseSchema` incluye `whatsapp: nullable` y `publicProfile: boolean`.
+- `src/lib/validations/match.schema.ts`: `MatchPartnerSchema` incluye ahora `bio: z.string().nullable()`.
+- `src/repositories/user.repository.ts`: `UpdateProfileData` agrega `whatsapp?: string` y `publicProfile?: boolean`. `findById` selecciona `whatsapp` y `publicProfile`. `updateProfile` persiste ambos con conditional spread (no sobreescribe si no vienen).
+- `src/services/match.service.ts`: `getMatchDetailForUser` y `getActiveMatchesWithPartners` propagan `bio: partner.bio`.
+- `src/app/settings/page.tsx`: pasa `initialWhatsapp` y `initialPublicProfile` a `SettingsForm`.
+- `src/app/settings/SettingsForm.tsx`: campo WhatsApp (input type=tel + pre-check regex client-side) + toggle publicProfile (role=switch, aria-checked). Ambos dentro de la sección Perfil, se guardan con el mismo `PUT /api/settings`.
+- `src/app/matches/[id]/page.tsx`: muestra `partner.bio` (line-clamp-2) en el header del partner, solo si no es null.
+- `messages/es.json`: 6 claves nuevas en `Settings` — `whatsappLabel`, `whatsappPlaceholder`, `whatsappHint`, `whatsappError`, `publicProfileLabel`, `publicProfileSubtitle`.
+- Tests: 216 tests (+8), branches 100%, lines 100%.
+  - `user.repository.test.ts`: findById aserta nuevos campos; updateProfile: 4 tests nuevos.
+  - `match.service.test.ts`: 1 test nuevo — bio forwarding en `getActiveMatchesWithPartners`.
+  - `settings/__tests__/route.test.ts`: 3 tests nuevos (whatsapp inválido 400, whatsapp válido 200, publicProfile 200). `makeUserProfile` incluye nuevos campos.
+  - `matches/*/*/__tests__/route.test.ts`: `bio: null` agregado al mock del partner.
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (216 tests, branches 100%, lines 100%), build ✅.
+
+### Próximo paso
+
+1. **RF-506** — Indicador de no leídos en el match card (S): `countUnread(matchId, userId)` en message repository + badge en MatchCard.
+2. **RF-112** — Avatar upload ⚠️ pendiente decisión de Gonza sobre almacenamiento.
+3. **RF-601–604** — Reseñas post-trade: ciclo completo match → chat → completar → reseña.
+4. **RF-802–808** — Páginas estáticas SSG (100% autónomas): `/como-funciona`, `/privacidad`, `/terminos`, `/contacto`, `/precios`, `sitemap.xml`, `robots.txt`.
+
+RF-506 es pequeño y completa el ciclo del chat. Las páginas estáticas (RF-802–808) son 100% autónomas y aportan SEO/credibilidad.
+
+### ⚠️ Bloqueos conocidos
+
+- RF-102 🔒 Google OAuth — requiere configurar el provider en el dashboard de Supabase.
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- RF-406 🔒 Resend — email transaccional custom.
+- RF-112 ⚠️ Avatar upload — pendiente de decisión: Supabase Storage vs URL externa (validar host del origen para evitar SSRF).
+
+---
+
 ## 2026-06-01 — Corrida 24
 
 - **Ítem**: RF-501 + RF-502 + RF-503 + RF-504 + RF-505 — Chat 1-a-1 completo

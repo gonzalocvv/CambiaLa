@@ -88,9 +88,9 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **RF-902** Editar ciudad/barrio. (M) — _Corrida 22: sección ubicación en /settings + PUT /api/settings/location_
 - [x] **RF-907** Logout desde settings. (M) — _Corrida 22: botón logout en sección cuenta de /settings_
 - [ ] **RF-112** Perfil — avatar (JPG/PNG, máx 2MB, resize 200x200 server-side). (M)
-- [ ] **RF-113** Perfil — nombre visible + bio (máx 140 chars). (M)
-- [ ] **RF-114** Perfil — WhatsApp opcional (regex +598…). (S)
-- [ ] **RF-116** Toggle perfil público/privado. (M)
+- [x] **RF-113** Perfil — nombre visible + bio (máx 140 chars). (M) — _Corrida 25: bio del partner en match detail header; bio ya editable desde RF-901_
+- [x] **RF-114** Perfil — WhatsApp opcional (regex +598…). (S) — _Corrida 25: campo +598 en settings + validación_
+- [x] **RF-116** Toggle perfil público/privado. (M) — _Corrida 25: toggle en settings, persistido en User.publicProfile_
 - [x] **RF-801** Landing `/` funcional (hero, cómo funciona en 3 pasos, casos de uso, CTA registro, footer). (M) — _ya hay coming soon, evolucionarla_
 
 ---
