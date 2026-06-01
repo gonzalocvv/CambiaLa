@@ -101,6 +101,12 @@ export default async function MatchDetailPage({ params }: Props) {
             )}
           </div>
         )}
+        {match.status === 'inactive' && (
+          <div className="mb-6 space-y-1">
+            <Badge variant="outline">{t('statusInactive')}</Badge>
+            <p className="text-muted-foreground text-xs">{t('inactiveNote')}</p>
+          </div>
+        )}
 
         {/* Two-column sticker exchange */}
         <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
