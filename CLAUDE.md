@@ -109,17 +109,25 @@ Reglas de import (unidireccionales, las inferiores no importan de las superiores
 
 ---
 
-## 7. Estilos y colores (OBLIGATORIO — esto se incumplió antes, leelo)
+# Branding y colores — pegar en `figus-uy/CLAUDE.md`
+
+> Pegá la sección de abajo dentro de `figus-uy/CLAUDE.md` (idealmente como una sección propia, ej. `## Estilos y colores`). Es lo que lee el routine en cada corrida: con esto deja de hardcodear y respeta la paleta navy + celeste + naranja.
+
+---
+
+## Estilos y colores (OBLIGATORIO)
 
 La paleta vive en `src/app/globals.css` como **tokens** (shadcn / Tailwind v4, light + dark). Componentes y páginas **consumen SOLO tokens semánticos**, nunca colores crudos.
 
-**Tokens a usar** (clases Tailwind): `bg-background` · `text-foreground` · `bg-card` / `text-card-foreground` · `bg-popover` · `bg-primary` / `text-primary-foreground` · `bg-secondary` / `text-secondary-foreground` · `bg-muted` / `text-muted-foreground` · `bg-accent` / `text-accent-foreground` · `border-border` · `ring-ring` · `bg-destructive`.
+**Tokens a usar** (clases Tailwind): `bg-background` · `text-foreground` · `bg-card` / `text-card-foreground` · `bg-popover` · `bg-primary` / `text-primary-foreground` · `text-brand` (wordmark) · `bg-secondary` / `text-secondary-foreground` · `bg-muted` / `text-muted-foreground` · `bg-accent` / `text-accent-foreground` · `border-border` · `ring-ring` · `bg-destructive`.
 
 **Identidad CambiaLa:**
 
-- **Marca = celeste** → token `primary` (light `#0284C7`, dark `#38BDF8`).
-- **Acento = naranja** `#F97316` → token `accent`. Texto sobre naranja = oscuro `#1A1206` (`accent-foreground`, WCAG AA).
-- **Light**: fondo blanco + celeste + naranja. **Dark**: fondo **grafito neutro** `#0F0F11` (NO azul marino) + celeste + naranja.
+- **Wordmark "Cambia" = token `brand`** (light `#1E3A8A` azul profundo, dark `#ECF2FB` casi-blanco apenas celeste). La "La" = `accent` (naranja). El logo en navbar y hero usa `text-brand` + `text-accent`, NUNCA `text-primary` para el wordmark.
+- **Acento de marca = celeste** → token `primary` (light `#0284C7`, dark `#38BDF8`): eyebrows, stats, estados hover/focus.
+- **Acento cálido = naranja** `#F97316` → token `accent` (CTAs, badge en dark). Texto sobre naranja = oscuro `#1A1206` (`accent-foreground`, WCAG AA).
+- **Badge "Mundial 2026"**: celeste en light (`bg-secondary text-secondary-foreground`), naranja en dark (`dark:bg-accent/10 dark:text-accent`).
+- **Light**: hero con celeste muy suave (`bg-secondary/40`), wordmark navy, acentos celeste, CTA naranja. **Dark**: fondo **grafito neutro** `#0F0F11` (NO azul marino), wordmark casi-blanco, acentos celeste, CTA naranja.
 
 **PROHIBIDO** en JSX/componentes/páginas:
 
@@ -135,13 +143,45 @@ La paleta vive en `src/app/globals.css` como **tokens** (shadcn / Tailwind v4, l
 
 // ✅ BIEN (tokens; light/dark salen solos)
 <section className="bg-background text-foreground">
-  <h1 className="text-primary">Cambia<span className="text-accent">La</span></h1>
+  <h1 className="text-brand">Cambia<span className="text-accent">La</span></h1>
 </section>
 ```
 
-**Dark mode lo manejan los tokens automáticamente.** Si usás tokens, no necesitás `dark:` para los colores. Si te falta un color, **agregalo primero a `globals.css`** (light + dark) y consumilo por token. Antes de cerrar cualquier UI: que se vea bien en light y dark **solo cambiando el theme**, sin una sola clase de color cruda.
+**Dark mode lo manejan los tokens automáticamente.** Si usás tokens, no necesitás `dark:` para los colores (única excepción válida: cuando un elemento debe cambiar a propósito entre modos, como el badge celeste→naranja, usando `dark:` con OTRO token, nunca con un color crudo). Si te falta un color, **agregalo primero a `globals.css`** (light + dark) y consumilo por token. Antes de cerrar cualquier UI: que se vea bien en light y dark **solo cambiando el theme**, sin una sola clase de color cruda.
 
 ---
+
+## Referencia: valores de los tokens en `src/app/globals.css`
+
+`:root` (light):
+
+```css
+--background: #ffffff;
+--foreground: #0f172a;
+--primary: #0284c7; /* celeste = acento de marca */
+--primary-foreground: #ffffff;
+--brand: #1e3a8a; /* wordmark "Cambia" (azul profundo) */
+--secondary: #e8f3fb; /* celeste claro (badge) */
+--secondary-foreground: #0c4a6e;
+--accent: #f97316; /* naranja = acento (CTA) */
+--accent-foreground: #1a1206;
+```
+
+`.dark` (y el bloque `@media (prefers-color-scheme: dark)`):
+
+```css
+--background: #0f0f11; /* grafito neutro, NO azul marino */
+--foreground: #ededee;
+--primary: #38bdf8; /* celeste claro */
+--primary-foreground: #0b1220;
+--brand: #ecf2fb; /* wordmark "Cambia" (casi-blanco apenas celeste) */
+--secondary: #26262a;
+--secondary-foreground: #ededee;
+--accent: #f97316; /* naranja */
+--accent-foreground: #1a1206;
+```
+
+`@theme inline` (para que existan las utilities Tailwind): incluir `--color-brand: var(--brand);` además de los `--color-*` ya presentes.
 
 ## 8. i18n (ADR-012)
 
