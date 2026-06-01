@@ -127,10 +127,10 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ### Reseñas (módulo 600)
 
-- [ ] **RF-601** Reseña post-trade (1-5 estrellas + comentario opcional máx 200). (M)
-- [ ] **RF-602** Una reseña por usuario por match (`@@unique([matchId, raterId])`). (M)
-- [ ] **RF-603** Cálculo de reputación = promedio de stars. (M)
-- [ ] **RF-604** Display reputación: `X.X ⭐ · Y cambios`. <5 reseñas → "nuevo coleccionista". (M)
+- [x] **RF-601** Reseña post-trade (1-5 estrellas + comentario opcional máx 200). (M) — _Corrida 27: ratingRepository + ratingService + POST /api/matches/[id]/ratings_
+- [x] **RF-602** Una reseña por usuario por match (`@@unique([matchId, raterId])`). (M) — _Corrida 27: validado en DB (constraint) y en service (AlreadyRatedError → 409)_
+- [x] **RF-603** Cálculo de reputación = promedio de stars. (M) — _Corrida 27: getReputationStats + userRepository.updateReputation tras cada rating_
+- [x] **RF-604** Display reputación: `X.X ⭐ · Y cambios`. <5 reseñas → "nuevo coleccionista". (M) — _Corrida 27: RatingModal en match detail (completed + !hasRated)_
 
 ### Notificaciones (módulo 400)
 
