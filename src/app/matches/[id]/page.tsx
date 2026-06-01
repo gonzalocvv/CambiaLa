@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CompleteMatchButton } from '@/components/matches/complete-match-button';
 import { getSession } from '@/lib/auth';
 import { matchService } from '@/services/match.service';
 
@@ -70,6 +71,19 @@ export default async function MatchDetailPage({ params }: Props) {
           {t('scoreLabel')} {score}
         </Badge>
       </div>
+
+      {/* Complete match action */}
+      {match.status === 'active' && (
+        <div className="mb-6 flex items-center gap-3">
+          <CompleteMatchButton matchId={match.id} />
+          <p className="text-muted-foreground text-xs">{t('completeHint')}</p>
+        </div>
+      )}
+      {match.status === 'completed' && (
+        <div className="mb-6">
+          <Badge variant="secondary">{t('statusCompleted')}</Badge>
+        </div>
+      )}
 
       {/* Two-column sticker exchange */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
