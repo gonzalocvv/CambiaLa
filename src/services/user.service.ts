@@ -2,12 +2,21 @@ import {
   userRepository,
   type CreateUserData,
   type OnboardingData,
+  type UpdateProfileData,
+  type UpdateLocationData,
 } from '@/repositories/user.repository';
 
 export class UsernameConflictError extends Error {
   constructor() {
     super('USERNAME_TAKEN');
     this.name = 'UsernameConflictError';
+  }
+}
+
+export class UserNotFoundError extends Error {
+  constructor() {
+    super('USER_NOT_FOUND');
+    this.name = 'UserNotFoundError';
   }
 }
 
@@ -28,5 +37,23 @@ export const userService = {
     const available = await userRepository.isUsernameAvailable(data.username);
     if (!available) throw new UsernameConflictError();
     await userRepository.updateOnboarding(userId, data);
+  },
+
+  async getUserProfile(userId: string) {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new UserNotFoundError();
+    return user;
+  },
+
+  async updateProfile(userId: string, data: UpdateProfileData): Promise<void> {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new UserNotFoundError();
+    await userRepository.updateProfile(userId, data);
+  },
+
+  async updateLocation(userId: string, data: UpdateLocationData): Promise<void> {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new UserNotFoundError();
+    await userRepository.updateLocation(userId, data);
   },
 };
