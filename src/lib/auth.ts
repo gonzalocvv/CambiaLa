@@ -1,6 +1,8 @@
 // Auth session helper — wraps Supabase SSR session and resolves the Prisma user ID.
 // Note: getSession() does one indexed DB lookup per call (email → CUID).
 // Tech debt: add supabaseId field to User model in F2 to eliminate the lookup.
+import { cache } from 'react';
+
 import { userRepository } from '@/repositories/user.repository';
 import { createClient } from '@/lib/supabase/server';
 
@@ -9,7 +11,8 @@ export type Session = {
   onboardingDoneAt: Date | null;
 };
 
-export async function getSession(): Promise<Session | null> {
+// cache() deduplicates concurrent calls within the same request (React Server Components).
+export const getSession = cache(async (): Promise<Session | null> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -22,4 +25,4 @@ export async function getSession(): Promise<Session | null> {
   if (!dbUser) return null;
 
   return { userId: dbUser.id, onboardingDoneAt: dbUser.onboardingDoneAt };
-}
+});
