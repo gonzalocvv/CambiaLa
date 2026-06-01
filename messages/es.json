@@ -349,6 +349,25 @@
     "contactEmail": "hola@cambiala.uy",
     "contactNote": "Para dudas sobre los términos, escribinos a <emailLink>hola@cambiala.uy</emailLink>."
   },
+  "PublicProfile": {
+    "newCollector": "Coleccionista nuevo",
+    "trades": "{count, plural, one {1 cambio} other {# cambios}}",
+    "member": "Miembro desde {date}",
+    "editProfile": "Editar mi perfil",
+    "viewMatches": "Ver mis matches →",
+    "ctaLogin": "Empezar a cambiar →",
+    "share": "Compartir perfil",
+    "shareCopied": "¡Copiado!",
+    "albumTitle": "Álbum Mundial 2026",
+    "statComplete": "completo",
+    "statHave": "tiene",
+    "statDuplicates": "repetidas",
+    "statMissing": "le faltan",
+    "duplicatesTitle": "Figuritas para cambiar",
+    "duplicatesHint": "Estas le sobran — puede cambiarlas con vos.",
+    "missingTitle": "Le faltan",
+    "missingHint": "Estas está buscando — si las tenés, podés hacer match."
+  },
   "Contact": {
     "metaTitle": "Contacto — CambiaLa",
     "eyebrow": "¿Necesitás ayuda?",
