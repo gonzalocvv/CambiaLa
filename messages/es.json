@@ -74,6 +74,19 @@
       "callbackError": "Hubo un problema al iniciar sesión. Intentá de nuevo."
     }
   },
+  "Album": {
+    "title": "Mi álbum",
+    "statsHave": "tengo",
+    "statsMissing": "me faltan",
+    "statsDuplicates": "repetidas",
+    "statsPercent": "completo",
+    "progressLabel": "{percent}% del álbum completo",
+    "clickHint": "Hacé click para marcar. Click derecho para restar.",
+    "teamFWC": "Copa del Mundo",
+    "saving": "Guardando…",
+    "saved": "Guardado ✓",
+    "saveError": "Error al guardar"
+  },
   "Home": {
     "nav": {
       "login": "Iniciá sesión",
