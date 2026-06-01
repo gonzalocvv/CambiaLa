@@ -50,7 +50,7 @@ describe('GET /api/matches', () => {
   });
 
   it('returns active matches for the authenticated user', async () => {
-    mockGetSession.mockResolvedValue({ userId: 'user-a' });
+    mockGetSession.mockResolvedValue({ userId: 'user-a', onboardingDoneAt: new Date() });
     mockGetActiveMatchesWithPartners.mockResolvedValue([makeActiveMatchItem()]);
 
     const res = await GET();
@@ -64,7 +64,7 @@ describe('GET /api/matches', () => {
   });
 
   it('returns empty matches array when user has no active matches', async () => {
-    mockGetSession.mockResolvedValue({ userId: 'user-x' });
+    mockGetSession.mockResolvedValue({ userId: 'user-x', onboardingDoneAt: new Date() });
     mockGetActiveMatchesWithPartners.mockResolvedValue([]);
 
     const res = await GET();
@@ -75,7 +75,7 @@ describe('GET /api/matches', () => {
   });
 
   it('returns matches sorted by score desc (delegated to service)', async () => {
-    mockGetSession.mockResolvedValue({ userId: 'user-a' });
+    mockGetSession.mockResolvedValue({ userId: 'user-a', onboardingDoneAt: new Date() });
     mockGetActiveMatchesWithPartners.mockResolvedValue([
       makeActiveMatchItem({ id: 'match-1', score: 5 }),
       makeActiveMatchItem({ id: 'match-2', score: 2 }),

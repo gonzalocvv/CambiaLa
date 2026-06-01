@@ -61,7 +61,7 @@ describe('PATCH /api/matches/[id]/complete', () => {
   });
 
   it('returns 404 when match not found or user is not a participant', async () => {
-    mockGetSession.mockResolvedValue({ userId: 'user-a' });
+    mockGetSession.mockResolvedValue({ userId: 'user-a', onboardingDoneAt: new Date() });
     mockGetMatchDetailForUser.mockResolvedValue(null);
 
     const res = await PATCH(
@@ -75,7 +75,7 @@ describe('PATCH /api/matches/[id]/complete', () => {
   });
 
   it('returns 409 when match is already completed', async () => {
-    mockGetSession.mockResolvedValue({ userId: 'user-a' });
+    mockGetSession.mockResolvedValue({ userId: 'user-a', onboardingDoneAt: new Date() });
     mockGetMatchDetailForUser.mockResolvedValue(makeActiveMatchItem({ status: 'completed' }));
 
     const res = await PATCH(
@@ -88,7 +88,7 @@ describe('PATCH /api/matches/[id]/complete', () => {
   });
 
   it('returns 409 when match is inactive', async () => {
-    mockGetSession.mockResolvedValue({ userId: 'user-a' });
+    mockGetSession.mockResolvedValue({ userId: 'user-a', onboardingDoneAt: new Date() });
     mockGetMatchDetailForUser.mockResolvedValue(makeActiveMatchItem({ status: 'inactive' }));
 
     const res = await PATCH(
@@ -101,7 +101,7 @@ describe('PATCH /api/matches/[id]/complete', () => {
   });
 
   it('returns 200 and marks match as completed', async () => {
-    mockGetSession.mockResolvedValue({ userId: 'user-a' });
+    mockGetSession.mockResolvedValue({ userId: 'user-a', onboardingDoneAt: new Date() });
     mockGetMatchDetailForUser.mockResolvedValue(makeActiveMatchItem());
     mockCompleteMatch.mockResolvedValue(undefined);
 
