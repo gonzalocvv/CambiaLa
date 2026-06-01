@@ -9,6 +9,7 @@ import { RatingModal } from '@/components/matches/rating-modal';
 import { AppNavbar } from '@/components/layout/app-navbar';
 import { ChatPanel } from '@/components/chat/chat-panel';
 import { getSession } from '@/lib/auth';
+import { formatRelativeDate } from '@/lib/format-date';
 import { matchService } from '@/services/match.service';
 import { messageService } from '@/services/message.service';
 import { ratingService } from '@/services/rating.service';
@@ -85,6 +86,19 @@ export default async function MatchDetailPage({ params }: Props) {
             {t('scoreLabel')} {score}
           </Badge>
         </div>
+
+        {/* Trust signals — RF-513 */}
+        <p className="text-muted-foreground -mt-3 mb-6 text-xs">
+          {t('trustInfo', {
+            since: formatRelativeDate(match.createdAt),
+            talkInfo:
+              initialMessages.length > 0
+                ? t('trustHaveTalked', {
+                    date: formatRelativeDate(initialMessages[initialMessages.length - 1].createdAt),
+                  })
+                : t('trustHaventTalked'),
+          })}
+        </p>
 
         {/* Complete match action */}
         {match.status === 'active' && (

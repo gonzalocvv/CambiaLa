@@ -31,7 +31,10 @@
     "statusCompleted": "Completado",
     "statusInactive": "Inactivo",
     "inactiveNote": "Este match ya no está activo, pero podés seguir escribiéndote.",
-    "chatTitle": "Chat"
+    "chatTitle": "Chat",
+    "trustInfo": "Se conocen desde {since} · {talkInfo}",
+    "trustHaveTalked": "ya hablaron · última vez {date}",
+    "trustHaventTalked": "todavía no hablaron"
   },
   "Chat": {
     "empty": "Todavía no hay mensajes. ¡Mandá el primero!",
