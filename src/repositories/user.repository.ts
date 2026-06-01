@@ -89,6 +89,25 @@ export const userRepository = {
     });
   },
 
+  findByUsername(username: string) {
+    return prisma.user.findUnique({
+      where: { username },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        bio: true,
+        avatarUrl: true,
+        city: true,
+        neighborhood: true,
+        reputation: true,
+        tradesCompleted: true,
+        createdAt: true,
+        publicProfile: true,
+      },
+    });
+  },
+
   updateProfile(userId: string, data: UpdateProfileData) {
     return prisma.user.update({
       where: { id: userId },

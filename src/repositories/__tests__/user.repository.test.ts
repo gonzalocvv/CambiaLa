@@ -320,4 +320,47 @@ describe('userRepository.updateReputation', () => {
   });
 });
 
+describe('userRepository.findByUsername', () => {
+  it('returns public profile when username exists', async () => {
+    const user = {
+      id: 'cuid-user-1',
+      username: 'gonza',
+      name: 'Gonzalo',
+      bio: 'Coleccionista',
+      avatarUrl: null,
+      city: 'Montevideo',
+      neighborhood: 'Pocitos',
+      reputation: 4.5,
+      tradesCompleted: 10,
+      createdAt: NOW,
+      publicProfile: true,
+    };
+    mockUserPrisma.findUnique.mockResolvedValue(user);
+    const result = await userRepository.findByUsername('gonza');
+    expect(result).toEqual(user);
+    expect(mockUserPrisma.findUnique).toHaveBeenCalledWith({
+      where: { username: 'gonza' },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        bio: true,
+        avatarUrl: true,
+        city: true,
+        neighborhood: true,
+        reputation: true,
+        tradesCompleted: true,
+        createdAt: true,
+        publicProfile: true,
+      },
+    });
+  });
+
+  it('returns null when username does not exist', async () => {
+    mockUserPrisma.findUnique.mockResolvedValue(null);
+    const result = await userRepository.findByUsername('nobody');
+    expect(result).toBeNull();
+  });
+});
+
 void NOW;
