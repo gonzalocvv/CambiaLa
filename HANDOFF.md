@@ -3,6 +3,41 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 10
+
+- **Ítem**: RF-308 — Persistencia del match en DB (schema Zod + repository + service)
+- **Rama**: `claude/rf308-match-persistence`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge habilitado
+
+### Qué se hizo
+
+- `src/lib/validations/match.schema.ts`: Zod schemas — `MatchStatusSchema`, `UpsertMatchSchema`, `UpdateMatchStatusSchema` con tipos inferidos.
+- `src/repositories/match.repository.ts`: capa de acceso a datos para `Match`:
+  - `upsert(data)` — upsert idempotente por `@@unique([userAId, userBId])`, siempre reactiva el status a `active`.
+  - `findById(id)`, `findByUsers(userAId, userBId)`, `findActiveByUser(userId)` ordenado por score desc, `updateStatus(id, status)`.
+- `src/services/match.service.ts`: capa de negocio:
+  - `MatchRecord` — tipo con `aToB`/`bToA` ya tipados como `string[]` (vs `JsonValue` de Prisma).
+  - `saveMatchResult(result)` — normaliza el par de usuarios (sort lexicográfico) antes de llamar al repo, garantizando idempotencia sin importar qué lado inició el cómputo.
+  - `getMatchById`, `getActiveMatchesForUser`, `completeMatch`, `markMatchInactive`.
+- Tests con `vi.hoisted()` para mocks correctamente hoisteados:
+  - `src/repositories/__tests__/match.repository.test.ts` — 10 tests, 100% coverage del repo.
+  - `src/services/__tests__/match.service.test.ts` — 7 tests, 100% coverage del service (incluye test de normalización bidireccional).
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (100% stmts/branches/funcs/lines, 51 tests), build ✅
+
+### Próximo paso
+
+Próximo ítem autónomo recomendado:
+- **RF-309** — TTL de matches: `markMatchInactive` cuando un participante no se loguea en 30 días + job de limpieza. La función `markMatchInactive` ya existe en el service; falta el job de limpieza (batch update en repository) y los tests. No requiere Supabase.
+- **O bien RF-802 a RF-808** — Páginas estáticas SSG (`/como-funciona`, `/precios`, `/privacidad`, `/terminos`, `/contacto`): 100% autónomas, no requieren credenciales.
+
+### ⚠️ Bloqueos conocidos
+
+- RF-307 🔒 Inngest — requiere credenciales reales.
+- S0.7 🔒 Supabase — toda la capa de Auth (Sprint 1) bloqueada.
+
+---
+
 ## 2026-05-31 — Corrida 9
 
 - **Ítem**: RF-301/302/303/304/305/306 — Motor de matches (función pura + TDD 100%)

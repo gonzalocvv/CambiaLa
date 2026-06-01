@@ -104,7 +104,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **RF-303** Filtro de usuarios activos (`lastSeenAt < 30 días`). (M)
 - [x] **RF-304** Filtro de participación (`participatesInMatchmaking=true`). (M)
 - [ ] **RF-307** 🔒 Recalcular matches via job Inngest al actualizar sticker (no en request HTTP). (M)
-- [ ] **RF-308** Persistencia del match en DB (`aToB`, `bToA` JSON arrays, `score`). (M)
+- [x] **RF-308** Persistencia del match en DB (`aToB`, `bToA` JSON arrays, `score`). (M)
 - [ ] **RF-309** TTL de matches: `inactive` si un participante no se loguea en 30 días + job de limpieza diario. (M)
 - [ ] **RF-310** Lista de mis matches activos ordenados por score desc. (M)
 - [ ] **RF-311** Match card: avatar/username del otro, barrio, distancia (si geo), score, "te da X / le das Y". (M)
