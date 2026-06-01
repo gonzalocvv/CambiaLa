@@ -3,6 +3,47 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 34
+
+- **Ítem**: RF-802 + RF-803 + RF-804 + RF-805 + RF-806 + RF-807 + RF-808 — Páginas estáticas SSG + sitemap + robots.txt
+- **Rama**: `claude/cool-volta-9p6dF`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge (REBASE) solicitado
+
+### Qué se hizo
+
+Implementación completa del módulo 800 (SEO + páginas informativas). Todas las páginas son `○ Static` en el build:
+
+- **`src/components/layout/site-footer.tsx`** (server component): footer compartido con links a todas las páginas estáticas + copyright. Usa tokens y getTranslations('SiteFooter').
+- **`src/components/layout/static-page-layout.tsx`** (server component): wrapper Navbar + main + SiteFooter para las 5 páginas. Reutiliza Home.nav para los labels del Navbar.
+- **`src/app/page.tsx`**: landing actualizada para usar `<SiteFooter />` (reemplazó el footer inline anterior).
+- **`src/app/como-funciona/page.tsx`** (RF-802): pasos detallados (3 cards) + FAQ (4 preguntas) + CTA.
+- **`src/app/precios/page.tsx`** (RF-803): plan Gratuito ($0, 6 features, CTA) vs Pro (próximamente, 3 features teaser).
+- **`src/app/privacidad/page.tsx`** (RF-804): política conforme Ley 18.331 con `t.rich()` para emails como links.
+- **`src/app/terminos/page.tsx`** (RF-805): términos de uso (edad 13+, uso aceptable, IP, responsabilidad).
+- **`src/app/contacto/page.tsx`** (RF-806): 4 cards (email, privacidad/ARCO, bugs, redes).
+- **`src/app/sitemap.ts`** (RF-807): 6 URLs públicas con prioridades, usa NEXT_PUBLIC_BASE_URL.
+- **`src/app/robots.ts`** (RF-808): bloquea 8 prefijos privados (/api/, /auth/, /admin/, etc.), incluye sitemap URL.
+- **`messages/es.json`**: 6 namespaces nuevos (SiteFooter, ComoFunciona, Pricing, Privacy, Terms, Contact) + ~100 claves. Todo texto visible por i18n, t.rich() donde hay links en medio del texto.
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (290 tests, branches 100%, lines 100%), build ✅ (todas las nuevas páginas como `○ Static`).
+
+### Próximo paso
+
+1. **RF-701–709** — Perfil público `/u/[username]` SSR (si `publicProfile=true`): avatarURL, nombre, barrio, bio, reputación, % álbum, lista de repetidas/faltantes, CTA "Mandale mensaje", OG tags. Data disponible en userRepository + stickerRepository.
+2. **RF-810** — Canonical URLs en páginas indexables (M).
+3. **RF-809** — Schema.org JSON-LD (S).
+4. **RF-112** ⚠️ Avatar upload — pendiente de decisión (Supabase Storage vs URL externa).
+
+### ⚠️ Bloqueos conocidos
+
+- RF-101b ⚠️ fix de código hecho (Corrida 29), requiere config manual de Gonza en dashboard de Supabase.
+- RF-102 🔒 Google OAuth — requiere dashboard de Supabase.
+- RF-307 🔒 Inngest.
+- RF-406 🔒 Resend.
+- RF-112 ⚠️ Avatar upload — pendiente de decisión (Supabase Storage vs URL externa).
+
+---
+
 ## 2026-06-01 — Corrida 33
 
 - **Ítem**: RF-513 — Señal de confianza en detalle del match

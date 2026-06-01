@@ -165,13 +165,13 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ### Páginas estáticas + SEO (módulo 800) — muy autónomo, no requiere servicios
 
-- [ ] **RF-802** `/como-funciona` (SSG). (M)
-- [ ] **RF-803** `/precios` (free vs Pro, SSG). (M)
-- [ ] **RF-804** `/privacidad` (Ley 18.331, SSG). (M)
-- [ ] **RF-805** `/terminos` (edad mínima 13, SSG). (M)
-- [ ] **RF-806** `/contacto` (email + form simple, SSG). (M)
-- [ ] **RF-807** `sitemap.xml` autogenerado en build. (M)
-- [ ] **RF-808** `robots.txt` (bloquea rutas auth/API). (M)
+- [x] **RF-802** `/como-funciona` (SSG). (M) — _Corrida 34_
+- [x] **RF-803** `/precios` (free vs Pro, SSG). (M) — _Corrida 34_
+- [x] **RF-804** `/privacidad` (Ley 18.331, SSG). (M) — _Corrida 34_
+- [x] **RF-805** `/terminos` (edad mínima 13, SSG). (M) — _Corrida 34_
+- [x] **RF-806** `/contacto` (email + form simple, SSG). (M) — _Corrida 34_
+- [x] **RF-807** `sitemap.xml` autogenerado en build. (M) — _Corrida 34_
+- [x] **RF-808** `robots.txt` (bloquea rutas auth/API). (M) — _Corrida 34_
 - [ ] **RF-810** Canonical URLs en páginas indexables. (M)
 - [ ] **RF-809** Schema.org JSON-LD (Person en perfiles, WebSite/Organization en landing). (S)
 
