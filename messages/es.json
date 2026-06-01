@@ -85,7 +85,17 @@
     "teamFWC": "Copa del Mundo",
     "saving": "Guardando…",
     "saved": "Guardado ✓",
-    "saveError": "Error al guardar"
+    "saveError": "Error al guardar",
+    "filterAll": "Todas",
+    "filterMissing": "Me faltan",
+    "filterHave": "Tengo",
+    "filterDuplicates": "Repetidas",
+    "filterSpecials": "Especiales",
+    "searchPlaceholder": "Buscar por número (URU9) o nombre (Suárez)…",
+    "searchClear": "Limpiar búsqueda",
+    "teamFilterAll": "Todos los equipos",
+    "emptyFilter": "No hay figuritas que coincidan con ese filtro.",
+    "resultsCount": "{count, plural, one {1 figurita} other {# figuritas}}"
   },
   "Home": {
     "nav": {
