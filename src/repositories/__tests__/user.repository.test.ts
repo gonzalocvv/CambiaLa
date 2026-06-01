@@ -301,4 +301,23 @@ describe('userRepository.updateLocation', () => {
   });
 });
 
+describe('userRepository.updateReputation', () => {
+  it('updates reputation and tradesCompleted for a user', async () => {
+    const updated = { id: 'cuid-user-1', reputation: 4.2, tradesCompleted: 5 };
+    mockUserPrisma.update.mockResolvedValue(updated);
+
+    const result = await userRepository.updateReputation('cuid-user-1', {
+      reputation: 4.2,
+      tradesCompleted: 5,
+    });
+
+    expect(result).toEqual(updated);
+    expect(mockUserPrisma.update).toHaveBeenCalledWith({
+      where: { id: 'cuid-user-1' },
+      data: { reputation: 4.2, tradesCompleted: 5 },
+      select: { id: true, reputation: true, tradesCompleted: true },
+    });
+  });
+});
+
 void NOW;
