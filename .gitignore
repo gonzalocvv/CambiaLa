@@ -112,3 +112,4 @@ Desktop.ini
 # Lock files de otros package managers (usamos pnpm)
 package-lock.json
 yarn.lock
+.gstack/

@@ -28,7 +28,7 @@ export default async function MatchDetailPage({ params }: Props) {
   if (!match) notFound();
 
   const { partner, score, youGet, youGive } = match;
-  const displayName = partner.username ?? partner.name ?? 'Usuario';
+  const displayName = partner.username ?? partner.name ?? t('unknownUser');
   const location = partner.neighborhood ?? partner.city;
   const initials = displayName.slice(0, 2).toUpperCase();
   const isNewCollector = partner.tradesCompleted < 5;

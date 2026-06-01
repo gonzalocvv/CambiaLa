@@ -5,6 +5,7 @@
   },
   "MatchDetail": {
     "backToMatches": "← Mis matches",
+    "unknownUser": "Usuario",
     "youGetTitle": "Lo que te ofrece",
     "youGiveTitle": "Lo que le das",
     "stickersCount": "{count, plural, one {1 figurita} other {# figuritas}}",
@@ -17,6 +18,11 @@
     "completedConfirmation": "¡Cambio completado!",
     "completeHint": "¿Ya coordinaron el intercambio?",
     "statusCompleted": "Completado"
+  },
+  "MatchesList": {
+    "title": "Mis matches",
+    "empty": "Todavía no tenés matches activos. Cargá tu álbum y te avisamos cuando aparezca un cambio.",
+    "notAuthenticated": "Iniciá sesión para ver tus matches."
   },
   "MatchCard": {
     "unknownUser": "Usuario",
@@ -76,6 +82,6 @@
       "subtitle": "Uníte a los coleccionistas uruguayos del Mundial 2026. Es gratis.",
       "cta": "Empezar gratis"
     },
-    "footer": "Hecho con <heart>♥</heart> en Uruguay"
+    "footer": "© 2026 CambiaLa"
   }
 }
