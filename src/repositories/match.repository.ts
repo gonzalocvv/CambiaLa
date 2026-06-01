@@ -7,6 +7,10 @@ export type MatchWithPartners = Prisma.MatchGetPayload<{
   include: { userA: true; userB: true };
 }>;
 
+export type MatchWithPartnersAndMessages = Prisma.MatchGetPayload<{
+  include: { userA: true; userB: true; messages: true };
+}>;
+
 export const matchRepository = {
   async upsert(data: UpsertMatchInput): Promise<Match> {
     return prisma.match.upsert({
@@ -65,6 +69,30 @@ export const matchRepository = {
       },
       include: { userA: true, userB: true },
       orderBy: { score: 'desc' },
+    });
+  },
+
+  // Returns all matches (any status) for userId that have at least one message,
+  // with both partners and the last message included, sorted by last message desc.
+  async findWithLastMessageByUser(userId: string): Promise<MatchWithPartnersAndMessages[]> {
+    const matches = await prisma.match.findMany({
+      where: {
+        OR: [{ userAId: userId }, { userBId: userId }],
+        messages: { some: {} },
+      },
+      include: {
+        userA: true,
+        userB: true,
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+    return matches.sort((a, b) => {
+      const aTime = a.messages[0]?.createdAt.getTime() ?? 0;
+      const bTime = b.messages[0]?.createdAt.getTime() ?? 0;
+      return bTime - aTime;
     });
   },
 
