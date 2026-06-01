@@ -9,7 +9,7 @@ type Props = { match: ActiveMatchItem };
 
 export default async function MatchCard({ match }: Props) {
   const t = await getTranslations('MatchCard');
-  const { partner, score, youGet, youGive } = match;
+  const { partner, score, youGet, youGive, unreadCount } = match;
 
   const displayName = partner.username ?? partner.name ?? t('unknownUser');
   const location = partner.neighborhood ?? partner.city;
@@ -20,10 +20,10 @@ export default async function MatchCard({ match }: Props) {
     <Link href={`/matches/${match.id}`} className="block">
       <Card className="transition-all hover:shadow-md active:scale-[0.99]">
         <CardContent className="flex items-center gap-4 p-4">
-          <div className="shrink-0">
+          <div className="relative shrink-0">
             {partner.avatarUrl ? (
               <div
-                className="h-14 w-14 rounded-full bg-slate-200 bg-cover bg-center dark:bg-slate-700"
+                className="bg-muted h-14 w-14 rounded-full bg-cover bg-center"
                 style={{ backgroundImage: `url(${partner.avatarUrl})` }}
                 role="img"
                 aria-label={displayName}
@@ -32,6 +32,14 @@ export default async function MatchCard({ match }: Props) {
               <div className="bg-primary text-primary-foreground flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold">
                 {initials}
               </div>
+            )}
+            {unreadCount > 0 && (
+              <span
+                className="bg-accent text-accent-foreground absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums"
+                aria-label={t('unreadMessages', { count: unreadCount })}
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
             )}
           </div>
 
