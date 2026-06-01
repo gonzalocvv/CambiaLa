@@ -127,7 +127,13 @@
     "saveError": "Algo salió mal. Intentá de nuevo.",
     "accountTitle": "Cuenta",
     "logoutButton": "Cerrar sesión",
-    "loggingOut": "Saliendo…"
+    "loggingOut": "Saliendo…",
+    "whatsappLabel": "WhatsApp (opcional)",
+    "whatsappPlaceholder": "+598 9XXXXXXX",
+    "whatsappHint": "Para que tus matches puedan contactarte directo.",
+    "whatsappError": "Formato inválido. Usá: +598 9XXXXXXX",
+    "publicProfileLabel": "Perfil público",
+    "publicProfileSubtitle": "Otros coleccionistas pueden ver tu perfil en /u/usuario."
   },
   "AppNav": {
     "album": "Mi álbum",
