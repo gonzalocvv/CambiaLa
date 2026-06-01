@@ -124,4 +124,100 @@ describe('userRepository.updateOnboarding', () => {
   });
 });
 
+describe('userRepository.findById', () => {
+  it('returns user profile when found', async () => {
+    const user = {
+      id: 'cuid-user-1',
+      username: 'gonza',
+      name: 'Gonzalo',
+      bio: null,
+      avatarUrl: null,
+      city: 'Montevideo',
+      neighborhood: 'Pocitos',
+    };
+    mockUserPrisma.findUnique.mockResolvedValue(user);
+    const result = await userRepository.findById('cuid-user-1');
+    expect(result).toEqual(user);
+    expect(mockUserPrisma.findUnique).toHaveBeenCalledWith({
+      where: { id: 'cuid-user-1' },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        bio: true,
+        avatarUrl: true,
+        city: true,
+        neighborhood: true,
+      },
+    });
+  });
+
+  it('returns null when not found', async () => {
+    mockUserPrisma.findUnique.mockResolvedValue(null);
+    const result = await userRepository.findById('nonexistent');
+    expect(result).toBeNull();
+  });
+});
+
+describe('userRepository.updateProfile', () => {
+  it('updates name and bio', async () => {
+    const updated = { id: 'cuid-user-1', name: 'Gonzalo', bio: 'Coleccionista' };
+    mockUserPrisma.update.mockResolvedValue(updated);
+    const result = await userRepository.updateProfile('cuid-user-1', {
+      name: 'Gonzalo',
+      bio: 'Coleccionista',
+    });
+    expect(result).toEqual(updated);
+    expect(mockUserPrisma.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'cuid-user-1' },
+        data: { name: 'Gonzalo', bio: 'Coleccionista' },
+      }),
+    );
+  });
+
+  it('sets name/bio to null when empty string provided', async () => {
+    const updated = { id: 'cuid-user-1', name: null, bio: null };
+    mockUserPrisma.update.mockResolvedValue(updated);
+    await userRepository.updateProfile('cuid-user-1', { name: '', bio: '' });
+    expect(mockUserPrisma.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { name: null, bio: null },
+      }),
+    );
+  });
+});
+
+describe('userRepository.updateLocation', () => {
+  it('updates city and neighborhood', async () => {
+    const updated = { id: 'cuid-user-1', city: 'Montevideo', neighborhood: 'Pocitos' };
+    mockUserPrisma.update.mockResolvedValue(updated);
+    const result = await userRepository.updateLocation('cuid-user-1', {
+      city: 'Montevideo',
+      neighborhood: 'Pocitos',
+    });
+    expect(result).toEqual(updated);
+    expect(mockUserPrisma.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'cuid-user-1' },
+        data: { city: 'Montevideo', neighborhood: 'Pocitos' },
+      }),
+    );
+  });
+
+  it('sets neighborhood to null when not provided', async () => {
+    mockUserPrisma.update.mockResolvedValue({
+      id: 'cuid-user-1',
+      city: 'Salto',
+      neighborhood: null,
+    });
+    await userRepository.updateLocation('cuid-user-1', { city: 'Salto' });
+    expect(mockUserPrisma.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { city: 'Salto', neighborhood: null },
+      }),
+    );
+  });
+});
+
 void NOW;
