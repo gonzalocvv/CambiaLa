@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mockRepo = vi.hoisted(() => ({
   upsert: vi.fn(),
   findById: vi.fn(),
+  findByUsers: vi.fn(),
   findByIdWithPartners: vi.fn(),
   findActiveByUser: vi.fn(),
   findActiveByUserWithPartners: vi.fn(),
@@ -10,8 +11,16 @@ const mockRepo = vi.hoisted(() => ({
   markInactiveByLastSeen: vi.fn(),
 }));
 
+const mockNotificationService = vi.hoisted(() => ({
+  createNotification: vi.fn(),
+}));
+
 vi.mock('@/repositories/match.repository', () => ({
   matchRepository: mockRepo,
+}));
+
+vi.mock('@/services/notification.service', () => ({
+  notificationService: mockNotificationService,
 }));
 
 import { matchService } from '../match.service';
@@ -45,7 +54,12 @@ function makeMatchResult(overrides: Partial<MatchResult> = {}): MatchResult {
   };
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  // Default: no existing match (new match scenario) and notifications resolve cleanly
+  mockRepo.findByUsers.mockResolvedValue(null);
+  mockNotificationService.createNotification.mockResolvedValue({ id: 'notif-1' });
+});
 
 describe('matchService.saveMatchResult', () => {
   it('persists a match result and returns decoded record', async () => {
@@ -97,6 +111,44 @@ describe('matchService.saveMatchResult', () => {
     expect(call1.userBId).toBe(call2.userBId);
     expect(call1.aToB).toEqual(call2.aToB);
     expect(call1.bToA).toEqual(call2.bToA);
+  });
+
+  it('creates new_match notifications for both users when match is new', async () => {
+    const dbMatch = makeDbMatch({ id: 'match-new', score: 3 });
+    mockRepo.findByUsers.mockResolvedValue(null);
+    mockRepo.upsert.mockResolvedValue(dbMatch);
+
+    await matchService.saveMatchResult(makeMatchResult());
+
+    expect(mockNotificationService.createNotification).toHaveBeenCalledTimes(2);
+    expect(mockNotificationService.createNotification).toHaveBeenCalledWith('user-a', 'new_match', {
+      matchId: 'match-new',
+      score: 3,
+    });
+    expect(mockNotificationService.createNotification).toHaveBeenCalledWith('user-b', 'new_match', {
+      matchId: 'match-new',
+      score: 3,
+    });
+  });
+
+  it('does not create notifications when match already exists (update)', async () => {
+    mockRepo.findByUsers.mockResolvedValue(makeDbMatch());
+    mockRepo.upsert.mockResolvedValue(makeDbMatch());
+
+    await matchService.saveMatchResult(makeMatchResult());
+
+    expect(mockNotificationService.createNotification).not.toHaveBeenCalled();
+  });
+
+  it('still returns the saved match even if notification creation fails', async () => {
+    mockRepo.findByUsers.mockResolvedValue(null);
+    mockRepo.upsert.mockResolvedValue(makeDbMatch());
+    mockNotificationService.createNotification.mockRejectedValue(new Error('notification error'));
+
+    const result = await matchService.saveMatchResult(makeMatchResult());
+
+    expect(result.id).toBe('match-1');
+    expect(result.score).toBe(3);
   });
 });
 

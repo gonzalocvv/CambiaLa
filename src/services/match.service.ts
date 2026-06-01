@@ -3,6 +3,7 @@ import type { Match } from '@prisma/client';
 import type { MatchResult } from '@/types/match';
 import type { ActiveMatchItem, MatchStatus } from '@/lib/validations/match.schema';
 import { matchRepository } from '@/repositories/match.repository';
+import { notificationService } from '@/services/notification.service';
 
 // Typed view of a Match record with decoded JSON arrays.
 export type MatchRecord = Omit<Match, 'aToB' | 'bToA'> & {
@@ -43,7 +44,24 @@ function decodeMatch(raw: Match): MatchRecord {
 export const matchService = {
   async saveMatchResult(result: MatchResult): Promise<MatchRecord> {
     const input = toUpsertInput(result);
+    const existing = await matchRepository.findByUsers(input.userAId, input.userBId);
     const saved = await matchRepository.upsert(input);
+    if (!existing) {
+      try {
+        await Promise.all([
+          notificationService.createNotification(input.userAId, 'new_match', {
+            matchId: saved.id,
+            score: saved.score,
+          }),
+          notificationService.createNotification(input.userBId, 'new_match', {
+            matchId: saved.id,
+            score: saved.score,
+          }),
+        ]);
+      } catch {
+        // Notification failure must not fail the match save
+      }
+    }
     return decodeMatch(saved);
   },
 
