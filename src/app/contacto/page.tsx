@@ -2,9 +2,11 @@ import { StaticPageLayout } from '@/components/layout/static-page-layout';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://cambia-la.vercel.app';
+
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('Contact');
-  return { title: t('metaTitle') };
+  return { title: t('metaTitle'), alternates: { canonical: `${BASE_URL}/contacto` } };
 }
 
 export default async function ContactoPage() {

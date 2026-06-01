@@ -2,7 +2,14 @@ import { ScrollHint } from '@/components/coming-soon/ScrollHint';
 import { Navbar } from '@/components/layout/navbar';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { getTranslations } from 'next-intl/server';
+import type { Metadata } from 'next';
 import Link from 'next/link';
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://cambia-la.vercel.app';
+
+export const metadata: Metadata = {
+  alternates: { canonical: BASE_URL },
+};
 
 export default async function Home() {
   const t = await getTranslations('Home');
