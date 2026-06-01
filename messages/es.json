@@ -150,7 +150,18 @@
   "AppNav": {
     "album": "Mi álbum",
     "matches": "Mis matches",
+    "conversations": "Chats",
     "settings": "Configuración"
+  },
+  "Conversations": {
+    "title": "Mis chats",
+    "empty": "Todavía no tenés chats. Cuando coordines un cambio, los mensajes aparecen acá.",
+    "notAuthenticated": "Iniciá sesión para ver tus chats.",
+    "unknownUser": "Usuario",
+    "youPrefix": "Vos:",
+    "unreadMessages": "{count, plural, one {1 mensaje sin leer} other {# mensajes sin leer}}",
+    "statusCompleted": "Completado",
+    "statusInactive": "Inactivo"
   },
   "Notifications": {
     "bellLabel": "Notificaciones",
