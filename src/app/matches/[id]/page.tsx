@@ -6,8 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CompleteMatchButton } from '@/components/matches/complete-match-button';
 import { AppNavbar } from '@/components/layout/app-navbar';
+import { ChatPanel } from '@/components/chat/chat-panel';
 import { getSession } from '@/lib/auth';
 import { matchService } from '@/services/match.service';
+import { messageService } from '@/services/message.service';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -24,7 +26,10 @@ export default async function MatchDetailPage({ params }: Props) {
   }
 
   const { id } = await params;
-  const match = await matchService.getMatchDetailForUser(id, session.userId);
+  const [match, initialMessages] = await Promise.all([
+    matchService.getMatchDetailForUser(id, session.userId),
+    messageService.getMessages(id, session.userId).catch(() => []),
+  ]);
 
   if (!match) notFound();
 
@@ -50,7 +55,7 @@ export default async function MatchDetailPage({ params }: Props) {
           <div className="shrink-0">
             {partner.avatarUrl ? (
               <div
-                className="h-16 w-16 rounded-full bg-slate-200 bg-cover bg-center dark:bg-slate-700"
+                className="bg-muted h-16 w-16 rounded-full bg-cover bg-center"
                 style={{ backgroundImage: `url(${partner.avatarUrl})` }}
                 role="img"
                 aria-label={displayName}
@@ -89,7 +94,7 @@ export default async function MatchDetailPage({ params }: Props) {
         )}
 
         {/* Two-column sticker exchange */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">
@@ -118,6 +123,16 @@ export default async function MatchDetailPage({ params }: Props) {
             </CardContent>
           </Card>
         </div>
+
+        {/* RF-501/502/503/505 Chat */}
+        <section>
+          <h2 className="text-foreground mb-3 text-base font-semibold">{t('chatTitle')}</h2>
+          <ChatPanel
+            matchId={match.id}
+            currentUserId={session.userId}
+            initialMessages={initialMessages}
+          />
+        </section>
       </main>
     </>
   );

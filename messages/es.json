@@ -17,7 +17,15 @@
     "completing": "Guardando…",
     "completedConfirmation": "¡Cambio completado!",
     "completeHint": "¿Ya coordinaron el intercambio?",
-    "statusCompleted": "Completado"
+    "statusCompleted": "Completado",
+    "chatTitle": "Chat"
+  },
+  "Chat": {
+    "empty": "Todavía no hay mensajes. ¡Mandá el primero!",
+    "placeholder": "Escribí un mensaje… (Enter para enviar)",
+    "send": "Enviar",
+    "sending": "Enviando…",
+    "sendError": "No se pudo enviar. Intentá de nuevo."
   },
   "MatchesList": {
     "title": "Mis matches",
