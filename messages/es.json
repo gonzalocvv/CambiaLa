@@ -29,6 +29,8 @@
     "completedConfirmation": "¡Cambio completado!",
     "completeHint": "¿Ya coordinaron el intercambio?",
     "statusCompleted": "Completado",
+    "statusInactive": "Inactivo",
+    "inactiveNote": "Este match ya no está activo, pero podés seguir escribiéndote.",
     "chatTitle": "Chat"
   },
   "Chat": {
