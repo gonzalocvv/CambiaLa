@@ -11,3 +11,7 @@ prisma/migrations
 public
 *.log
 .env*
+
+# docs del auto-builder (los edita el bot, no formatear)
+BACKLOG.md
+HANDOFF.md
