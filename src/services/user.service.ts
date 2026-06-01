@@ -20,6 +20,13 @@ export class UserNotFoundError extends Error {
   }
 }
 
+export class PublicProfileNotFoundError extends Error {
+  constructor() {
+    super('PUBLIC_PROFILE_NOT_FOUND');
+    this.name = 'PublicProfileNotFoundError';
+  }
+}
+
 export const userService = {
   async getOrCreate(data: CreateUserData) {
     return userRepository.upsertByEmail(data);
@@ -55,5 +62,11 @@ export const userService = {
     const user = await userRepository.findById(userId);
     if (!user) throw new UserNotFoundError();
     await userRepository.updateLocation(userId, data);
+  },
+
+  async getPublicProfileUser(username: string) {
+    const user = await userRepository.findByUsername(username);
+    if (!user || !user.publicProfile) throw new PublicProfileNotFoundError();
+    return user;
   },
 };
