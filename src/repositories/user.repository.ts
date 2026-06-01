@@ -6,6 +6,12 @@ export type CreateUserData = {
   avatarUrl?: string;
 };
 
+export type OnboardingData = {
+  username: string;
+  city: string;
+  neighborhood?: string;
+};
+
 export const userRepository = {
   findByEmail(email: string) {
     return prisma.user.findUnique({
@@ -25,6 +31,27 @@ export const userRepository = {
       },
       update: { lastSeenAt: new Date() },
       select: { id: true, email: true, username: true, onboardingDoneAt: true },
+    });
+  },
+
+  async isUsernameAvailable(username: string): Promise<boolean> {
+    const user = await prisma.user.findUnique({
+      where: { username },
+      select: { id: true },
+    });
+    return user === null;
+  },
+
+  updateOnboarding(userId: string, data: OnboardingData) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        username: data.username,
+        city: data.city,
+        neighborhood: data.neighborhood ?? null,
+        onboardingDoneAt: new Date(),
+      },
+      select: { id: true, username: true, onboardingDoneAt: true },
     });
   },
 };
