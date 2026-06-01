@@ -3,6 +3,41 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 33
+
+- **Ítem**: RF-513 — Señal de confianza en detalle del match
+- **Rama**: `claude/cool-volta-GYMks`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge (REBASE) solicitado
+
+### Qué se hizo
+
+RF-513 agrega una línea de contexto relacional bajo el header del partner en `/matches/[id]`, mostrando cuándo se creó el match y si ya hablaron:
+
+> "Se conocen desde hace 3 días · ya hablaron · última vez hace 2 horas"
+> "Se conocen desde hace 1 mes · todavía no hablaron"
+
+- **`src/lib/format-date.ts`** (Domain, función pura): `formatRelativeDate(date)` — convierte un `Date | string` a texto relativo en español usando `Intl.RelativeTimeFormat('es')`. Cubre 6 rangos: segundos, minutos, horas, días, meses, años.
+- **`src/lib/__tests__/format-date.test.ts`**: 7 tests, branches 100 %. Usa `vi.useFakeTimers()` + `vi.setSystemTime()` para resultados deterministas.
+- **`messages/es.json`**: 3 claves nuevas en `MatchDetail` — `trustInfo`, `trustHaveTalked`, `trustHaventTalked`. Sin strings hardcodeados en JSX.
+- **`src/app/matches/[id]/page.tsx`**: sección "Trust signals" entre el partner header y los botones de acción. Deriva el estado de `match.createdAt` y `initialMessages` (ya cargados).
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (290 tests, branches 100 %, lines 100 %), build ✅ (`/matches/[id]` como `ƒ Dynamic`).
+
+### Próximo paso
+
+1. **RF-802–808** — Páginas estáticas SSG (100% autónomas): `/como-funciona`, `/privacidad`, `/terminos`, `/contacto`, `/precios`, `sitemap.xml`, `robots.txt`. No requieren credenciales, aportan SEO.
+2. **RF-701–709** — Perfil público `/u/[username]` SSR (si `publicProfile=true`).
+
+### ⚠️ Bloqueos conocidos
+
+- RF-101b ⚠️ fix de código hecho (Corrida 29), requiere config manual de Gonza en dashboard de Supabase.
+- RF-102 🔒 Google OAuth — requiere dashboard de Supabase.
+- RF-307 🔒 Inngest.
+- RF-406 🔒 Resend.
+- RF-112 ⚠️ Avatar upload — pendiente de decisión (Supabase Storage vs URL externa).
+
+---
+
 ## 2026-06-01 — Corrida 32 (🐛 fix de login)
 
 - **Ítem**: 🐛 Login — al pedir el magic link mostraba "Algo salió mal. Intentá de nuevo." (reportado por Gonza).
