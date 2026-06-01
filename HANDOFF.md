@@ -40,8 +40,23 @@ Con Auth implementado, el camino crítico del MVP continúa con:
 
 ### ⚠️ Requiere acción de Gonza antes de probar en prod
 
-1. **Dashboard de Supabase → Auth → URL Configuration**: agregar `https://cambia-la.vercel.app/api/auth/callback` como Redirect URL autorizada. En local ya funciona con `http://localhost:3000/api/auth/callback`.
+1. ✅ **HECHO (2026-06-01)** — **Dashboard de Supabase → Auth → URL Configuration**: Site URL (`https://cambia-la.vercel.app`) + Redirect URLs (`https://cambia-la.vercel.app/api/auth/callback` y `http://localhost:3000/api/auth/callback`) cargadas por Gonza.
 2. **Email Settings** del dashboard: Supabase usa su propio servicio de email en dev (funcional sin configuración). Para prod con dominio propio, configurar SMTP custom o Resend (🔒).
+
+### 📋 Config manual de Supabase Auth (checklist de referencia)
+
+> Lo que NO vive en el repo y hay que setear a mano en [app.supabase.com](https://app.supabase.com) → proyecto CambiaLa. Para que no se pierda entre corridas.
+
+| # | Dónde (dashboard) | Qué setear | Estado |
+| - | ----------------- | ---------- | ------ |
+| 1 | **Authentication → URL Configuration → Site URL** | `https://cambia-la.vercel.app` | ✅ hecho 2026-06-01 |
+| 2 | **Authentication → URL Configuration → Redirect URLs** | `https://cambia-la.vercel.app/api/auth/callback` + `http://localhost:3000/api/auth/callback` (opcional: wildcards `https://*.vercel.app/api/auth/callback` para preview deploys) | ✅ hecho 2026-06-01 |
+| 3 | **Authentication → Email Templates → Magic Link** | El template default funciona; usa `{{ .ConfirmationURL }}` que respeta el `redirectTo`. No tocar salvo branding. | ⬜ opcional |
+| 4 | **Authentication → Rate Limits / OTP expiry** | RF-101 pide OTP válido 10 min; el default es 60 min. Ajustar si se quiere cumplir literal (no bloquea MVP). | ⬜ pendiente (no bloqueante) |
+| 5 | **Authentication → Providers → Google** | Client ID/Secret de Google Cloud para RF-102 (Google OAuth). | 🔒 pendiente |
+| 6 | **Authentication → SMTP Settings** | SMTP propio / Resend para emails de prod con dominio (en dev alcanza el built-in de Supabase, con rate limit bajo). | 🔒 pendiente (depende de Resend) |
+
+Por qué importa el #2: `LoginForm` manda `emailRedirectTo: ${origin}/api/auth/callback`; Supabase **rechaza** cualquier `redirectTo` fuera de la allowlist (anti-open-redirect). Sin la URL en la lista, el magic link cae en la Site URL o da error.
 
 ### ⚠️ Bloqueos conocidos
 
