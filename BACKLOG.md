@@ -134,9 +134,9 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **RF-401** Tabla `Notification` (tipo + payload JSON): `new_match`, `new_message`, `trade_completed`, `rating_received`. (M)
 - [x] **RF-402** `GET /api/notifications` con paginación. (M)
 - [x] **RF-403** `PATCH /api/notifications/[id]` marcar leída (`readAt`). (M)
-- [ ] **RF-404** Badge campana en header con contador no leídas (refresh 60s). (M)
-- [ ] **RF-405** Dropdown con últimas 10, click navega y marca leída. (M)
-- [ ] **RF-409** Trigger automático de notificación al crear match nuevo (ambas partes). (M)
+- [x] **RF-404** Badge campana en header con contador no leídas (refresh 60s). (M) — _Corrida 23: NotificationBell client component con polling 60s en AppNavbar_
+- [x] **RF-405** Dropdown con últimas 10, click navega y marca leída. (M) — _Corrida 23: NotificationDropdown con mark-as-read + navegación por tipo_
+- [x] **RF-409** Trigger automático de notificación al crear match nuevo (ambas partes). (M) — _Corrida 23: matchService.saveMatchResult crea new_match para ambos si es match nuevo_
 - [ ] **RF-406** 🔒 Email transaccional via Resend (magic link, nuevo match, mensaje, reseña). (M) — _(auditoría 2026-06-01: sigue 🔒 — `RESEND_API_KEY` vacía; requiere cuenta Resend + verificación del dominio figus.uy. `RESEND_FROM_EMAIL` ya seteado)_
 - [ ] **RF-407** Frecuencia de email configurable (instant / daily / weekly / never). (M)
 - [ ] **RF-408** Unsubscribe en footer (`emailFrequency=never`). (M)
