@@ -3,6 +3,48 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 16
+
+- **Ítem**: RF-401 + RF-402 + RF-403 — Notification service: schemas Zod, repository, service, `GET /api/notifications` (paginado), `PATCH /api/notifications/[id]` (marcar leída)
+- **Rama**: `claude/lucid-bell-A8p8r`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge solicitado
+
+### Qué se hizo
+
+- `src/lib/validations/notification.schema.ts`: schemas Zod para `NotificationType`, `NotificationItem`, `GetNotificationsQuery` (page + limit con defaults), `GetNotificationsResponse`, `CreateNotification`.
+- `src/repositories/notification.repository.ts`: 6 métodos — `create`, `findByUserId` (skip/take), `countByUserId`, `countUnreadByUserId`, `findById`, `markRead`.
+- `src/services/notification.service.ts`: 3 métodos — `createNotification`, `getNotificationsForUser` (pagina + cuenta total + unread en paralelo), `markNotificationRead` (401 si no existe/distinto user, idempotente si ya leída).
+- `src/app/api/notifications/route.ts`: `GET /api/notifications` — 401 sin sesión, 400 con params inválidos (Zod), 200 con `{ notifications, total, unreadCount }`.
+- `src/app/api/notifications/[id]/route.ts`: `PATCH /api/notifications/[id]` — 401 sin sesión, 404 si no encontrada o de otro usuario, 200 `{ ok: true }`.
+- Tests: 103 tests (+22 vs corrida anterior), 100% coverage (stmts/branches/funcs/lines).
+  - 7 tests en `notification.repository.test.ts`
+  - 7 tests en `notification.service.test.ts`
+  - 4 tests en `api/notifications/__tests__/route.test.ts`
+  - 3 tests en `api/notifications/[id]/__tests__/route.test.ts`
+- Gate: format ✅, lint ✅ (0 errores), type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (103 tests, 100%), build ✅ (`/api/notifications` y `/api/notifications/[id]` como `ƒ Dynamic`).
+
+### Fix de tipos
+
+- Zod v4: `z.record()` requiere 2 args → `z.record(z.string(), z.unknown())`.
+- Prisma JSON field: cast explícito `data.payload as InputJsonValue` (importado de `@prisma/client/runtime/library`).
+
+### Próximo paso
+
+Próximos ítems autónomos (sin credenciales):
+- **RF-404** — Badge campana en header con contador no leídas (refresh 60s). Requiere componente UI del header + polling con TanStack Query o `setInterval`.
+- **RF-405** — Dropdown con últimas 10, click navega y marca leída. Componente UI client.
+- **RF-409** — Trigger automático de notificación al crear match nuevo (ambas partes). Llama `notificationService.createNotification` desde el service/repo de match.
+- **RF-802–RF-808** — Páginas estáticas SSG (`/como-funciona`, `/precios`, `/privacidad`, `/terminos`, `/contacto`): 100% autónomas.
+
+### ⚠️ Bloqueos conocidos
+
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- RF-406 🔒 Resend — email transaccional.
+- S0.7 🔒 Supabase — toda la capa de Auth (Sprint 1) bloqueada.
+
+---
+
 ## 2026-06-01 — Corrida 15
 
 - **Ítem**: RF-313 — Marcar match `completed` (cualquiera de las dos partes)

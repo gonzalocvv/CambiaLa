@@ -129,9 +129,9 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ### Notificaciones (módulo 400)
 
-- [ ] **RF-401** Tabla `Notification` (tipo + payload JSON): `new_match`, `new_message`, `trade_completed`, `rating_received`. (M)
-- [ ] **RF-402** `GET /api/notifications` con paginación. (M)
-- [ ] **RF-403** `PATCH /api/notifications/[id]` marcar leída (`readAt`). (M)
+- [x] **RF-401** Tabla `Notification` (tipo + payload JSON): `new_match`, `new_message`, `trade_completed`, `rating_received`. (M)
+- [x] **RF-402** `GET /api/notifications` con paginación. (M)
+- [x] **RF-403** `PATCH /api/notifications/[id]` marcar leída (`readAt`). (M)
 - [ ] **RF-404** Badge campana en header con contador no leídas (refresh 60s). (M)
 - [ ] **RF-405** Dropdown con últimas 10, click navega y marca leída. (M)
 - [ ] **RF-409** Trigger automático de notificación al crear match nuevo (ambas partes). (M)
