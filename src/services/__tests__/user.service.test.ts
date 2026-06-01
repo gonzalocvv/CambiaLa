@@ -8,13 +8,19 @@ const mockRepo = vi.hoisted(() => ({
   findById: vi.fn(),
   updateProfile: vi.fn(),
   updateLocation: vi.fn(),
+  findByUsername: vi.fn(),
 }));
 
 vi.mock('@/repositories/user.repository', () => ({
   userRepository: mockRepo,
 }));
 
-import { userService, UsernameConflictError, UserNotFoundError } from '../user.service';
+import {
+  userService,
+  UsernameConflictError,
+  UserNotFoundError,
+  PublicProfileNotFoundError,
+} from '../user.service';
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -143,5 +149,47 @@ describe('userService.updateLocation', () => {
       userService.updateLocation('nonexistent', { city: 'Salto' }),
     ).rejects.toBeInstanceOf(UserNotFoundError);
     expect(mockRepo.updateLocation).not.toHaveBeenCalled();
+  });
+});
+
+describe('userService.getPublicProfileUser', () => {
+  function makePublicUser(overrides: object = {}) {
+    return {
+      id: 'cuid-1',
+      username: 'gonza',
+      name: 'Gonzalo',
+      bio: null,
+      avatarUrl: null,
+      city: 'Montevideo',
+      neighborhood: 'Pocitos',
+      reputation: 4.5,
+      tradesCompleted: 10,
+      createdAt: new Date('2026-01-01'),
+      publicProfile: true,
+      ...overrides,
+    };
+  }
+
+  it('returns user when found and publicProfile is true', async () => {
+    const user = makePublicUser();
+    mockRepo.findByUsername.mockResolvedValue(user);
+    const result = await userService.getPublicProfileUser('gonza');
+    expect(result).toEqual(user);
+    expect(mockRepo.findByUsername).toHaveBeenCalledWith('gonza');
+  });
+
+  it('throws PublicProfileNotFoundError when user does not exist', async () => {
+    mockRepo.findByUsername.mockResolvedValue(null);
+    await expect(userService.getPublicProfileUser('nobody')).rejects.toBeInstanceOf(
+      PublicProfileNotFoundError,
+    );
+  });
+
+  it('throws PublicProfileNotFoundError when publicProfile is false', async () => {
+    const user = makePublicUser({ publicProfile: false });
+    mockRepo.findByUsername.mockResolvedValue(user);
+    await expect(userService.getPublicProfileUser('private')).rejects.toBeInstanceOf(
+      PublicProfileNotFoundError,
+    );
   });
 });
