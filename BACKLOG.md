@@ -89,7 +89,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [ ] **RF-113** Perfil — nombre visible + bio (máx 140 chars). (M)
 - [ ] **RF-114** Perfil — WhatsApp opcional (regex +598…). (S)
 - [ ] **RF-116** Toggle perfil público/privado. (M)
-- [ ] **RF-801** Landing `/` funcional (hero, cómo funciona en 3 pasos, casos de uso, CTA registro, footer). (M) — _ya hay coming soon, evolucionarla_
+- [x] **RF-801** Landing `/` funcional (hero, cómo funciona en 3 pasos, casos de uso, CTA registro, footer). (M) — _ya hay coming soon, evolucionarla_
 
 ---
 
