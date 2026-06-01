@@ -1,5 +1,6 @@
 import { ScrollHint } from '@/components/coming-soon/ScrollHint';
 import { Navbar } from '@/components/layout/navbar';
+import { SiteFooter } from '@/components/layout/site-footer';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 
@@ -173,9 +174,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <footer className="border-border text-muted-foreground border-t px-6 py-8 text-center text-xs">
-        {t('footer')}
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
