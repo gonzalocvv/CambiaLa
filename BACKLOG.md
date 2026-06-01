@@ -26,6 +26,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] Vitest + Playwright + ESLint + Prettier configurados
 - [x] Coming soon page en producción (`/`, develop = prod)
 - [x] Supabase project + env vars (Supabase URL/keys, DATABASE_URL) — _(config verificada OK 2026-06-01: `ANON`/`SERVICE_ROLE`/`DATABASE_URL`/`DIRECT_URL` presentes en `.env.local`; `prisma migrate status` al día)_
+- [x] **Hotfix 2026-06-01 (Corrida 31)**: `src/lib/prisma.ts` fuerza `pgbouncer=true` contra el pooler de transacción de Supabase (`:6543`) → corrige el 500 intermitente `prepared statement "sN" does not exist` en `/album` y `/matches`. Pendiente que Gonza verifique el `DATABASE_URL` de Vercel (ver HANDOFF Corrida 31).
 - [ ] 🔒 Resend / Sentry / PostHog / Inngest keys — **requiere credenciales** _(auditoría 2026-06-01: VACÍAS en `.env.local` → `RESEND_API_KEY`, `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`, `NEXT_PUBLIC_POSTHOG_KEY`, `SENTRY_DSN`, `SENTRY_AUTH_TOKEN`. Placeholders presentes pero sin secreto: `SENTRY_ORG/PROJECT`, `NEXT_PUBLIC_POSTHOG_HOST`, `RESEND_FROM_EMAIL`)_
 - [x] shadcn/ui base instalado y configurado _(verificado OK 2026-06-01: `src/components/ui/{button,input,label,card,badge,dialog}.tsx` + `components.json`)_
 - [x] next-intl (`es`) configurado _(verificado OK 2026-06-01: `src/i18n/request.ts` + `messages/es.json`)_

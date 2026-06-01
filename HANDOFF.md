@@ -3,6 +3,50 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 31 (🐛 hotfix de producción)
+
+- **Ítem**: 🐛 Hotfix producción — error 500 al iniciar sesión e ir a **Mi álbum** / **Mis matches**.
+- **Rama**: `claude/fix-prisma-pgbouncer-pooler`
+- **PR**: https://github.com/gonzalocvv/CambiaLa/pull/48
+- **Estado**: ✅ completo, PR rebasado sobre develop, auto-merge (REBASE) pendiente de habilitar
+
+### Síntoma
+
+En `cambia-la.vercel.app`, tras login, `/album` y `/matches` tiraban **500** de forma **intermitente** (Vercel observability: `/album` ~25 %, `/matches` ~16.7 %; `/auth/login` y `/api/auth/callback` 0 %). Log de la función:
+
+```
+Invalid `prisma.user.findUnique()` invocation:
+ConnectorError { kind: QueryError(PostgresError { code: "26000",
+  message: "prepared statement \"s26\" does not exist" }) }
+clientVersion: '6.19.3'
+```
+
+### Causa raíz
+
+`getSession()` (ya implementado, deja de ser stub) llama `userRepository.findByEmail()` → `prisma.user.findUnique()`. El singleton `src/lib/prisma.ts` instanciaba `new PrismaClient()` **sin** decirle a Prisma que corre detrás del **pooler de transacción de Supabase** (Supavisor/PgBouncer, puerto `:6543`). En ese modo cada query puede caer en un backend distinto, así que un prepared statement creado en una conexión no existe en la siguiente → `prepared statement "sN" does not exist` (PostgreSQL `26000`). De ahí el patrón **intermitente**. `.env.example` ya documentaba la URL correcta (`:6543/...?pgbouncer=true`), pero el código no garantizaba el flag en runtime.
+
+### Qué se hizo
+
+- `src/lib/database-url.ts` (nuevo, función pura de capa Domain): `resolveDatasourceUrl(rawUrl)` agrega `pgbouncer=true` cuando la URL apunta al pooler de transacción (`:6543/`) y no trae ya un `pgbouncer=`. Respeta config explícita (`true`/`false`), no toca conexiones directas (`:5432`) ni la URL local mock.
+- `src/lib/prisma.ts`: usa `new PrismaClient({ datasourceUrl })` con la URL resuelta. Cambio contenido en el singleton (único lugar de config de Prisma, CLAUDE.md §6). No se tocó `DIRECT_URL` (solo lo usa el CLI de migraciones; soporta prepared statements).
+- `src/lib/__tests__/database-url.test.ts`: 7 tests, branches 100 %.
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (**283 tests**, branches 100 %, lines 100 %), build ✅.
+
+### ⚠️ Acción recomendada para Gonza (complementaria, no bloqueante)
+
+El fix es defensivo y arregla el caso aunque el env var esté mal. Igual conviene **verificar el `DATABASE_URL` real en Vercel** (Production): debe ser el pooler de transacción `...pooler.supabase.com:6543/postgres?pgbouncer=true` (no la conexión directa `:5432` ni el pooler sin el flag). Si quedó sin `pgbouncer=true`, el código ahora lo agrega solo; si por algo el error persistiera con el flag ya presente, escalar (podría requerir `connection_limit=1` para serverless).
+
+### Nota para próximas corridas
+
+- `CLAUDE.md` §2 y §12 dicen que `getSession()` es un stub `return null`: **está desactualizado**, Auth ya está implementado con `@supabase/ssr` (login/callback/logout andan; el 500 era de DB, no de auth).
+- `node_modules` clonado venía desactualizado respecto a `package.json` (faltaba `@supabase/ssr`); el `pnpm install` del gate lo resuelve. En limpio no aplica.
+
+### Próximo paso
+
+Retomar el backlog autónomo (sin tocar 🔒): **RF-513** (señal de confianza en el detalle del match), **RF-802–808** (páginas estáticas SSG). Detalle en la Corrida 30.
+
+---
+
 ## 2026-06-01 — Corrida 30
 
 - **Ítem**: RF-512 — Conversación persistente entre rematches
