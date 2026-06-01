@@ -31,6 +31,8 @@ export default async function SettingsPage() {
             initialBio={profile.bio ?? ''}
             initialCity={profile.city ?? ''}
             initialNeighborhood={profile.neighborhood ?? ''}
+            initialWhatsapp={profile.whatsapp ?? ''}
+            initialPublicProfile={profile.publicProfile}
           />
         </div>
       </div>
