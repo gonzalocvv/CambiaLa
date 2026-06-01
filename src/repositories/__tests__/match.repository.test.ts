@@ -197,6 +197,66 @@ describe('matchRepository.findActiveByUserWithPartners', () => {
   });
 });
 
+describe('matchRepository.findByIdWithPartners', () => {
+  it('returns match with userA and userB when found', async () => {
+    const partner = {
+      id: 'user-b',
+      email: 'b@example.com',
+      username: 'userb',
+      name: 'User B',
+      avatarUrl: null,
+      bio: null,
+      city: 'Montevideo',
+      neighborhood: 'Centro',
+      whatsapp: null,
+      lat: null,
+      lng: null,
+      geoGranularity: 'none',
+      role: 'user',
+      publicProfile: false,
+      isSuspended: false,
+      notifyOnMatch: true,
+      emailFrequency: 'instant',
+      pushEnabled: false,
+      pushSubscription: null,
+      participatesInMatchmaking: true,
+      matchRadius: 'department',
+      offerUniques: false,
+      acceptUnbalanced: true,
+      isPro: false,
+      proExpiresAt: null,
+      reputation: 4.5,
+      tradesCompleted: 2,
+      createdAt: NOW,
+      lastSeenAt: NOW,
+      onboardingDoneAt: null,
+    };
+    const matchWithPartners = {
+      ...makeDbMatch(),
+      userA: { ...partner, id: 'user-a', email: 'a@example.com', username: 'usera' },
+      userB: partner,
+    };
+    mockMatchPrisma.findUnique.mockResolvedValue(matchWithPartners);
+
+    const result = await matchRepository.findByIdWithPartners('match-1');
+
+    expect(mockMatchPrisma.findUnique).toHaveBeenCalledWith({
+      where: { id: 'match-1' },
+      include: { userA: true, userB: true },
+    });
+    expect(result).not.toBeNull();
+    expect(result!.userB.username).toBe('userb');
+  });
+
+  it('returns null when match is not found', async () => {
+    mockMatchPrisma.findUnique.mockResolvedValue(null);
+
+    const result = await matchRepository.findByIdWithPartners('nonexistent');
+
+    expect(result).toBeNull();
+  });
+});
+
 describe('matchRepository.markInactiveByLastSeen', () => {
   it('marks active matches inactive when a participant has not been seen since cutoff', async () => {
     const cutoff = new Date('2026-05-01T00:00:00Z');

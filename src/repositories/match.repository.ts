@@ -50,6 +50,13 @@ export const matchRepository = {
     });
   },
 
+  async findByIdWithPartners(id: string): Promise<MatchWithPartners | null> {
+    return prisma.match.findUnique({
+      where: { id },
+      include: { userA: true, userB: true },
+    });
+  },
+
   async findActiveByUserWithPartners(userId: string): Promise<MatchWithPartners[]> {
     return prisma.match.findMany({
       where: {

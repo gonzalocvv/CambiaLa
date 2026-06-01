@@ -108,7 +108,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **RF-309** TTL de matches: `inactive` si un participante no se loguea en 30 días + job de limpieza diario. (M) — lógica pura implementada; scheduling via Inngest 🔒
 - [x] **RF-310** Lista de mis matches activos ordenados por score desc. (M)
 - [x] **RF-311** Match card: avatar/username del otro, barrio, distancia (si geo), score, "te da X / le das Y". (M)
-- [ ] **RF-312** Detalle de match: dos columnas "lo que te ofrece" / "lo que le das". (M)
+- [x] **RF-312** Detalle de match: dos columnas "lo que te ofrece" / "lo que le das". (M)
 - [ ] **RF-313** Marcar match `completed` (cualquiera de las dos partes). (M)
 
 ### Chat (módulo 500)

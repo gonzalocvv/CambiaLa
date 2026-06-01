@@ -3,6 +3,51 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 14
+
+- **Ítem**: RF-312 — Detalle de match: página `/matches/[id]` con dos columnas "lo que te ofrece" / "lo que le das"
+- **Rama**: `claude/rf312-match-detail`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge solicitado
+
+### Qué se hizo
+
+- `src/lib/validations/match.schema.ts`: nuevo schema `GetMatchDetailResponseSchema` / tipo `GetMatchDetailResponse`.
+- `src/repositories/match.repository.ts`: nuevo método `findByIdWithPartners(id)` — `findUnique` con `include: { userA: true, userB: true }`.
+- `src/services/match.service.ts`: nuevo método `getMatchDetailForUser(id, userId)` — devuelve `ActiveMatchItem | null` desde la perspectiva del usuario solicitante; retorna `null` si el match no existe o el usuario no es participante.
+- `src/app/api/matches/[id]/route.ts`: `GET /api/matches/[id]` — 401 sin sesión, 404 si no encontrado/no participante, 200 con `{ match }`.
+- `src/app/matches/[id]/page.tsx`: server component con:
+  - Header de partner (avatar con fallback a iniciales, nombre/username, ubicación, reputación).
+  - Badge de score.
+  - Dos columnas (grid responsive 1→2 col): "Lo que te ofrece" / "Lo que le das", cada una con `StickerGrid` de badges monoespaciados.
+  - Manejo de no-auth: mensaje i18n en lugar de crash.
+  - Link de vuelta a `/matches`.
+- `messages/es.json`: namespace `MatchDetail` con 8 claves (cero strings hardcodeados en JSX).
+- Tests: 76 tests (+9 vs corrida anterior), 100% coverage (stmts/branches/funcs/lines).
+  - 2 tests nuevos en `match.repository.test.ts` (findByIdWithPartners: found, null)
+  - 4 tests nuevos en `match.service.test.ts` (getMatchDetailForUser: user-a, user-b, not found, not participant)
+  - 3 tests nuevos en `src/app/api/matches/[id]/__tests__/route.test.ts` (401, 200, 404)
+- Gate: format ✅, lint ✅ (0 errores), type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (76 tests, 100%), build ✅ (`/api/matches/[id]` y `/matches/[id]` como `ƒ Dynamic`).
+
+### ⚠️ Nota sobre navegación
+
+- El back-link apunta a `/matches` — ruta que aún no existe como página (la API existe pero no el listado UI). Se construirá cuando se implemente el listado de matches en Sprint 3.
+- La autenticación es stub (siempre null) hasta S0.7 🔒; la página muestra un mensaje i18n al no-autenticado en lugar de redirigir.
+
+### Próximo paso
+
+Próximos ítems autónomos (sin credenciales):
+- **RF-313** — Marcar match `completed` (cualquiera de las partes): `PATCH /api/matches/[id]/complete` + botón en la página de detalle. El service `completeMatch` ya existe, falta el endpoint REST y el botón UI.
+- **RF-401** — Tabla `Notification` + API routes `GET /api/notifications` y `PATCH /api/notifications/[id]`: pura lógica DB + Zod.
+- **RF-802–RF-808** — Páginas estáticas SSG (`/como-funciona`, `/precios`, `/privacidad`, `/terminos`, `/contacto`): 100% autónomas.
+
+### ⚠️ Bloqueos conocidos
+
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- S0.7 🔒 Supabase — toda la capa de Auth (Sprint 1) bloqueada. `getSession()` retorna null hasta que esté listo.
+
+---
+
 ## 2026-06-01 — Corrida 13
 
 - **Ítem**: RF-311 — Match card: componente UI (avatar/username, barrio, score, "te da X / le das Y")
