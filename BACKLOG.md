@@ -65,10 +65,10 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ### Onboarding (módulo 100)
 
-- [ ] **RF-108** Onboarding — elegir username único (3-20 chars, alfanumérico). (M)
-- [ ] **RF-109** Onboarding — elegir ciudad (lista fija). (M)
-- [ ] **RF-110** Onboarding — barrio (si Montevideo, lista finita). (M)
-- [ ] **RF-111** Saltear onboarding (bloquea vista de matches hasta completarlo). (S)
+- [x] **RF-108** Onboarding — elegir username único (3-20 chars, alfanumérico). (M) — _Corrida 19: /onboarding + POST /api/onboarding + GET check-username_
+- [x] **RF-109** Onboarding — elegir ciudad (lista fija). (M) — _Corrida 19: 19 departamentos de Uruguay_
+- [x] **RF-110** Onboarding — barrio (si Montevideo, lista finita). (M) — _Corrida 19: 46 barrios de Montevideo, condicional_
+- [x] **RF-111** Saltear onboarding (bloquea vista de matches hasta completarlo). (S) — _Corrida 19: /matches redirige a /onboarding si !onboardingDoneAt_
 
 ### Álbum (módulo 200) — ⛔ depende del seed (S0.6)
 

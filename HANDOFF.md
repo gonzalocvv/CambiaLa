@@ -3,6 +3,52 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 19
+
+- **Ítem**: RF-108 + RF-109 + RF-110 + RF-111 — Onboarding completo (username + ciudad + barrio + guard)
+- **Rama**: `claude/tender-archimedes-bFF1Y`
+- **PR**: https://github.com/gonzalocvv/CambiaLa/pull/35
+- **Estado**: ✅ completo, PR abierto con auto-merge (REBASE) solicitado
+
+### Qué se hizo
+
+- `src/lib/locations.ts`: 19 departamentos de Uruguay + 46 barrios de Montevideo (`as const`, tipados).
+- `src/lib/validations/onboarding.schema.ts`: Zod schemas — `UsernameSchema` (3-20 chars, alfanumérico+_), `CompleteOnboardingSchema` (requiere neighborhood si city=Montevideo), `CheckUsernameQuerySchema`.
+- `src/repositories/user.repository.ts`: métodos `isUsernameAvailable()` + `updateOnboarding()`.
+- `src/services/user.service.ts`: métodos `checkUsernameAvailability()` + `completeOnboarding()` + `UsernameConflictError` (409).
+- `src/lib/auth.ts`: `Session` type agrega `onboardingDoneAt: Date | null` (sin query extra — `findByEmail` ya lo seleccionaba).
+- `POST /api/onboarding`: 401/400/409/200.
+- `GET /api/onboarding/check-username`: 401/400/200 `{available}`.
+- `src/app/onboarding/page.tsx` (server): redirige a `/auth/login` sin sesión, a `/matches` si ya onboardeado.
+- `src/app/onboarding/OnboardingForm.tsx` (client): 2 pasos — paso 1 username con debounce 500ms y feedback inline; paso 2 departamento + barrio condicional. Skip → `/`.
+- Auth callback actualizado: redirige a `/onboarding` si `!user.onboardingDoneAt`.
+- `/matches` actualizado: redirige a `/onboarding` si `!session.onboardingDoneAt` (RF-111).
+- `messages/es.json`: namespace `Onboarding` con 20 claves.
+- Tests: 131 tests (21 nuevos), 100% cobertura.
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (131 tests, 100%), build ✅.
+
+### Nota de arquitectura
+
+`OnboardingForm.tsx` usa estado derivado (no `setState` en el body del `useEffect`) para cumplir con `react-hooks/set-state-in-effect`: `lastChecked` guarda el resultado del check asíncrono; `displayState` se deriva de `username` + `syncError` + `lastChecked` sin efectos secundarios síncronos.
+
+### Próximo paso
+
+Con onboarding completo, el MVP tiene Auth + Onboarding funcionales. Los próximos ítems lógicos:
+
+1. **RF-203** — Vista de mi álbum: grid responsive con estado de figuritas. Es el núcleo del producto.
+2. **RF-404 + RF-405** — Badge campana + dropdown de notificaciones en el navbar.
+3. **RF-802–RF-808** — Páginas estáticas SSG (100% autónomas, sin credenciales).
+
+RF-203 es el más valioso para el MVP (sin álbum no hay matches). Depende de que el usuario esté logueado + onboardeado (ambos ahora funcionan).
+
+### ⚠️ Bloqueos conocidos
+
+- RF-102 🔒 Google OAuth — requiere configurar el provider en el dashboard de Supabase.
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- RF-406 🔒 Resend — email transaccional custom.
+
+---
+
 ## 2026-06-01 — Corrida 18
 
 - **Ítem**: RF-101 + RF-103 + RF-104 + RF-105 + RF-106 + RF-107 — Auth foundation con magic link
