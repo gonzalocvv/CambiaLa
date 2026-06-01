@@ -3,6 +3,48 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 32 (🐛 fix de login)
+
+- **Ítem**: 🐛 Login — al pedir el magic link mostraba "Algo salió mal. Intentá de nuevo." (reportado por Gonza).
+- **Rama**: `claude/fix-login-rate-limit-feedback`
+- **PR**: https://github.com/gonzalocvv/CambiaLa/pull/49
+- **Estado**: ✅ fix de código completo, PR abierto. ⚠️ El fix de capacidad real es 🔒 (SMTP propio).
+
+### Diagnóstico (con evidencia, no asumido)
+
+El envío del magic link es una llamada **client-side** a Supabase (`supabase.auth.signInWithOtp` en `LoginForm.tsx`) — **no toca Prisma**, así que no tiene relación con el hotfix de pgbouncer (Corrida 31). Reproduje el fallo en el browser y leí la red:
+
+```
+POST https://<ref>.supabase.co/auth/v1/otp  →  HTTP 429
+{"code":429,"error_code":"over_email_send_rate_limit","msg":"email rate limit exceeded"}
+```
+
+Es el **límite horario de envío de emails del SMTP built-in de Supabase** (cuota baja en el plan free). Descartado bug de código/config:
+
+- URL + anon key horneadas en el build de **producción == las de `.env.local`** (comparado por hash y por `ref` del JWT).
+- El endpoint OTP responde **200 cuando hay cuota** (probado por API); el 429 aparece al agotarla.
+- `LoginForm.tsx` **no cambió desde RF-101** (`7f1f773`). Lo único reciente en auth fue RF-101b (el _callback_, no el envío).
+
+El `LoginForm` colapsaba el 429 (y cualquier error) en el genérico "Algo salió mal", sin pista de qué pasó ni qué hacer.
+
+### Qué se hizo
+
+- `src/app/auth/login/LoginForm.tsx`: detecta `error.status === 429` → muestra `errorRateLimited` ("esperá unos minutos"). Además envuelve el envío en `try/catch` para no dejar el botón trabado en "Enviando…" ante una excepción de red.
+- `messages/es.json`: nueva key `Auth.login.errorRateLimited`.
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (283 tests), build ✅.
+
+### ⚠️ Necesita decisión / acción de Gonza (🔒 — fix de capacidad real)
+
+El mensaje es **paliativo**: el login va a seguir topando la cuota del email built-in. El fix de verdad es **configurar SMTP propio (Resend) en Supabase → Authentication → Emails/SMTP Settings** (RF-406, 🔒 — necesita la API key de Resend + dominio verificado). Mientras tanto, la cuota del built-in se resetea por hora.
+
+- Workaround inmediato: durante el diagnóstico se enviaron 2 magic links válidos a `gcabrera3210@gmail.com` (quedan en la bandeja, expiran ~1 h) → sirven para entrar ya.
+
+### Próximo paso
+
+Backlog autónomo (sin 🔒): **RF-513** (señal de confianza en el detalle del match), **RF-802–808** (páginas estáticas SSG). Detalle en la Corrida 30.
+
+---
+
 ## 2026-06-01 — Corrida 31 (🐛 hotfix de producción)
 
 - **Ítem**: 🐛 Hotfix producción — error 500 al iniciar sesión e ir a **Mi álbum** / **Mis matches**.
