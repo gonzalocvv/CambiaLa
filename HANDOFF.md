@@ -3,6 +3,57 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 29 (🐛 fix de bug reportado)
+
+- **Ítem**: RF-101b — Arreglar auth/login (magic link da "inválido" al confirmar)
+- **Rama**: `claude/fix-auth-magic-link` (basada en `develop`, independiente de RF-511)
+- **PR**: (ver abajo)
+- **Estado**: 🚧 fix de código completo + PR abierto; **NO tildar hasta verificación manual de Gonza** (config de dashboard + login real end-to-end)
+
+### Bug reportado
+
+Gonza: "me mandó el correo cuando puse iniciar sesión pero cuando le di confirmar correo me apareció inválido". No pudo entrar ni ver nada de lo creado.
+
+### Causa raíz
+
+`LoginForm` usa el browser client de `@supabase/ssr` → `signInWithOtp`, que arranca un **flujo PKCE** (guarda un code-verifier en cookie del navegador). El callback `/api/auth/callback` **solo** manejaba `exchangeCodeForSession(code)` (espera `?code=`). Eso falla cuando:
+
+1. El mail se abre en **otro dispositivo/navegador** que el que pidió el link → el code-verifier no está → exchange falla.
+2. El **template de email por defecto** de Supabase no manda `?code=` sino un link a `/auth/v1/verify` con `token_hash`+`type` (o flujo implícito con tokens en el hash `#…` que el server no lee).
+
+Cualquiera de los dos → redirect a `/auth/login?error=…` → el usuario ve el cartel de error ("inválido").
+
+### Qué se hizo (código)
+
+- `src/app/api/auth/callback/route.ts`: ahora maneja **ambos** flujos:
+  - **PKCE** (`?code=`) → `exchangeCodeForSession` (mismo dispositivo).
+  - **Token-hash** (`?token_hash=&type=`) → `verifyOtp({ token_hash, type })` — **funciona cross-device**, no necesita code-verifier. Este es el flujo recomendado por Supabase para SSR.
+  - Errores diferenciados en el redirect: `missing_code` / `exchange_failed` / `verify_failed` / `no_email`.
+- `src/app/api/auth/callback/__tests__/route.test.ts`: 8 tests nuevos (missing params, PKCE→onboarding, PKCE→next, exchange error, token_hash→matches, verify error, metadata forwarding, no_email). Antes el callback no tenía tests.
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (261 tests, branches 100%, lines 100%), build ✅.
+
+### ⚠️ Necesita acción manual de Gonza (para cerrar RF-101b)
+
+El branch token-hash solo se dispara si el **email link incluye `token_hash`+`type`**. Hay que actualizar el dashboard de Supabase:
+
+| # | Dónde | Qué hacer |
+| - | ----- | --------- |
+| 1 | **Authentication → Email Templates → Magic Link** | Cambiar el link a: `{{ .SiteURL }}/api/auth/callback?token_hash={{ .TokenHash }}&type=magiclink` (en vez del `{{ .ConfirmationURL }}` default). Esto hace el login robusto cross-device. |
+| 2 | **Authentication → URL Configuration → Redirect URLs** | Confirmar que están `https://cambia-la.vercel.app/api/auth/callback` y `http://localhost:3000/api/auth/callback` (HANDOFF corrida 18 dice que sí, reconfirmar). |
+| 3 | **Authentication → Email → OTP expiry** | RF-101 pide 10 min; default 60. Ajustar si se quiere literal (no bloquea). |
+| 4 | **Verificar end-to-end** | Pedir magic link en prod, abrir el mail en **otro dispositivo** (caso que fallaba), confirmar que entra. Recién ahí tildar RF-101b en BACKLOG. |
+
+### ⚠️ Decisión de producto pendiente (planteada por Gonza)
+
+Gonza propone evaluar **email + contraseña** en vez de magic link ("la gente ve que le mandan un correo para entrar y se va"). Esto **contradice ADR-013** (magic link + Google OAuth). NO se cambió nada todavía — requiere decisión + nuevo ADR. Ver análisis en la respuesta de la corrida. Si se decide, es un ítem nuevo (RF-101c) con su propio PR.
+
+### Próximo paso
+
+1. Gonza: hacer la config de dashboard (#1–#4 arriba) y verificar el login real.
+2. Decidir el tema magic link vs password (RF-101c, requiere ADR).
+
+---
+
 ## 2026-06-01 — Corrida 27
 
 - **Ítem**: RF-601 + RF-602 + RF-603 + RF-604 — Reseñas post-trade (sistema completo de ratings)
