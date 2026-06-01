@@ -91,6 +91,7 @@
       "successMessage": "Te mandamos un link a {email}. Hacé click y entrás.",
       "successHint": "Si no ves el mail, revisá la carpeta de spam.",
       "errorGeneric": "Algo salió mal. Intentá de nuevo.",
+      "errorRateLimited": "Pediste muchos links en poco tiempo. Esperá unos minutos y volvé a intentar.",
       "errorInvalidEmail": "El email no parece válido.",
       "backToHome": "← Volver al inicio",
       "callbackError": "Hubo un problema al iniciar sesión. Intentá de nuevo."

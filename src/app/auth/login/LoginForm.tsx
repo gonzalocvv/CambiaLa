@@ -25,22 +25,27 @@ export function LoginForm() {
     setStatus('loading');
     setErrorMsg('');
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email: trimmed,
-      options: {
-        emailRedirectTo: `${window.location.origin}/api/auth/callback`,
-        shouldCreateUser: true,
-      },
-    });
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOtp({
+        email: trimmed,
+        options: {
+          emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+          shouldCreateUser: true,
+        },
+      });
 
-    if (error) {
+      if (error) {
+        setErrorMsg(error.status === 429 ? t('errorRateLimited') : t('errorGeneric'));
+        setStatus('error');
+        return;
+      }
+
+      setStatus('success');
+    } catch {
       setErrorMsg(t('errorGeneric'));
       setStatus('error');
-      return;
     }
-
-    setStatus('success');
   }
 
   if (status === 'success') {
