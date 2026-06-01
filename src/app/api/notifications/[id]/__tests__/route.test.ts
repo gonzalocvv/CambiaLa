@@ -35,7 +35,7 @@ describe('PATCH /api/notifications/[id]', () => {
   });
 
   it('returns 404 when notification not found or belongs to another user', async () => {
-    mockGetSession.mockResolvedValue({ userId: 'user-a' });
+    mockGetSession.mockResolvedValue({ userId: 'user-a', onboardingDoneAt: new Date() });
     mockMarkNotificationRead.mockResolvedValue(null);
 
     const res = await PATCH(
@@ -49,7 +49,7 @@ describe('PATCH /api/notifications/[id]', () => {
   });
 
   it('returns 200 when notification is marked as read', async () => {
-    mockGetSession.mockResolvedValue({ userId: 'user-a' });
+    mockGetSession.mockResolvedValue({ userId: 'user-a', onboardingDoneAt: new Date() });
     mockMarkNotificationRead.mockResolvedValue({
       id: 'notif-1',
       type: 'new_match',

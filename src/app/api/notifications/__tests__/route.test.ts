@@ -39,7 +39,7 @@ describe('GET /api/notifications', () => {
   });
 
   it('returns 400 when page param is invalid', async () => {
-    mockGetSession.mockResolvedValue({ userId: 'user-a' });
+    mockGetSession.mockResolvedValue({ userId: 'user-a', onboardingDoneAt: new Date() });
 
     const res = await GET(new Request('http://localhost/api/notifications?page=0'));
 
@@ -49,7 +49,7 @@ describe('GET /api/notifications', () => {
   });
 
   it('returns 200 with notifications using defaults when no query params', async () => {
-    mockGetSession.mockResolvedValue({ userId: 'user-a' });
+    mockGetSession.mockResolvedValue({ userId: 'user-a', onboardingDoneAt: new Date() });
     mockGetNotificationsForUser.mockResolvedValue({
       notifications: [makeNotificationItem()],
       total: 1,
@@ -67,7 +67,7 @@ describe('GET /api/notifications', () => {
   });
 
   it('passes custom page and limit to the service', async () => {
-    mockGetSession.mockResolvedValue({ userId: 'user-a' });
+    mockGetSession.mockResolvedValue({ userId: 'user-a', onboardingDoneAt: new Date() });
     mockGetNotificationsForUser.mockResolvedValue({
       notifications: [],
       total: 0,

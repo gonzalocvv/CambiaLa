@@ -57,7 +57,7 @@ describe('GET /api/matches/[id]', () => {
   });
 
   it('returns 200 with match detail when found', async () => {
-    mockGetSession.mockResolvedValue({ userId: 'user-a' });
+    mockGetSession.mockResolvedValue({ userId: 'user-a', onboardingDoneAt: new Date() });
     mockGetMatchDetailForUser.mockResolvedValue(makeActiveMatchItem());
 
     const res = await GET(
@@ -75,7 +75,7 @@ describe('GET /api/matches/[id]', () => {
   });
 
   it('returns 404 when match not found or user is not a participant', async () => {
-    mockGetSession.mockResolvedValue({ userId: 'user-a' });
+    mockGetSession.mockResolvedValue({ userId: 'user-a', onboardingDoneAt: new Date() });
     mockGetMatchDetailForUser.mockResolvedValue(null);
 
     const res = await GET(new Request('http://localhost/api/matches/nope'), makeParams('nope'));
