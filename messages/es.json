@@ -37,7 +37,8 @@
     "newCollector": "Coleccionista nuevo",
     "scoreLabel": "Score",
     "stickersExchange": "te da {youGet} / le das {youGive}",
-    "trades": "{count, plural, one {1 cambio} other {# cambios}}"
+    "trades": "{count, plural, one {1 cambio} other {# cambios}}",
+    "unreadMessages": "{count, plural, one {1 mensaje sin leer} other {# mensajes sin leer}}"
   },
   "Onboarding": {
     "title": "Un paso más",
