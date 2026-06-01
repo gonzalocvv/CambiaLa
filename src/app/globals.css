@@ -12,9 +12,10 @@
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #0284c7; /* celeste = marca */
+  --primary: #0284c7; /* celeste = acento de marca */
   --primary-foreground: #ffffff;
-  --secondary: #e8f3fb; /* celeste claro */
+  --brand: #1e3a8a; /* wordmark "Cambia" en claro (azul profundo, mock A) */
+  --secondary: #e8f3fb; /* celeste claro (badge) */
   --secondary-foreground: #0c4a6e;
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
@@ -37,6 +38,7 @@
   --popover-foreground: #ededee;
   --primary: #38bdf8; /* celeste claro que resalta en grafito */
   --primary-foreground: #0b1220;
+  --brand: #ecf2fb; /* wordmark "Cambia" en oscuro (casi blanco, apenas celeste) */
   --secondary: #26262a;
   --secondary-foreground: #ededee;
   --muted: #26262a;
@@ -62,6 +64,7 @@
     --popover-foreground: #ededee;
     --primary: #38bdf8;
     --primary-foreground: #0b1220;
+    --brand: #ecf2fb;
     --secondary: #26262a;
     --secondary-foreground: #ededee;
     --muted: #26262a;
@@ -87,6 +90,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-brand: var(--brand);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);

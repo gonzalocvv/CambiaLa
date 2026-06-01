@@ -11,15 +11,15 @@ export default async function Home() {
       <Navbar loginLabel={t('nav.login')} ctaLabel={t('nav.cta')} />
 
       {/* Hero */}
-      <section className="relative flex min-h-[92vh] flex-col items-center justify-center px-6 py-20">
+      <section className="bg-secondary/40 relative flex min-h-[92vh] flex-col items-center justify-center px-6 py-20 dark:bg-transparent">
         <div className="max-w-2xl space-y-8 text-center">
-          <div className="bg-accent/10 text-accent ring-accent/20 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium ring-1 ring-inset">
+          <div className="bg-secondary text-secondary-foreground ring-primary/20 dark:bg-accent/10 dark:text-accent dark:ring-accent/20 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium ring-1 ring-inset">
             <span>🇺🇾</span>
             <span>{t('hero.badge')}</span>
           </div>
 
           <h1 className="text-6xl font-extrabold tracking-tight md:text-8xl">
-            <span className="text-primary">{t('hero.titlePrefix')}</span>
+            <span className="text-brand">{t('hero.titlePrefix')}</span>
             <span className="text-accent">{t('hero.titleHighlight')}</span>
           </h1>
 
