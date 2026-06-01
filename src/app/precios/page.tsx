@@ -3,9 +3,11 @@ import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://cambia-la.vercel.app';
+
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('Pricing');
-  return { title: t('metaTitle') };
+  return { title: t('metaTitle'), alternates: { canonical: `${BASE_URL}/precios` } };
 }
 
 const freeFeatures = ['freeF1', 'freeF2', 'freeF3', 'freeF4', 'freeF5', 'freeF6'] as const;

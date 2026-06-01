@@ -3,9 +3,11 @@ import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://cambia-la.vercel.app';
+
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('ComoFunciona');
-  return { title: t('metaTitle') };
+  return { title: t('metaTitle'), alternates: { canonical: `${BASE_URL}/como-funciona` } };
 }
 
 const steps = ['step1', 'step2', 'step3'] as const;

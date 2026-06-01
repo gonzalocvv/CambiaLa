@@ -12,6 +12,8 @@ import { stickerService } from '@/services/sticker.service';
 
 type Props = { params: Promise<{ username: string }> };
 
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://cambia-la.vercel.app';
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params;
   try {
@@ -21,6 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title: `${displayName} — CambiaLa`,
       description,
+      alternates: { canonical: `${BASE_URL}/u/${username}` },
       openGraph: {
         title: `${displayName} — CambiaLa`,
         description,
