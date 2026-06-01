@@ -9,6 +9,12 @@ export const UpdateProfileSchema = z.object({
     .optional()
     .or(z.literal('')),
   bio: z.string().max(140, 'Máximo 140 caracteres').optional().or(z.literal('')),
+  whatsapp: z
+    .string()
+    .regex(/^\+598\d{8}$/, 'Formato: +598 9XXXXXXX')
+    .optional()
+    .or(z.literal('')),
+  publicProfile: z.boolean().optional(),
 });
 
 export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
@@ -35,6 +41,8 @@ export const GetSettingsResponseSchema = z.object({
   avatarUrl: z.string().nullable(),
   city: z.string().nullable(),
   neighborhood: z.string().nullable(),
+  whatsapp: z.string().nullable(),
+  publicProfile: z.boolean(),
 });
 
 export type GetSettingsResponse = z.infer<typeof GetSettingsResponseSchema>;

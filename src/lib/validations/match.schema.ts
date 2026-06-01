@@ -22,6 +22,7 @@ export const MatchPartnerSchema = z.object({
   id: z.string(),
   username: z.string().nullable(),
   name: z.string().nullable(),
+  bio: z.string().nullable(),
   avatarUrl: z.string().nullable(),
   neighborhood: z.string().nullable(),
   city: z.string().nullable(),
