@@ -153,15 +153,15 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ### Perfil público (módulo 700)
 
-- [ ] **RF-701** `/u/[username]` SSR (si `publicProfile=true`). (M)
-- [ ] **RF-702** Datos visibles: avatar, nombre, barrio, bio, reputación, fecha de inicio. (M)
-- [ ] **RF-703** Resumen del álbum público (X% completo, Y tiene, Z repetidas). (M)
-- [ ] **RF-704** Lista pública de repetidas (default on). (S)
-- [ ] **RF-705** Lista pública de faltantes. (S)
-- [ ] **RF-706** CTA "Mandale mensaje" (requiere login del visitante). (M)
-- [ ] **RF-707** Compartir perfil (copia URL al portapapeles). (M)
-- [ ] **RF-708** Open Graph tags (preview lindo WhatsApp/Twitter). (M)
-- [ ] **RF-709** Perfil privado → `/u/[username]` devuelve 404. (M)
+- [x] **RF-701** `/u/[username]` SSR (si `publicProfile=true`). (M) — _Corrida 35_
+- [x] **RF-702** Datos visibles: avatar, nombre, barrio, bio, reputación, fecha de inicio. (M) — _Corrida 35_
+- [x] **RF-703** Resumen del álbum público (X% completo, Y tiene, Z repetidas). (M) — _Corrida 35_
+- [x] **RF-704** Lista pública de repetidas (default on). (S) — _Corrida 35_
+- [x] **RF-705** Lista pública de faltantes. (S) — _Corrida 35_
+- [x] **RF-706** CTA "Mandale mensaje" (requiere login del visitante). (M) — _Corrida 35_
+- [x] **RF-707** Compartir perfil (copia URL al portapapeles). (M) — _Corrida 35_
+- [x] **RF-708** Open Graph tags (preview lindo WhatsApp/Twitter). (M) — _Corrida 35_
+- [x] **RF-709** Perfil privado → `/u/[username]` devuelve 404. (M) — _Corrida 35_
 
 ### Páginas estáticas + SEO (módulo 800) — muy autónomo, no requiere servicios
 

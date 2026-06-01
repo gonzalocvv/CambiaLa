@@ -3,6 +3,50 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 35
+
+- **Ítem**: RF-701–709 — Perfil público `/u/[username]` SSR
+- **Rama**: `claude/cool-volta-laZz2`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge (REBASE) solicitado
+
+### Qué se hizo
+
+Módulo 700 completo (perfil público) en un solo PR:
+
+- **`src/repositories/user.repository.ts`**: nuevo método `findByUsername(username)` — selecciona los campos del perfil público (`id`, `username`, `name`, `bio`, `avatarUrl`, `city`, `neighborhood`, `reputation`, `tradesCompleted`, `createdAt`, `publicProfile`). 2 tests.
+- **`src/services/user.service.ts`**: nueva clase `PublicProfileNotFoundError` + método `getPublicProfileUser(username)` — resuelve el perfil o lanza el error si no existe o `publicProfile === false` (RF-709). 3 tests.
+- **`src/app/u/[username]/page.tsx`** (ƒ Dynamic, SSR): la página del perfil público. Estructura:
+  - Busca usuario vía `userService.getPublicProfileUser(username)` → `notFound()` si lanza.
+  - Carga `stickerService.getUserAlbum(userId)` en paralelo con `getSession()`.
+  - **Header** (RF-702): avatar (con fallback initials bg-primary), displayName (name ?? username), @username si tiene ambos, ciudad/barrio, bio, reputación (o "Coleccionista nuevo" si <5 cambios), fecha de inicio.
+  - **CTAs** (RF-706/707): si propio → "Editar mi perfil" (`/settings`); si logueado+otro → "Ver mis matches" (`/matches`); si anónimo → "Empezar a cambiar" (`/auth/login`). Más `ShareButton` (client).
+  - **Resumen álbum** (RF-703): 4 stat cards — % completo, tiene, repetidas, le faltan.
+  - **Lista de figuritas para cambiar** (RF-704): badges `variant="secondary"` con número (+ `×N` si count > 2).
+  - **Lista de faltantes** (RF-705): badges `variant="outline"`.
+  - **OG tags** (RF-708): `generateMetadata` retorna title, description, `openGraph.type=profile`. En privado/404 → fallback `{ title: 'CambiaLa' }`.
+- **`src/components/profile/share-button.tsx`** (client): copia `window.location.href` al portapapeles, feedback "¡Copiado!" 2s.
+- **`messages/es.json`**: namespace `PublicProfile` con 18 claves. Cero strings hardcodeados en JSX.
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (295 tests, branches 100%, lines 100%), build ✅ (`/u/[username]` como `ƒ Dynamic`).
+
+### Próximo paso
+
+1. **RF-810** — Canonical URLs en páginas indexables (M): agregar `<link rel="canonical">` en las páginas SSG y SSR (home, `/u/[username]`, `/como-funciona`, etc.) via Next.js metadata `alternates.canonical`.
+2. **RF-809** — Schema.org JSON-LD (S): `Person` en `/u/[username]`, `WebSite`+`Organization` en landing.
+3. **S3.1** — PWA: manifest.json + service worker + instalable.
+4. **RF-905/906** — Settings completo (config notificaciones + matchmaking).
+5. **RF-119/RF-908** — Borrado de cuenta con doble confirmación (compliance crítico).
+
+### ⚠️ Bloqueos conocidos
+
+- RF-101b ⚠️ fix de código hecho (Corrida 29), requiere config manual de Gonza en dashboard de Supabase.
+- RF-102 🔒 Google OAuth — requiere dashboard de Supabase.
+- RF-307 🔒 Inngest.
+- RF-406 🔒 Resend.
+- RF-112 ⚠️ Avatar upload — pendiente de decisión (Supabase Storage vs URL externa).
+
+---
+
 ## 2026-06-01 — Corrida 34
 
 - **Ítem**: RF-802 + RF-803 + RF-804 + RF-805 + RF-806 + RF-807 + RF-808 — Páginas estáticas SSG + sitemap + robots.txt
