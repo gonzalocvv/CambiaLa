@@ -3,6 +3,42 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 17
+
+- **Ítem**: RF-801 — Landing `/` funcional (hero + CTA + stats + casos de uso + CTA final)
+- **Rama**: `claude/rf801-landing-funcional`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge solicitado
+
+### Qué se hizo
+
+- `src/components/layout/navbar.tsx`: Navbar sticky con logo CambiaLa (azul/naranja), link "Iniciá sesión" y botón "Empezar gratis" → `/auth/login`. Server component con labels vía props (i18n).
+- `src/app/page.tsx`: Landing evolucionada de coming-soon a página de producto completa:
+  - **Hero**: badge "🇺🇾 Mundial 2026 · Uruguay", H1 "CambiaLa", subtitle, CTA doble (botón primario "Empezar gratis →" + link secundario "¿Cómo funciona?"), ScrollHint.
+  - **Stats bar**: ~900 figuritas / Gratis / 🇺🇾 Uruguay — 3 valores con label.
+  - **Cómo funciona** (existente): 3 pasos, conservado sin cambios.
+  - **Casos de uso**: nueva sección con 3 cards (repetidas sin destino, faltan específicas, cerca de casa).
+  - **CTA final**: H2 + subtitle + botón "Empezar gratis →".
+  - **Footer**: igual al anterior.
+- `messages/es.json`: nuevos namespaces `Home.nav`, `Home.stats`, `Home.useCases`, `Home.finalCta`; hero actualizado (badge, cta, ctaSecondary, scrollHint); eliminados `descriptionLine1`/`descriptionLine2` obsoletos.
+- Gate: format ✅, lint ✅ (0 errores), type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (103 tests, 100%), build ✅ (`/` como `○ Static`).
+
+### Próximo paso
+
+Próximos ítems autónomos (sin credenciales):
+- **RF-404** — Badge campana en header con contador no leídas (refresh 60s). Requiere header compartido (navbar podría evolucionar) + `useQuery` / polling.
+- **RF-405** — Dropdown con últimas 10, click navega y marca leída. Componente client.
+- **RF-409** — Trigger automático de notificación al crear match nuevo (ambas partes). Llama `notificationService.createNotification` desde `matchService.saveMatchResult`.
+- **RF-802–RF-808** — Páginas estáticas SSG (`/como-funciona`, `/precios`, `/privacidad`, `/terminos`, `/contacto`): 100% autónomas.
+
+### ⚠️ Bloqueos conocidos
+
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- RF-406 🔒 Resend — email transaccional.
+- S0.7 🔒 Supabase — toda la capa de Auth (Sprint 1) bloqueada.
+
+---
+
 ## 2026-06-01 — Corrida 16
 
 - **Ítem**: RF-401 + RF-402 + RF-403 — Notification service: schemas Zod, repository, service, `GET /api/notifications` (paginado), `PATCH /api/notifications/[id]` (marcar leída)
