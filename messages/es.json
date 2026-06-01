@@ -121,6 +121,26 @@
     "logoutButton": "Cerrar sesión",
     "loggingOut": "Saliendo…"
   },
+  "AppNav": {
+    "album": "Mi álbum",
+    "matches": "Mis matches",
+    "settings": "Configuración"
+  },
+  "Notifications": {
+    "bellLabel": "Notificaciones",
+    "bellLabelUnread": "{count, plural, one {1 notificación sin leer} other {# notificaciones sin leer}}",
+    "empty": "No tenés notificaciones.",
+    "markAllRead": "Marcar todas como leídas",
+    "viewAll": "Ver todas",
+    "new_match": "Nuevo match",
+    "new_message": "Nuevo mensaje",
+    "trade_completed": "Cambio completado",
+    "rating_received": "Reseña recibida",
+    "new_matchDetail": "Apareciste en un match con score {score}",
+    "new_messageDetail": "Te mandaron un mensaje",
+    "trade_completedDetail": "El intercambio fue marcado como completado",
+    "rating_receivedDetail": "Alguien te dejó una reseña"
+  },
   "Home": {
     "nav": {
       "login": "Iniciá sesión",
