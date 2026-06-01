@@ -3,6 +3,44 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 13
+
+- **Ítem**: RF-311 — Match card: componente UI (avatar/username, barrio, score, "te da X / le das Y")
+- **Rama**: `claude/rf311-match-card`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge solicitado
+
+### Qué se hizo
+
+- `src/components/matches/match-card.tsx`: server component async que recibe `ActiveMatchItem` y renderiza la tarjeta de match:
+  - Avatar: si hay `avatarUrl` → div con `background-image` CSS (evita `@next/next/no-img-element`); si no → círculo con iniciales sobre `bg-primary`.
+  - Nombre/username del partner (fallback `"Usuario"` vía i18n) + ubicación (barrio, si no ciudad).
+  - Badge de score con variante `accent`.
+  - Línea "te da {N} / le das {M}" con las longitudes de `youGet` / `youGive`.
+  - Reputación: si `tradesCompleted < 5` → "Coleccionista nuevo"; si no → `X.X ⭐ · Y cambios` (ICU plural en i18n).
+  - Toda la tarjeta es un `<Link href="/matches/{id}">` para navegación.
+- `messages/es.json`: namespace `MatchCard` con 5 claves (`unknownUser`, `newCollector`, `scoreLabel`, `stickersExchange`, `trades`). Cero strings hardcodeados en JSX.
+- Gate: format ✅, lint ✅ (0 errores), type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (67 tests, 100% stmts/branches/funcs/lines), build ✅ (componente compilado sin errores).
+
+### ⚠️ Nota sobre navegación
+
+El componente enlaza a `/matches/${match.id}`, ruta que aún no existe. Se construirá al implementar RF-312 (detalle de match). El build no falla porque Next.js no valida hrefs en tiempo de build.
+
+### Próximo paso
+
+Próximos ítems autónomos (sin credenciales):
+- **RF-312** — Detalle de match: página `/matches/[id]` con dos columnas "lo que te ofrece" / "lo que le das". Requiere crear `src/app/matches/[id]/page.tsx` + reutiliza `ActiveMatchItem` de RF-310.
+- **RF-313** — Marcar match `completed`: `PATCH /api/matches/[id]/complete` + botón en UI.
+- **RF-401** — Tabla `Notification` + API routes `GET /api/notifications` y `PATCH /api/notifications/[id]`.
+- **RF-802–RF-808** — Páginas estáticas SSG (`/como-funciona`, `/precios`, `/privacidad`, `/terminos`, `/contacto`): 100% autónomas.
+
+### ⚠️ Bloqueos conocidos
+
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- S0.7 🔒 Supabase — toda la capa de Auth (Sprint 1) bloqueada. `getSession()` retorna null hasta que esté listo.
+
+---
+
 ## 2026-06-01 — Corrida 12
 
 - **Ítem**: RF-310 — `GET /api/matches`: lista de matches activos para el usuario autenticado, ordenados por score desc

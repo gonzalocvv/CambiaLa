@@ -3,6 +3,13 @@
     "title": "CambiaLa — Cambia tus figuritas del Mundial 2026",
     "description": "Plataforma para coleccionistas uruguayos. Cargá tu álbum, te avisamos cuando aparece alguien para cambiar."
   },
+  "MatchCard": {
+    "unknownUser": "Usuario",
+    "newCollector": "Coleccionista nuevo",
+    "scoreLabel": "Score",
+    "stickersExchange": "te da {youGet} / le das {youGive}",
+    "trades": "{count, plural, one {1 cambio} other {# cambios}}"
+  },
   "Home": {
     "hero": {
       "titlePrefix": "Cambia",
