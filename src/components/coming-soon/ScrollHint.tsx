@@ -18,7 +18,7 @@ export function ScrollHint({ targetId, label }: Props) {
     <a
       href={`#${targetId}`}
       onClick={handleClick}
-      className="group absolute bottom-10 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/5 px-5 py-2.5 text-sm font-medium text-orange-300 transition-all hover:border-orange-500/60 hover:bg-orange-500/10 hover:text-orange-200"
+      className="group border-accent/30 bg-accent/5 text-accent hover:border-accent/60 hover:bg-accent/10 absolute bottom-10 inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-sm font-medium transition-all"
     >
       <span>{label}</span>
       <svg

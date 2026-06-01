@@ -4,7 +4,7 @@
 /* Class-based dark mode (Tailwind v4) */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Brand tokens — azul marino #1E3A8A + naranja #F97316 */
+/* Brand tokens — celeste (#0284C7 claro / #38BDF8 oscuro) + naranja #F97316 */
 :root {
   --background: #ffffff;
   --foreground: #0f172a;
@@ -48,6 +48,32 @@
   --border: #27272a;
   --input: #27272a;
   --ring: #38bdf8;
+}
+
+/* Dark por preferencia del SO mientras no exista el toggle de tema (S0.1b, pendiente).
+   Una clase .light o .dark explícita en <html> (futuro ThemeProvider) tiene prioridad. */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light):not(.dark) {
+    --background: #0f0f11;
+    --foreground: #ededee;
+    --card: #18181b;
+    --card-foreground: #ededee;
+    --popover: #18181b;
+    --popover-foreground: #ededee;
+    --primary: #38bdf8;
+    --primary-foreground: #0b1220;
+    --secondary: #26262a;
+    --secondary-foreground: #ededee;
+    --muted: #26262a;
+    --muted-foreground: #a1a1aa;
+    --accent: #f97316;
+    --accent-foreground: #1a1206;
+    --destructive: #991b1b;
+    --destructive-foreground: #fecaca;
+    --border: #27272a;
+    --input: #27272a;
+    --ring: #38bdf8;
+  }
 }
 
 @theme inline {
