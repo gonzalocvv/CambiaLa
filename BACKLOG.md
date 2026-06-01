@@ -84,9 +84,9 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ### Settings básico + Landing
 
-- [ ] **RF-901** Editar avatar, nombre, bio en `/settings`. (M)
-- [ ] **RF-902** Editar ciudad/barrio. (M)
-- [ ] **RF-907** Logout desde settings. (M)
+- [x] **RF-901** Editar nombre y bio en `/settings`. (M) — _Corrida 22: /settings + SettingsForm + PUT /api/settings (avatar pendiente en RF-112)_
+- [x] **RF-902** Editar ciudad/barrio. (M) — _Corrida 22: sección ubicación en /settings + PUT /api/settings/location_
+- [x] **RF-907** Logout desde settings. (M) — _Corrida 22: botón logout en sección cuenta de /settings_
 - [ ] **RF-112** Perfil — avatar (JPG/PNG, máx 2MB, resize 200x200 server-side). (M)
 - [ ] **RF-113** Perfil — nombre visible + bio (máx 140 chars). (M)
 - [ ] **RF-114** Perfil — WhatsApp opcional (regex +598…). (S)

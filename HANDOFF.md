@@ -3,6 +3,54 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 22
+
+- **Ítem**: RF-901 + RF-902 + RF-907 — Settings page (nombre/bio + ciudad/barrio + logout)
+- **Rama**: `claude/tender-archimedes-4VRLA`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge (REBASE) solicitado
+
+### Qué se hizo
+
+- `src/lib/validations/settings.schema.ts`: schemas Zod — `UpdateProfileSchema` (name max 50, bio max 140, empty→null), `UpdateLocationSchema` (departamento + barrio condicional Montevideo), `GetSettingsResponseSchema`.
+- `src/repositories/user.repository.ts`: métodos `findById()` (perfil completo), `updateProfile()` (name/bio con `|| null` para vacíos), `updateLocation()` (city + neighborhood con null por defecto). Tipos `UpdateProfileData` y `UpdateLocationData`.
+- `src/services/user.service.ts`: `getUserProfile()`, `updateProfile()`, `updateLocation()` con `UserNotFoundError` (404 cuando el userId no existe en DB).
+- `GET /api/settings`: 401 sin sesión, 200 con perfil del usuario.
+- `PUT /api/settings`: 401/400/404/200 — actualiza name + bio.
+- `PUT /api/settings/location`: 401/400/404/200 — actualiza city + neighborhood.
+- `src/app/settings/page.tsx`: server component; redirige a `/auth/login` sin sesión, a `/onboarding` si onboarding incompleto; carga perfil y pasa props a `SettingsForm`.
+- `src/app/settings/SettingsForm.tsx`: client component con 3 secciones: **Perfil** (name + bio con contador /140, autosave por sección con idle/saving/saved/error), **Ubicación** (city + barrio condicional, botón deshabilitado si Montevideo sin barrio), **Cuenta** (logout llama `POST /api/auth/logout` y redirige a `/`).
+- `messages/es.json`: namespace `Settings` con 21 claves. Cero strings hardcodeados.
+- Tests: 183 tests (+28), branches 100%, lines 100%.
+  - 2 tests `user.repository.test.ts` (findById found/null)
+  - 4 tests `user.repository.test.ts` (updateProfile + updateLocation)
+  - 6 tests `user.service.test.ts` (getUserProfile, updateProfile, updateLocation × found/not found)
+  - 7 tests `api/settings/__tests__/route.test.ts` (GET 401/200, PUT 401/400/400/400/200/404/rethrow)
+  - 7 tests `api/settings/location/__tests__/route.test.ts` (PUT 401/400/400/200/200/404/rethrow)
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (183 tests), build ✅ (`/settings` como `ƒ Dynamic`).
+
+### Nota sobre RF-901 (avatar)
+
+RF-901 cubre nombre + bio. La parte de avatar (upload) es RF-112 (JPG/PNG, resize 200×200 server-side) — queda pendiente porque requiere: (a) lógica de subida de archivos, (b) resize server-side, (c) validar/allowlistear host de la URL (§15 CLAUDE.md). La settings page muestra el campo name y bio únicamente; avatar se agrega cuando se implemente RF-112.
+
+### Próximo paso
+
+1. **RF-112** — Perfil avatar (JPG/PNG, máx 2MB, resize 200×200 server-side). Puede implementarse como upload a Supabase Storage o como URL externa validada.
+2. **RF-113** — Nombre visible + bio en perfil público (display, no edición — la edición ya está).
+3. **RF-404 + RF-405** — Badge campana en navbar con contador no leídas (refresh 60s) + dropdown. El notification service ya existe.
+4. **RF-409** — Trigger de notificación al crear match nuevo.
+
+RF-404+RF-405 son los más valiosos para UX inmediata (el usuario ya puede editar su perfil; ahora necesita ver sus notificaciones).
+
+### ⚠️ Bloqueos conocidos
+
+- RF-102 🔒 Google OAuth — requiere configurar el provider en el dashboard de Supabase.
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- RF-406 🔒 Resend — email transaccional custom.
+- RF-112 — Avatar upload: pendiente de decisión sobre dónde almacenar (Supabase Storage vs URL externa).
+
+---
+
 ## 2026-06-01 — Corrida 21
 
 - **Ítem**: RF-204 + RF-205 — Filtros del álbum + búsqueda por número/nombre
