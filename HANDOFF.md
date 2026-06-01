@@ -3,6 +3,48 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 24
+
+- **Ítem**: RF-501 + RF-502 + RF-503 + RF-504 + RF-505 — Chat 1-a-1 completo
+- **Rama**: `claude/tender-archimedes-YYojk`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge (REBASE) solicitado
+
+### Qué se hizo
+
+- `src/lib/validations/message.schema.ts`: Zod schemas — `MessageItemSchema`, `SendMessageSchema` (min 1, max 1000), `GetMessagesResponseSchema`, `SendMessageResponseSchema`.
+- `src/repositories/message.repository.ts`: 3 métodos — `create(matchId, fromUserId, body)`, `findByMatch(matchId)` (ordenado por `createdAt asc`), `countByMatch(matchId)`.
+- `src/services/message.service.ts`: `getMessages(matchId, userId)` y `sendMessage(matchId, fromUserId, body)` — ambos validan que el userId sea participante del match (via `matchRepository.findById`). `MatchNotFoundError` (match inexistente) y `MessageAccessError` (no es participante) para manejo de errores en el route.
+- `GET /api/matches/[id]/messages` (**RF-502**): 401 sin sesión, 404 si no participante/match, 200 `{ messages }`.
+- `POST /api/matches/[id]/messages` (**RF-503**): 401 sin sesión, 400 input inválido (Zod), 404 si no participante/match, 201 `{ message }`.
+- `src/components/chat/chat-panel.tsx` (**RF-502/503/505**, client): mensaje burbuja (propio → derecha, ajeno → izquierda), scroll automático al último mensaje, polling `setInterval(10s)` con cleanup, textarea + botón enviar (Enter sin Shift), contador de caracteres restantes, estados de error. Tokens de color únicamente (sin hardcoding).
+- `src/app/matches/[id]/page.tsx`: integra `ChatPanel` con `initialMessages` cargados en SSR (via `messageService.getMessages` en paralelo con `getMatchDetailForUser`). Fix secundario: `bg-slate-200/700` → `bg-muted` en el avatar del partner.
+- `messages/es.json`: clave `chatTitle` en namespace `MatchDetail` + namespace `Chat` (5 claves: `empty`, `placeholder`, `send`, `sending`, `sendError`).
+- Tests: 208 tests (+22), branches 100%, lines 100%.
+  - 4 tests en `message.repository.test.ts`
+  - 7 tests en `message.service.test.ts`
+  - 9 tests en `api/matches/[id]/messages/__tests__/route.test.ts`
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (208 tests, lines 100%, branches 100%), build ✅ (`/api/matches/[id]/messages` como `ƒ Dynamic`).
+
+### Próximo paso
+
+1. **RF-506** — Indicador de no leídos en el match card (S): contador de mensajes no leídos en la tarjeta de match. Requiere: `countUnread(matchId, userId)` en el repo (mensajes donde `fromUserId != userId` y `readAt IS NULL`).
+2. **RF-112** — Avatar upload (JPG/PNG, máx 2MB, resize 200×200). ⚠️ Pendiente decisión de Gonza sobre almacenamiento (Supabase Storage vs URL externa).
+3. **RF-113 + RF-114 + RF-116** — Nombre visible + bio / WhatsApp / Toggle perfil público: pueden ir juntos (todos son campos del User model, ya existe la settings page).
+4. **RF-601–604** — Reseñas post-trade: el ciclo completo match → chat → completar → reseña.
+5. **RF-802–808** — Páginas estáticas SSG (100% autónomas): `/como-funciona`, `/privacidad`, `/terminos`, `/contacto`, `/precios`, `sitemap.xml`, `robots.txt`.
+
+RF-506 es pequeño y completaría el ciclo del chat. Las páginas estáticas (RF-802–808) son 100% autónomas y añaden mucho SEO/credibilidad.
+
+### ⚠️ Bloqueos conocidos
+
+- RF-102 🔒 Google OAuth — requiere configurar el provider en el dashboard de Supabase.
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- RF-406 🔒 Resend — email transaccional custom.
+- RF-112 ⚠️ Avatar upload — pendiente de decisión: Supabase Storage vs URL externa (validar host del origen para evitar SSRF).
+
+---
+
 ## 2026-06-01 — Corrida 23
 
 - **Ítem**: RF-404 + RF-405 + RF-409 — Badge campana de notificaciones + dropdown + trigger al crear match

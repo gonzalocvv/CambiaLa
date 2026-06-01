@@ -115,11 +115,11 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ### Chat (módulo 500)
 
-- [ ] **RF-501** Chat 1-a-1 solo entre los dos usuarios de un match. (M)
-- [ ] **RF-502** Lista cronológica de mensajes, scroll al último. (M)
-- [ ] **RF-503** Input + envío (máx 1000 chars). (M)
-- [ ] **RF-504** Persistencia de mensajes en DB asociados al match. (M)
-- [ ] **RF-505** Polling cada 10s para mensajes nuevos. (M)
+- [x] **RF-501** Chat 1-a-1 solo entre los dos usuarios de un match. (M) — _Corrida 24: messageService + acceso restringido a participantes_
+- [x] **RF-502** Lista cronológica de mensajes, scroll al último. (M) — _Corrida 24: ChatPanel con scroll-to-bottom en useEffect_
+- [x] **RF-503** Input + envío (máx 1000 chars). (M) — _Corrida 24: textarea + POST /api/matches/[id]/messages + Enter para enviar_
+- [x] **RF-504** Persistencia de mensajes en DB asociados al match. (M) — _Corrida 24: messageRepository.create + findByMatch_
+- [x] **RF-505** Polling cada 10s para mensajes nuevos. (M) — _Corrida 24: setInterval en ChatPanel_
 - [ ] **RF-506** Indicador de no leídos en el match card. (S)
 
 ### Reseñas (módulo 600)
