@@ -15,6 +15,8 @@ export type OnboardingData = {
 export type UpdateProfileData = {
   name?: string;
   bio?: string;
+  whatsapp?: string;
+  publicProfile?: boolean;
 };
 
 export type UpdateLocationData = {
@@ -76,6 +78,8 @@ export const userRepository = {
         avatarUrl: true,
         city: true,
         neighborhood: true,
+        whatsapp: true,
+        publicProfile: true,
       },
     });
   },
@@ -86,8 +90,10 @@ export const userRepository = {
       data: {
         name: data.name || null,
         bio: data.bio || null,
+        ...(data.whatsapp !== undefined ? { whatsapp: data.whatsapp || null } : {}),
+        ...(data.publicProfile !== undefined ? { publicProfile: data.publicProfile } : {}),
       },
-      select: { id: true, name: true, bio: true },
+      select: { id: true, name: true, bio: true, whatsapp: true, publicProfile: true },
     });
   },
 
