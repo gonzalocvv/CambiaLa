@@ -12,42 +12,42 @@
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #1e3a8a;
+  --primary: #0284c7; /* celeste = marca */
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
+  --secondary: #e8f3fb; /* celeste claro */
+  --secondary-foreground: #0c4a6e;
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
-  --accent: #f97316;
-  --accent-foreground: #1e293b;
+  --accent: #f97316; /* naranja = acento */
+  --accent-foreground: #1a1206; /* texto oscuro sobre naranja (AA) */
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #1e3a8a;
+  --ring: #0284c7;
   --radius: 0.5rem;
 }
 
 .dark {
-  --background: #0a0f1e;
-  --foreground: #e2e8f0;
-  --card: #0f172a;
-  --card-foreground: #e2e8f0;
-  --popover: #0f172a;
-  --popover-foreground: #e2e8f0;
-  --primary: #60a5fa;
-  --primary-foreground: #1e293b;
-  --secondary: #1e293b;
-  --secondary-foreground: #e2e8f0;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --accent: #f97316;
-  --accent-foreground: #ffffff;
+  --background: #0f0f11; /* grafito neutro, NO azul marino */
+  --foreground: #ededee;
+  --card: #18181b;
+  --card-foreground: #ededee;
+  --popover: #18181b;
+  --popover-foreground: #ededee;
+  --primary: #38bdf8; /* celeste claro que resalta en grafito */
+  --primary-foreground: #0b1220;
+  --secondary: #26262a;
+  --secondary-foreground: #ededee;
+  --muted: #26262a;
+  --muted-foreground: #a1a1aa;
+  --accent: #f97316; /* naranja */
+  --accent-foreground: #1a1206;
   --destructive: #991b1b;
   --destructive-foreground: #fecaca;
-  --border: #1e293b;
-  --input: #1e293b;
-  --ring: #60a5fa;
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #38bdf8;
 }
 
 @theme inline {

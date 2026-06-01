@@ -6,7 +6,7 @@ Este archivo es el contexto persistente que Claude Code lee al iniciar cada sesi
 
 **CambiaLa** — plataforma web C2C para que coleccionistas uruguayos intercambien figuritas del álbum Panini Mundial 2026.
 
-**Branding**: nombre `CambiaLa` (camelCase, sin espacio). Paleta: azul marino (`#1E3A8A`) + naranja (`#F97316`). Modo claro y oscuro.
+**Branding**: nombre `CambiaLa` (camelCase). Paleta: **celeste** como color de marca (light `#0284C7`, dark `#38BDF8`) + **naranja** de acento (`#F97316`). Light = fondo blanco + celeste; dark = fondo **grafito neutro** (`#0F0F11`), nunca azul marino. Texto sobre naranja = oscuro (`#1A1206`) para WCAG AA. Tokens en `src/app/globals.css`.
 
 - Mercado: Uruguay (Montevideo principalmente).
 - Ciclo principal: mayo-julio 2026 (durante el Mundial).
