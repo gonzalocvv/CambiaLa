@@ -3,6 +3,43 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 30
+
+- **Ítem**: RF-512 — Conversación persistente entre rematches
+- **Rama**: `claude/cool-volta-hSp54`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge (REBASE) solicitado
+
+### Qué se hizo
+
+RF-512 refina RF-501 para que el chat persista cuando un match queda inactivo o completado.
+
+**Análisis**: `assertParticipant` en `messageService` ya no filtraba por status → leer y escribir mensajes en matches inactive/completed funcionaba correctamente a nivel API. Lo que faltaba era: (1) documentar este comportamiento con tests, (2) mostrar el estado "Inactivo" en la UI del match detail page.
+
+- `src/services/__tests__/message.service.test.ts`: 4 tests nuevos — `getMessages` y `sendMessage` funcionan con status `inactive` y `completed`. Documenta el invariante: el acceso al chat es por participación, no por status del match.
+- `messages/es.json`: 2 claves nuevas en namespace `MatchDetail` — `statusInactive` ("Inactivo") + `inactiveNote` ("Este match ya no está activo, pero podés seguir escribiéndote.").
+- `src/app/matches/[id]/page.tsx`: sección nueva para `match.status === 'inactive'` — badge outline "Inactivo" + nota explicativa. Simetría con la sección de `completed`.
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (276 tests, branches 100%, lines 100%), build ✅ (`/matches/[id]` como `ƒ Dynamic`).
+
+### Próximo paso
+
+1. **RF-513** — Señal de confianza (S): "ya hablaron · última vez X", "se conocen desde X" + reputación/estrellas en el detalle del match. Data lista (mensajes, Rating, reputation).
+2. **RF-802–808** — Páginas estáticas SSG (100% autónomas): `/como-funciona`, `/privacidad`, `/terminos`, `/contacto`, `/precios`, `sitemap.xml`, `robots.txt`. No requieren credenciales.
+3. **RF-701–709** — Perfil público `/u/[username]` SSR (si `publicProfile=true`).
+4. **RF-407/408** — Frecuencia de email configurable + unsubscribe (configuración de preferencias, sin necesidad de Resend para el schema/UI).
+
+RF-513 (S) es pequeño y completa el ciclo del chat. RF-802–808 son 100% autónomas y aportan SEO.
+
+### ⚠️ Bloqueos conocidos
+
+- RF-101b ⚠️ fix de código hecho (Corrida 29), requiere config manual de Gonza en dashboard de Supabase + verificación end-to-end.
+- RF-102 🔒 Google OAuth — requiere configurar el provider en el dashboard de Supabase.
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- RF-406 🔒 Resend — email transaccional custom.
+- RF-112 ⚠️ Avatar upload — pendiente de decisión: Supabase Storage vs URL externa.
+
+---
+
 ## 2026-06-01 — Corrida 29 (🐛 fix de bug reportado)
 
 - **Ítem**: RF-101b — Arreglar auth/login (magic link da "inválido" al confirmar)
