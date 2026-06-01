@@ -19,4 +19,14 @@ export const messageRepository = {
   async countByMatch(matchId: string): Promise<number> {
     return prisma.message.count({ where: { matchId } });
   },
+
+  async countUnread(matchId: string, userId: string): Promise<number> {
+    return prisma.message.count({
+      where: {
+        matchId,
+        fromUserId: { not: userId },
+        readAt: null,
+      },
+    });
+  },
 };
