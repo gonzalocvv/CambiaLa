@@ -3,6 +3,42 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 36
+
+- **Ítem**: RF-810 — Canonical URLs en páginas indexables
+- **Rama**: `claude/cool-volta-qN0lH`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge (REBASE) solicitado
+
+### Qué se hizo
+
+Agrega `alternates.canonical` a las 7 páginas indexables del sitio vía Next.js metadata API:
+
+- **`src/app/page.tsx`** (landing `/`): `export const metadata` estático con `alternates.canonical: BASE_URL`. Agrega import de `Metadata`.
+- **`src/app/como-funciona/page.tsx`**, **`/precios`**, **`/privacidad`**, **`/terminos`**, **`/contacto`**: en el `generateMetadata` existente se agrega `alternates: { canonical: \`${BASE_URL}/ruta\` }`.
+- **`src/app/u/[username]/page.tsx`**: en el `generateMetadata` existente (caso perfil público) se agrega `alternates: { canonical: \`${BASE_URL}/u/${username}\` }`. El caso catch (perfil privado/404) no incluye canonical (correcto — esas rutas devuelven 404).
+
+Constante `BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://cambia-la.vercel.app'`, mismo patrón que `sitemap.ts`.
+
+Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (295 tests, branches 100%, lines 100%), build ✅ (páginas estáticas siguen como `○ Static`, `/u/[username]` como `ƒ Dynamic`).
+
+### Próximo paso
+
+1. **RF-809** — Schema.org JSON-LD (S): `Person` en `/u/[username]`, `WebSite`+`Organization` en landing.
+2. **S3.1** — PWA: manifest.json + service worker + instalable.
+3. **RF-905/906** — Settings completo (config notificaciones + matchmaking).
+4. **RF-119/RF-908** — Borrado de cuenta con doble confirmación (compliance crítico).
+
+### ⚠️ Bloqueos conocidos
+
+- RF-101b ⚠️ fix de código hecho (Corrida 29), requiere config manual de Gonza en dashboard de Supabase.
+- RF-102 🔒 Google OAuth — requiere dashboard de Supabase.
+- RF-307 🔒 Inngest.
+- RF-406 🔒 Resend.
+- RF-112 ⚠️ Avatar upload — pendiente de decisión (Supabase Storage vs URL externa).
+
+---
+
 ## 2026-06-01 — Corrida 35
 
 - **Ítem**: RF-701–709 — Perfil público `/u/[username]` SSR
