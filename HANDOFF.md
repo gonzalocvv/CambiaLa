@@ -3,6 +3,54 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 18
+
+- **Ítem**: RF-101 + RF-103 + RF-104 + RF-105 + RF-106 + RF-107 — Auth foundation con magic link
+- **Rama**: `claude/rf101-auth-foundation`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge solicitado
+
+### Qué se hizo
+
+- `package.json`: instalados `@supabase/supabase-js` y `@supabase/ssr`.
+- `src/lib/supabase/server.ts`: `createClient()` async con cookie store server-side (Next.js `cookies()` await).
+- `src/lib/supabase/client.ts`: `createBrowserClient()` para componentes `'use client'`.
+- `middleware.ts` (raíz): refresca la cookie de sesión de Supabase en cada request (patrón oficial `@supabase/ssr`).
+- `src/lib/auth.ts`: reemplazado el stub `return null` por implementación real — llama `supabase.auth.getUser()` y resuelve el CUID de Prisma con un lookup por email (índice único; un query por request). Documentado como tech debt para F2 (agregar `supabaseId` al schema y eliminar el lookup).
+- `src/repositories/user.repository.ts`: `findByEmail` y `upsertByEmail` (crea User en Prisma en el primer login, actualiza `lastSeenAt` en los siguientes).
+- `src/services/user.service.ts`: `getOrCreate` y `findByEmail` — delega al repo.
+- `src/app/api/auth/callback/route.ts`: `GET /api/auth/callback` — intercambia el `code` de Supabase por sesión, crea/actualiza el User en Prisma (RF-103), redirige a `/matches`.
+- `src/app/api/auth/logout/route.ts`: `POST /api/auth/logout` — `supabase.auth.signOut()` + redirect a `/`.
+- `src/app/auth/login/page.tsx` + `LoginForm.tsx`: página de login con magic link (server + client components). Sin strings hardcodeados.
+- `messages/es.json`: namespace `Auth.login` con 11 claves i18n.
+- Tests: 7 nuevos (4 en `user.repository.test.ts`, 3 en `user.service.test.ts`). Total: 110 tests, 100% coverage.
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (110 tests, 100%), build ✅.
+
+### Nota de arquitectura
+
+`src/lib/auth.ts` usa `userRepository` (que usa Prisma), lo cual viola "Domain puro sin I/O". Es una excepción aceptada para auth (middleware de infraestructura). En F2: agregar campo `supabaseId String @unique` al User y eliminar el lookup por email de `getSession()`.
+
+### Próximo paso
+
+Con Auth implementado, el camino crítico del MVP continúa con:
+- **RF-108** — Onboarding: elegir username único (3-20 chars alfanumérico). El callback ya redirige a `/matches`; cuando onboarding exista, redirigir allí si `!user.onboardingDoneAt`.
+- **RF-404 + RF-405** — Badge campana y dropdown de notificaciones en el navbar (ahora que hay sesión real).
+- **RF-404** es bueno como próxima corrida: el Navbar puede mostrar el estado de auth (usuario logueado vs. no logueado) y la campana.
+- Nit pendiente: RF-802 a RF-808 (páginas estáticas SSG) — 100% autónomas.
+
+### ⚠️ Requiere acción de Gonza antes de probar en prod
+
+1. **Dashboard de Supabase → Auth → URL Configuration**: agregar `https://cambia-la.vercel.app/api/auth/callback` como Redirect URL autorizada. En local ya funciona con `http://localhost:3000/api/auth/callback`.
+2. **Email Settings** del dashboard: Supabase usa su propio servicio de email en dev (funcional sin configuración). Para prod con dominio propio, configurar SMTP custom o Resend (🔒).
+
+### ⚠️ Bloqueos conocidos
+
+- RF-102 🔒 Google OAuth — requiere configurar el provider en el dashboard de Supabase.
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- RF-406 🔒 Resend — email transaccional custom.
+
+---
+
 ## 2026-06-01 — Auditoría del repo (no es corrida del auto-builder)
 
 - **Quién**: auditor (rol read-only; solo editó `BACKLOG.md`, `HANDOFF.md` y `reports/audit-2026-06-01.md`).
