@@ -69,6 +69,9 @@ export default async function MatchDetailPage({ params }: Props) {
           <div className="min-w-0 flex-1">
             <h1 className="text-foreground truncate text-xl font-bold">{displayName}</h1>
             {location && <p className="text-muted-foreground text-sm">{location}</p>}
+            {partner.bio && (
+              <p className="text-muted-foreground mt-1 line-clamp-2 text-xs">{partner.bio}</p>
+            )}
             <p className="text-muted-foreground mt-1 text-xs">
               {isNewCollector
                 ? t('newCollector')
