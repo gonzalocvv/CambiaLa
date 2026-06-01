@@ -5,11 +5,13 @@ import { getTranslations } from 'next-intl/server';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CompleteMatchButton } from '@/components/matches/complete-match-button';
+import { RatingModal } from '@/components/matches/rating-modal';
 import { AppNavbar } from '@/components/layout/app-navbar';
 import { ChatPanel } from '@/components/chat/chat-panel';
 import { getSession } from '@/lib/auth';
 import { matchService } from '@/services/match.service';
 import { messageService } from '@/services/message.service';
+import { ratingService } from '@/services/rating.service';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -26,9 +28,10 @@ export default async function MatchDetailPage({ params }: Props) {
   }
 
   const { id } = await params;
-  const [match, initialMessages] = await Promise.all([
+  const [match, initialMessages, ratingData] = await Promise.all([
     matchService.getMatchDetailForUser(id, session.userId),
     messageService.getMessages(id, session.userId).catch(() => []),
+    ratingService.getRatingsForMatch(id, session.userId).catch(() => null),
   ]);
 
   if (!match) notFound();
@@ -91,8 +94,11 @@ export default async function MatchDetailPage({ params }: Props) {
           </div>
         )}
         {match.status === 'completed' && (
-          <div className="mb-6">
+          <div className="mb-6 space-y-3">
             <Badge variant="secondary">{t('statusCompleted')}</Badge>
+            {ratingData && !ratingData.hasRated && (
+              <RatingModal matchId={match.id} partnerName={displayName} />
+            )}
           </div>
         )}
 
