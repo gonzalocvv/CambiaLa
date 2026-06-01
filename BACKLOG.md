@@ -172,7 +172,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **RF-806** `/contacto` (email + form simple, SSG). (M) — _Corrida 34_
 - [x] **RF-807** `sitemap.xml` autogenerado en build. (M) — _Corrida 34_
 - [x] **RF-808** `robots.txt` (bloquea rutas auth/API). (M) — _Corrida 34_
-- [ ] **RF-810** Canonical URLs en páginas indexables. (M)
+- [x] **RF-810** Canonical URLs en páginas indexables. (M) — _Corrida 36_
 - [ ] **RF-809** Schema.org JSON-LD (Person en perfiles, WebSite/Organization en landing). (S)
 
 ### PWA
