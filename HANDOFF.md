@@ -3,6 +3,47 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Auditoría del repo (no es corrida del auto-builder)
+
+- **Quién**: auditor (rol read-only; solo editó `BACKLOG.md`, `HANDOFF.md` y `reports/audit-2026-06-01.md`).
+- **Reporte completo**: `reports/audit-2026-06-01.md`.
+
+### 🔴 Corrección importante — el bloqueo de Supabase/S0.7 es STALE
+
+Todas las entradas de abajo (Corridas 8–17) dicen `S0.7 🔒 Supabase — toda la capa de Auth bloqueada`. **Eso ya no es cierto y nunca se actualizó.** Verificado contra la realidad:
+
+- `npx prisma migrate status` → **"Database schema is up to date!"** (migración `20260531135853_init` aplicada).
+- DB de Supabase real (`aws-1-sa-east-1.pooler...`), **896 stickers + 1 álbum seedeados**.
+- `.env.local` con `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY`/`SERVICE_ROLE_KEY`/`DATABASE_URL`/`DIRECT_URL` **presentes**.
+- RLS habilitado en las 8 tablas (deny-all sin políticas → seguro porque todo el acceso va por Prisma server-side).
+
+→ El auto-builder lleva ~9 corridas evitando el camino crítico del MVP (Auth) por un bloqueo inexistente. **Próxima corrida debería atacar Auth.**
+
+### Gate verificado (verde de verdad)
+
+`lint` ✅ · `format:check` ✅ · `type-check` ✅ · `test:coverage` ✅ (**103 tests / 100%**) · `build` (env mock CI) ✅.
+
+### Ítems liberados en el BACKLOG (config verificada OK 2026-06-01)
+
+- **S0.7** (Supabase + migrations + `.env.local`) → ✅ desbloqueado.
+- "Supabase project + env vars" (informativo) → ✅.
+- "shadcn/ui base", "next-intl `es`", "Seed del álbum (⛔)" (informativos, estaban sin tildar pero ya hechos) → ✅. El ⛔ del seed queda LEVANTADO.
+
+### Sigue 🔒 (credenciales/dashboard — NO autónomo)
+
+- **RF-307 / RF-309** Inngest — `INNGEST_EVENT_KEY`/`INNGEST_SIGNING_KEY` **vacías**.
+- **RF-406** Resend — `RESEND_API_KEY` **vacía** + verificar dominio figus.uy.
+- **RF-102** Google OAuth — provider en dashboard de Supabase (no verificable desde repo).
+- **RF-101** magic link — Supabase ya existe; falta código + settings de email/SMTP en dashboard.
+- Sentry (`SENTRY_DSN`) y PostHog (`NEXT_PUBLIC_POSTHOG_KEY`) **vacías** → monitoreo/analytics son no-op en prod.
+
+### Próximo paso recomendado para el auto-builder
+
+1. **Auth foundation** (ahora desbloqueado): reemplazar el stub `src/lib/auth.ts` (`getSession()` devuelve `null`) por `@supabase/ssr`, e implementar RF-103/104/105/106/107 + RF-101 (magic link con email built-in de Supabase). RF-102 (Google) queda pendiente de config de dashboard.
+2. Nits de la auditoría: string hardcodeado `'Usuario'` en `src/app/matches/[id]/page.tsx:31` (usar i18n como `match-card.tsx`); back-link muerto a `/matches` (listado no existe); bump `postcss` ≥ 8.5.10.
+
+---
+
 ## 2026-06-01 — Corrida 17
 
 - **Ítem**: RF-801 — Landing `/` funcional (hero + CTA + stats + casos de uso + CTA final)

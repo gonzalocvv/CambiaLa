@@ -18,16 +18,18 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ## Estado actual del repo (al 31/05/2026) — _informativo, no son tareas_
 
+> 🔍 **Auditoría 2026-06-01** (ver `reports/audit-2026-06-01.md`): Supabase verificado **provisionado + migrado + seedeado** (896 stickers, 1 álbum; `migrate status` al día; RLS on). Ítems de config liberados abajo. Sigue 🔒 por credenciales/dashboard: **Inngest, Resend, Sentry, PostHog, Google OAuth, email del magic link**.
+
 - [x] Next.js 16 + React 19 + TypeScript strict + Tailwind 4 (bootstrap, PR #1)
 - [x] Prisma + schema inicial (PR #8)
 - [x] CI en GitHub Actions (lint / type-check / test / build)
 - [x] Vitest + Playwright + ESLint + Prettier configurados
 - [x] Coming soon page en producción (`/`, develop = prod)
-- [ ] 🔒 Supabase project + env vars (Supabase URL/keys, DATABASE_URL) — **requiere que lo crees vos**
-- [ ] 🔒 Resend / Sentry / PostHog / Inngest keys — **requiere credenciales**
-- [ ] shadcn/ui base instalado y configurado
-- [ ] next-intl (`es`) configurado
-- [ ] Seed script del álbum Mundial 2026 (~900 figuritas) ⛔ bloqueante para todo lo de álbum/match
+- [x] Supabase project + env vars (Supabase URL/keys, DATABASE_URL) — _(config verificada OK 2026-06-01: `ANON`/`SERVICE_ROLE`/`DATABASE_URL`/`DIRECT_URL` presentes en `.env.local`; `prisma migrate status` al día)_
+- [ ] 🔒 Resend / Sentry / PostHog / Inngest keys — **requiere credenciales** _(auditoría 2026-06-01: VACÍAS en `.env.local` → `RESEND_API_KEY`, `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`, `NEXT_PUBLIC_POSTHOG_KEY`, `SENTRY_DSN`, `SENTRY_AUTH_TOKEN`. Placeholders presentes pero sin secreto: `SENTRY_ORG/PROJECT`, `NEXT_PUBLIC_POSTHOG_HOST`, `RESEND_FROM_EMAIL`)_
+- [x] shadcn/ui base instalado y configurado _(verificado OK 2026-06-01: `src/components/ui/{button,input,label,card,badge,dialog}.tsx` + `components.json`)_
+- [x] next-intl (`es`) configurado _(verificado OK 2026-06-01: `src/i18n/request.ts` + `messages/es.json`)_
+- [x] Seed script del álbum Mundial 2026 (~900 figuritas) — ⛔ **bloqueo LEVANTADO** _(verificado OK 2026-06-01: 896 stickers + 1 álbum en la DB de Supabase)_
 
 ---
 
@@ -45,7 +47,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **S0.4** Logger estructurado (`src/lib/logger.ts`), cero `console.log`. (S)
 - [x] **S0.5** Catálogo Mundial 2026: definir dataset de ~900 figuritas (número, nombre opcional, equipo, rareza, is_special) como JSON versionado en `prisma/data/`. (M) ⛔ base de RF-201/202
 - [x] **S0.6** Seed script `prisma/seed.ts` que carga el catálogo (idempotente). (M) — **RF-202** ⛔ bloqueante
-- [ ] **S0.7** 🔒 Supabase + migrations corriendo + `.env.local` real. (M) — requiere credenciales tuyas
+- [x] **S0.7** Supabase + migrations corriendo + `.env.local` real. (M) — _(config verificada OK 2026-06-01: `migrate status` = "Database schema is up to date!" (`20260531135853_init` aplicada); `.env.local` real → Supabase `aws-1-sa-east-1`; seed corrido (896 stickers); RLS habilitado en las 8 tablas)_
 
 ---
 
@@ -53,8 +55,8 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ### Auth (módulo 100)
 
-- [ ] **RF-101** Login con magic link (email → link de un solo uso, válido 10 min). (M) 🔒 Supabase Auth
-- [ ] **RF-102** Login con Google OAuth (un click). (M) 🔒
+- [ ] **RF-101** Login con magic link (email → link de un solo uso, válido 10 min). (M) 🔒 Supabase Auth — _(auditoría 2026-06-01: **S0.7 ya NO bloquea** — el proyecto Supabase existe. Falta: implementar el código de auth (`src/lib/auth.ts` es stub `return null`) + confirmar settings de email/SMTP del magic link en el dashboard de Supabase)_
+- [ ] **RF-102** Login con Google OAuth (un click). (M) 🔒 — _(auditoría 2026-06-01: requiere configurar el provider Google (client ID/secret) en el dashboard de Supabase — NO verificable desde el repo — + implementar el código)_
 - [ ] **RF-103** Registro automático en primer login (sin form de signup). (M)
 - [ ] **RF-104** Verificación de email implícita (magic link / Google). (M)
 - [ ] **RF-105** Sesión persistente (cookie HTTPOnly+Secure+SameSite=Lax). (M)
@@ -103,9 +105,9 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **RF-302** Filtro por departamento por default (configurable a todo Uruguay / mismo barrio). (M)
 - [x] **RF-303** Filtro de usuarios activos (`lastSeenAt < 30 días`). (M)
 - [x] **RF-304** Filtro de participación (`participatesInMatchmaking=true`). (M)
-- [ ] **RF-307** 🔒 Recalcular matches via job Inngest al actualizar sticker (no en request HTTP). (M)
+- [ ] **RF-307** 🔒 Recalcular matches via job Inngest al actualizar sticker (no en request HTTP). (M) — _(auditoría 2026-06-01: sigue 🔒 — `INNGEST_EVENT_KEY`/`INNGEST_SIGNING_KEY` vacías; requiere cuenta Inngest + keys)_
 - [x] **RF-308** Persistencia del match en DB (`aToB`, `bToA` JSON arrays, `score`). (M)
-- [x] **RF-309** TTL de matches: `inactive` si un participante no se loguea en 30 días + job de limpieza diario. (M) — lógica pura implementada; scheduling via Inngest 🔒
+- [x] **RF-309** TTL de matches: `inactive` si un participante no se loguea en 30 días + job de limpieza diario. (M) — lógica pura implementada; scheduling via Inngest 🔒 _(auditoría 2026-06-01: lógica pura OK; el scheduling sigue pendiente por keys de Inngest vacías)_
 - [x] **RF-310** Lista de mis matches activos ordenados por score desc. (M)
 - [x] **RF-311** Match card: avatar/username del otro, barrio, distancia (si geo), score, "te da X / le das Y". (M)
 - [x] **RF-312** Detalle de match: dos columnas "lo que te ofrece" / "lo que le das". (M)
@@ -135,7 +137,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [ ] **RF-404** Badge campana en header con contador no leídas (refresh 60s). (M)
 - [ ] **RF-405** Dropdown con últimas 10, click navega y marca leída. (M)
 - [ ] **RF-409** Trigger automático de notificación al crear match nuevo (ambas partes). (M)
-- [ ] **RF-406** 🔒 Email transaccional via Resend (magic link, nuevo match, mensaje, reseña). (M)
+- [ ] **RF-406** 🔒 Email transaccional via Resend (magic link, nuevo match, mensaje, reseña). (M) — _(auditoría 2026-06-01: sigue 🔒 — `RESEND_API_KEY` vacía; requiere cuenta Resend + verificación del dominio figus.uy. `RESEND_FROM_EMAIL` ya seteado)_
 - [ ] **RF-407** Frecuencia de email configurable (instant / daily / weekly / never). (M)
 - [ ] **RF-408** Unsubscribe en footer (`emailFrequency=never`). (M)
 
