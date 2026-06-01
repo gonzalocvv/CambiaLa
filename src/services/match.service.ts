@@ -72,6 +72,36 @@ export const matchService = {
     return matchRepository.markInactiveByLastSeen(cutoff);
   },
 
+  // Returns a single match with partner data normalised to the requesting user's perspective.
+  // Returns null if the match doesn't exist or the user is not a participant.
+  async getMatchDetailForUser(id: string, userId: string): Promise<ActiveMatchItem | null> {
+    const m = await matchRepository.findByIdWithPartners(id);
+    if (!m) return null;
+    if (m.userAId !== userId && m.userBId !== userId) return null;
+
+    const isA = m.userAId === userId;
+    const partner = isA ? m.userB : m.userA;
+    return {
+      id: m.id,
+      score: m.score,
+      status: m.status as MatchStatus,
+      youGive: isA ? (m.aToB as string[]) : (m.bToA as string[]),
+      youGet: isA ? (m.bToA as string[]) : (m.aToB as string[]),
+      partner: {
+        id: partner.id,
+        username: partner.username,
+        name: partner.name,
+        avatarUrl: partner.avatarUrl,
+        neighborhood: partner.neighborhood,
+        city: partner.city,
+        reputation: partner.reputation,
+        tradesCompleted: partner.tradesCompleted,
+      },
+      createdAt: m.createdAt.toISOString(),
+      lastUpdated: m.lastUpdated.toISOString(),
+    };
+  },
+
   // Returns matches with partner data normalised to the requesting user's perspective.
   async getActiveMatchesWithPartners(userId: string): Promise<ActiveMatchItem[]> {
     const matches = await matchRepository.findActiveByUserWithPartners(userId);

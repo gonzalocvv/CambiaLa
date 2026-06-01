@@ -46,3 +46,8 @@ export const GetMatchesResponseSchema = z.object({
   matches: z.array(ActiveMatchItemSchema),
 });
 export type GetMatchesResponse = z.infer<typeof GetMatchesResponseSchema>;
+
+export const GetMatchDetailResponseSchema = z.object({
+  match: ActiveMatchItemSchema,
+});
+export type GetMatchDetailResponse = z.infer<typeof GetMatchDetailResponseSchema>;

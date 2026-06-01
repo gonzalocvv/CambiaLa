@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mockRepo = vi.hoisted(() => ({
   upsert: vi.fn(),
   findById: vi.fn(),
+  findByIdWithPartners: vi.fn(),
   findActiveByUser: vi.fn(),
   findActiveByUserWithPartners: vi.fn(),
   updateStatus: vi.fn(),
@@ -256,6 +257,91 @@ describe('matchService.getActiveMatchesWithPartners', () => {
 
     expect(results[0].createdAt).toBe(NOW.toISOString());
     expect(results[0].lastUpdated).toBe(NOW.toISOString());
+  });
+});
+
+describe('matchService.getMatchDetailForUser', () => {
+  function makePartner(id: string, overrides: object = {}) {
+    return {
+      id,
+      email: `${id}@example.com`,
+      username: id,
+      name: `User ${id}`,
+      avatarUrl: null,
+      bio: null,
+      city: 'Montevideo',
+      neighborhood: 'Centro',
+      whatsapp: null,
+      lat: null,
+      lng: null,
+      geoGranularity: 'none',
+      role: 'user',
+      publicProfile: false,
+      isSuspended: false,
+      notifyOnMatch: true,
+      emailFrequency: 'instant',
+      pushEnabled: false,
+      pushSubscription: null,
+      participatesInMatchmaking: true,
+      matchRadius: 'department',
+      offerUniques: false,
+      acceptUnbalanced: true,
+      isPro: false,
+      proExpiresAt: null,
+      reputation: 4.5,
+      tradesCompleted: 2,
+      createdAt: NOW,
+      lastSeenAt: NOW,
+      onboardingDoneAt: null,
+      ...overrides,
+    };
+  }
+
+  function makeMatchWithPartners(userAId: string, userBId: string, overrides: object = {}) {
+    return {
+      ...makeDbMatch({ userAId, userBId }),
+      userA: makePartner(userAId),
+      userB: makePartner(userBId),
+      ...overrides,
+    };
+  }
+
+  it('returns match from user-a perspective when user is userA', async () => {
+    mockRepo.findByIdWithPartners.mockResolvedValue(makeMatchWithPartners('user-a', 'user-b'));
+
+    const result = await matchService.getMatchDetailForUser('match-1', 'user-a');
+
+    expect(result).not.toBeNull();
+    expect(result!.youGive).toEqual(['URU1', 'ARG2', 'BRA3']);
+    expect(result!.youGet).toEqual(['ESP4', 'FRA5', 'GER6']);
+    expect(result!.partner.id).toBe('user-b');
+  });
+
+  it('returns match from user-b perspective when user is userB', async () => {
+    mockRepo.findByIdWithPartners.mockResolvedValue(makeMatchWithPartners('user-a', 'user-b'));
+
+    const result = await matchService.getMatchDetailForUser('match-1', 'user-b');
+
+    expect(result).not.toBeNull();
+    expect(result!.youGive).toEqual(['ESP4', 'FRA5', 'GER6']);
+    expect(result!.youGet).toEqual(['URU1', 'ARG2', 'BRA3']);
+    expect(result!.partner.id).toBe('user-a');
+  });
+
+  it('returns null when match does not exist', async () => {
+    mockRepo.findByIdWithPartners.mockResolvedValue(null);
+
+    const result = await matchService.getMatchDetailForUser('nope', 'user-a');
+
+    expect(result).toBeNull();
+  });
+
+  it('returns null when user is not a participant of the match', async () => {
+    mockRepo.findByIdWithPartners.mockResolvedValue(makeMatchWithPartners('user-a', 'user-b'));
+
+    const result = await matchService.getMatchDetailForUser('match-1', 'user-c');
+
+    expect(result).toBeNull();
   });
 });
 
