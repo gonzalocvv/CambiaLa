@@ -3,6 +3,49 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 20
+
+- **Ítem**: RF-203 + RF-206 + RF-207 + RF-208 + RF-209 + RF-210 + RF-211 — Vista de mi álbum completa
+- **Rama**: `claude/tender-archimedes-Jxujd`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge (REBASE) solicitado
+
+### Qué se hizo
+
+- `src/app/globals.css`: nuevo token `--special` / `--special-foreground` (dorado amber: `#D97706` light / `#FBBF24` dark) + entrada en `@theme inline` (`--color-special`, `--color-special-foreground`). Se usa para el ring dorado de figuritas especiales.
+- `src/lib/validations/sticker.schema.ts`: Zod schemas — `StickerRaritySchema`, `StickerWithCountSchema`, `AlbumStatsSchema`, `GetAlbumResponseSchema`, `UpdateStickerCountSchema` + tipos inferidos.
+- `src/repositories/sticker.repository.ts`: `getAlbumWithUserCounts(userId)` — álbum mundial-2026 con todos los stickers y counts del usuario (via include + where); `upsertUserStickerCount(userId, stickerId, count)` — upsert idempotente; `getStickerById(stickerId)` — valida existencia.
+- `src/services/sticker.service.ts`: `getUserAlbum(userId)` — retorna álbum + stats calculados; `updateStickerCount(userId, stickerId, count)` — valida existencia y delega al repo. `StickerNotFoundError` para 404.
+- `GET /api/album`: 401 sin sesión, 404 si álbum no encontrado, 200 con `{ albumId, stickers, stats }`.
+- `PATCH /api/album/stickers/[stickerId]`: 401 sin sesión, 400 input inválido (Zod), 404 sticker no existe, 200 `{ ok: true, count }`.
+- `src/components/album/sticker-cell.tsx`: celda de figurita (client); click → cicla 0→1→2…→99→0; onContextMenu → decrementa; color por estado: muted (falta) / primary/10 (tengo) / accent/10 (repetida); ring dorado para isSpecial.
+- `src/app/album/AlbumClient.tsx`: client component con estado local de counts (optimista), autosave debounce 500ms, saveState (idle/saving/saved/error), floating toast; stats y progress bar en vivo; stickers agrupados por equipo; `FWC` → "Copa del Mundo" via i18n.
+- `src/app/album/page.tsx`: server component; redirige a `/auth/login` sin sesión; carga álbum y pasa `stickers` + `initialStats` a AlbumClient; H1 con i18n.
+- `messages/es.json`: namespace `Album` con 11 claves (title, statsHave, statsMissing, statsDuplicates, statsPercent, progressLabel, clickHint, teamFWC, saving, saved, saveError).
+- Tests: 155 tests (24 nuevos), 100% cobertura (stmts/branches/funcs/lines).
+  - 7 tests en `sticker.repository.test.ts`
+  - 7 tests en `sticker.service.test.ts`
+  - 3 tests en `api/album/__tests__/route.test.ts`
+  - 7 tests en `api/album/stickers/[stickerId]/__tests__/route.test.ts`
+- Gate: format ✅, lint ✅ (0 errores), type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (155 tests, 100%), build ✅ (`/album` como `ƒ Dynamic`).
+
+### Próximo paso
+
+1. **RF-204** — Filtros del álbum (todas / me faltan / tengo / repetidas / especiales + por equipo): lógica de filtrado client-side en `AlbumClient`. Sin nuevas API routes.
+2. **RF-205** — Búsqueda por número o nombre (case-insensitive): también client-side en `AlbumClient`.
+3. **RF-404 + RF-405** — Badge campana en navbar + dropdown de notificaciones.
+4. **RF-409** — Trigger de notificación al crear match nuevo.
+
+RF-204 + RF-205 son 100% client-side y se pueden implementar juntos en la próxima corrida.
+
+### ⚠️ Bloqueos conocidos
+
+- RF-102 🔒 Google OAuth — requiere configurar el provider en el dashboard de Supabase.
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- RF-406 🔒 Resend — email transaccional custom.
+
+---
+
 ## 2026-06-01 — Corrida 19
 
 - **Ítem**: RF-108 + RF-109 + RF-110 + RF-111 — Onboarding completo (username + ciudad + barrio + guard)
