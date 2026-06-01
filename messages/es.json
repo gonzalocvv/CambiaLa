@@ -97,6 +97,30 @@
     "emptyFilter": "No hay figuritas que coincidan con ese filtro.",
     "resultsCount": "{count, plural, one {1 figurita} other {# figuritas}}"
   },
+  "Settings": {
+    "title": "Mi configuración",
+    "backToMatches": "← Mis matches",
+    "profileTitle": "Tu perfil",
+    "profileSubtitle": "Cómo te ven los demás coleccionistas.",
+    "nameLabel": "Nombre",
+    "namePlaceholder": "Tu nombre",
+    "bioLabel": "Bio",
+    "bioPlaceholder": "Contá algo sobre vos… (máx. 140 caracteres)",
+    "bioHint": "{count}/140",
+    "locationTitle": "Ubicación",
+    "locationSubtitle": "Usamos esto para encontrar coleccionistas cerca tuyo.",
+    "cityLabel": "Departamento",
+    "cityPlaceholder": "Elegí tu departamento",
+    "neighborhoodLabel": "Barrio (Montevideo)",
+    "neighborhoodPlaceholder": "Elegí tu barrio",
+    "saveButton": "Guardar cambios",
+    "saving": "Guardando…",
+    "saved": "¡Guardado!",
+    "saveError": "Algo salió mal. Intentá de nuevo.",
+    "accountTitle": "Cuenta",
+    "logoutButton": "Cerrar sesión",
+    "loggingOut": "Saliendo…"
+  },
   "Home": {
     "nav": {
       "login": "Iniciá sesión",
