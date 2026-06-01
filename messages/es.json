@@ -11,7 +11,12 @@
     "notAuthenticated": "Iniciá sesión para ver tus matches.",
     "scoreLabel": "Score",
     "newCollector": "Coleccionista nuevo",
-    "trades": "{count, plural, one {1 cambio} other {# cambios}}"
+    "trades": "{count, plural, one {1 cambio} other {# cambios}}",
+    "markCompleted": "Marcar como completado",
+    "completing": "Guardando…",
+    "completedConfirmation": "¡Cambio completado!",
+    "completeHint": "¿Ya coordinaron el intercambio?",
+    "statusCompleted": "Completado"
   },
   "MatchCard": {
     "unknownUser": "Usuario",
