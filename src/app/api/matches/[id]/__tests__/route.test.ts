@@ -20,6 +20,7 @@ function makeActiveMatchItem(overrides: Partial<ActiveMatchItem> = {}): ActiveMa
     status: 'active',
     youGive: ['URU1', 'ARG2'],
     youGet: ['ESP4'],
+    unreadCount: 0,
     partner: {
       id: 'user-b',
       username: 'userb',
