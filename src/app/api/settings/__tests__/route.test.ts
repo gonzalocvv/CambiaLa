@@ -29,6 +29,8 @@ function makeUserProfile(overrides: object = {}) {
     avatarUrl: null,
     city: 'Montevideo',
     neighborhood: 'Pocitos',
+    whatsapp: null,
+    publicProfile: false,
     ...overrides,
   };
 }
@@ -133,6 +135,58 @@ describe('PUT /api/settings', () => {
       name: 'Gonzalo',
       bio: 'Coleccionista',
     });
+  });
+
+  it('returns 400 when whatsapp format is invalid', async () => {
+    mockGetSession.mockResolvedValue({ userId: 'cuid-user-1', onboardingDoneAt: new Date() });
+
+    const res = await PUT(
+      new Request('http://localhost/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ whatsapp: '099123456' }),
+      }),
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it('accepts valid whatsapp +598 number', async () => {
+    mockGetSession.mockResolvedValue({ userId: 'cuid-user-1', onboardingDoneAt: new Date() });
+    mockUpdateProfile.mockResolvedValue(undefined);
+
+    const res = await PUT(
+      new Request('http://localhost/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ whatsapp: '+59899123456' }),
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockUpdateProfile).toHaveBeenCalledWith(
+      'cuid-user-1',
+      expect.objectContaining({ whatsapp: '+59899123456' }),
+    );
+  });
+
+  it('accepts publicProfile boolean', async () => {
+    mockGetSession.mockResolvedValue({ userId: 'cuid-user-1', onboardingDoneAt: new Date() });
+    mockUpdateProfile.mockResolvedValue(undefined);
+
+    const res = await PUT(
+      new Request('http://localhost/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicProfile: true }),
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockUpdateProfile).toHaveBeenCalledWith(
+      'cuid-user-1',
+      expect.objectContaining({ publicProfile: true }),
+    );
   });
 
   it('returns 404 when user not found', async () => {

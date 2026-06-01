@@ -28,6 +28,7 @@ function makeActiveMatchItem(overrides: Partial<ActiveMatchItem> = {}): ActiveMa
       id: 'user-b',
       username: 'userb',
       name: 'User B',
+      bio: null,
       avatarUrl: null,
       neighborhood: 'Centro',
       city: 'Montevideo',

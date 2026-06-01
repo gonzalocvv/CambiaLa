@@ -134,6 +134,8 @@ describe('userRepository.findById', () => {
       avatarUrl: null,
       city: 'Montevideo',
       neighborhood: 'Pocitos',
+      whatsapp: null,
+      publicProfile: false,
     };
     mockUserPrisma.findUnique.mockResolvedValue(user);
     const result = await userRepository.findById('cuid-user-1');
@@ -148,6 +150,8 @@ describe('userRepository.findById', () => {
         avatarUrl: true,
         city: true,
         neighborhood: true,
+        whatsapp: true,
+        publicProfile: true,
       },
     });
   });
@@ -161,7 +165,13 @@ describe('userRepository.findById', () => {
 
 describe('userRepository.updateProfile', () => {
   it('updates name and bio', async () => {
-    const updated = { id: 'cuid-user-1', name: 'Gonzalo', bio: 'Coleccionista' };
+    const updated = {
+      id: 'cuid-user-1',
+      name: 'Gonzalo',
+      bio: 'Coleccionista',
+      whatsapp: null,
+      publicProfile: false,
+    };
     mockUserPrisma.update.mockResolvedValue(updated);
     const result = await userRepository.updateProfile('cuid-user-1', {
       name: 'Gonzalo',
@@ -177,7 +187,13 @@ describe('userRepository.updateProfile', () => {
   });
 
   it('sets name/bio to null when empty string provided', async () => {
-    const updated = { id: 'cuid-user-1', name: null, bio: null };
+    const updated = {
+      id: 'cuid-user-1',
+      name: null,
+      bio: null,
+      whatsapp: null,
+      publicProfile: false,
+    };
     mockUserPrisma.update.mockResolvedValue(updated);
     await userRepository.updateProfile('cuid-user-1', { name: '', bio: '' });
     expect(mockUserPrisma.update).toHaveBeenCalledWith(
@@ -185,6 +201,71 @@ describe('userRepository.updateProfile', () => {
         data: { name: null, bio: null },
       }),
     );
+  });
+
+  it('updates whatsapp and sets it to null when empty string', async () => {
+    const updated = {
+      id: 'cuid-user-1',
+      name: null,
+      bio: null,
+      whatsapp: null,
+      publicProfile: false,
+    };
+    mockUserPrisma.update.mockResolvedValue(updated);
+    await userRepository.updateProfile('cuid-user-1', { whatsapp: '' });
+    expect(mockUserPrisma.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ whatsapp: null }),
+      }),
+    );
+  });
+
+  it('stores whatsapp value when provided', async () => {
+    const updated = {
+      id: 'cuid-user-1',
+      name: null,
+      bio: null,
+      whatsapp: '+59899123456',
+      publicProfile: false,
+    };
+    mockUserPrisma.update.mockResolvedValue(updated);
+    await userRepository.updateProfile('cuid-user-1', { whatsapp: '+59899123456' });
+    expect(mockUserPrisma.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ whatsapp: '+59899123456' }),
+      }),
+    );
+  });
+
+  it('updates publicProfile when provided', async () => {
+    const updated = {
+      id: 'cuid-user-1',
+      name: null,
+      bio: null,
+      whatsapp: null,
+      publicProfile: true,
+    };
+    mockUserPrisma.update.mockResolvedValue(updated);
+    await userRepository.updateProfile('cuid-user-1', { publicProfile: true });
+    expect(mockUserPrisma.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ publicProfile: true }),
+      }),
+    );
+  });
+
+  it('does not include publicProfile in data when not provided', async () => {
+    const updated = {
+      id: 'cuid-user-1',
+      name: 'X',
+      bio: null,
+      whatsapp: null,
+      publicProfile: false,
+    };
+    mockUserPrisma.update.mockResolvedValue(updated);
+    await userRepository.updateProfile('cuid-user-1', { name: 'X' });
+    const callData = mockUserPrisma.update.mock.calls[0][0].data as Record<string, unknown>;
+    expect(callData).not.toHaveProperty('publicProfile');
   });
 });
 

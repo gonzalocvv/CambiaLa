@@ -294,6 +294,18 @@ describe('matchService.getActiveMatchesWithPartners', () => {
     expect(results[0].partner.tradesCompleted).toBe(5);
   });
 
+  it('forwards partner bio', async () => {
+    mockRepo.findActiveByUserWithPartners.mockResolvedValue([
+      makeMatchWithPartners('user-a', 'user-b', {
+        userB: makePartner('user-b', { bio: 'Coleccionista desde siempre' }),
+      }),
+    ]);
+
+    const results = await matchService.getActiveMatchesWithPartners('user-a');
+
+    expect(results[0].partner.bio).toBe('Coleccionista desde siempre');
+  });
+
   it('returns empty array when user has no active matches', async () => {
     mockRepo.findActiveByUserWithPartners.mockResolvedValue([]);
     const results = await matchService.getActiveMatchesWithPartners('user-x');
