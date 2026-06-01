@@ -49,4 +49,29 @@ export const matchRepository = {
   async updateStatus(id: string, status: MatchStatus): Promise<Match> {
     return prisma.match.update({ where: { id }, data: { status } });
   },
+
+  // Batch-marks active matches as inactive when either participant's lastSeenAt
+  // is before cutoffDate. Uses two-step (findMany + updateMany) because Prisma
+  // updateMany does not support relation filters in its where clause.
+  async markInactiveByLastSeen(cutoffDate: Date): Promise<number> {
+    const stale = await prisma.match.findMany({
+      where: {
+        status: 'active',
+        OR: [
+          { userA: { lastSeenAt: { lt: cutoffDate } } },
+          { userB: { lastSeenAt: { lt: cutoffDate } } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (stale.length === 0) return 0;
+
+    const result = await prisma.match.updateMany({
+      where: { id: { in: stale.map((m) => m.id) } },
+      data: { status: 'inactive' },
+    });
+
+    return result.count;
+  },
 };
