@@ -31,6 +31,32 @@
     "stickersExchange": "te da {youGet} / le das {youGive}",
     "trades": "{count, plural, one {1 cambio} other {# cambios}}"
   },
+  "Onboarding": {
+    "title": "Un paso más",
+    "subtitle": "Completá tu perfil para empezar a cambiar figuritas.",
+    "step1Title": "Elegí tu usuario",
+    "step1Subtitle": "3 a 20 caracteres, solo letras, números y guión bajo.",
+    "usernamePlaceholder": "ej: gonza_cambio",
+    "usernameLabel": "Nombre de usuario",
+    "usernameChecking": "Verificando…",
+    "usernameAvailable": "¡Disponible!",
+    "usernameTaken": "Ya está en uso, probá otro.",
+    "usernameInvalid": "Solo letras, números y guión bajo.",
+    "step2Title": "¿Dónde estás?",
+    "step2Subtitle": "Así encontramos coleccionistas cerca tuyo.",
+    "cityLabel": "Departamento",
+    "cityPlaceholder": "Elegí tu departamento",
+    "neighborhoodLabel": "Barrio (Montevideo)",
+    "neighborhoodPlaceholder": "Elegí tu barrio",
+    "nextButton": "Continuar",
+    "backButton": "Atrás",
+    "submitButton": "Empezar a cambiar",
+    "submitting": "Guardando…",
+    "skipButton": "Saltear por ahora",
+    "errorGeneric": "Algo salió mal. Intentá de nuevo.",
+    "errorUsernameTaken": "Ese usuario ya está en uso.",
+    "stepOf": "Paso {current} de {total}"
+  },
   "Auth": {
     "login": {
       "title": "Iniciá sesión",
