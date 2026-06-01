@@ -37,6 +37,7 @@ export const ActiveMatchItemSchema = z.object({
   status: MatchStatusSchema,
   youGive: z.array(z.string()),
   youGet: z.array(z.string()),
+  unreadCount: z.number().int().min(0).default(0),
   partner: MatchPartnerSchema,
   createdAt: z.string().datetime(),
   lastUpdated: z.string().datetime(),
