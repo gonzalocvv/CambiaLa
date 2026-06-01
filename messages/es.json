@@ -3,6 +3,17 @@
     "title": "CambiaLa — Cambia tus figuritas del Mundial 2026",
     "description": "Plataforma para coleccionistas uruguayos. Cargá tu álbum, te avisamos cuando aparece alguien para cambiar."
   },
+  "Rating": {
+    "title": "¿Cómo fue el cambio?",
+    "subtitle": "Calificá tu experiencia con {name}",
+    "starsLabel": "Estrellas",
+    "starN": "{n} estrella",
+    "commentPlaceholder": "Comentario opcional (máx. 200 caracteres)…",
+    "submit": "Enviar calificación",
+    "sending": "Enviando…",
+    "error": "No se pudo enviar. Intentá de nuevo.",
+    "thankYou": "¡Gracias por tu calificación!"
+  },
   "MatchDetail": {
     "backToMatches": "← Mis matches",
     "unknownUser": "Usuario",
