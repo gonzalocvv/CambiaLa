@@ -1,7 +1,11 @@
-import type { Match } from '@prisma/client';
+import type { Match, Prisma } from '@prisma/client';
 
 import { prisma } from '@/lib/prisma';
 import type { MatchStatus, UpsertMatchInput } from '@/lib/validations/match.schema';
+
+export type MatchWithPartners = Prisma.MatchGetPayload<{
+  include: { userA: true; userB: true };
+}>;
 
 export const matchRepository = {
   async upsert(data: UpsertMatchInput): Promise<Match> {
@@ -42,6 +46,17 @@ export const matchRepository = {
         status: 'active',
         OR: [{ userAId: userId }, { userBId: userId }],
       },
+      orderBy: { score: 'desc' },
+    });
+  },
+
+  async findActiveByUserWithPartners(userId: string): Promise<MatchWithPartners[]> {
+    return prisma.match.findMany({
+      where: {
+        status: 'active',
+        OR: [{ userAId: userId }, { userBId: userId }],
+      },
+      include: { userA: true, userB: true },
       orderBy: { score: 'desc' },
     });
   },

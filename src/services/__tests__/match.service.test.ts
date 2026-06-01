@@ -4,6 +4,7 @@ const mockRepo = vi.hoisted(() => ({
   upsert: vi.fn(),
   findById: vi.fn(),
   findActiveByUser: vi.fn(),
+  findActiveByUserWithPartners: vi.fn(),
   updateStatus: vi.fn(),
   markInactiveByLastSeen: vi.fn(),
 }));
@@ -152,6 +153,109 @@ describe('matchService.markMatchInactive', () => {
 
     expect(mockRepo.updateStatus).toHaveBeenCalledWith('match-1', 'inactive');
     expect(result.status).toBe('inactive');
+  });
+});
+
+describe('matchService.getActiveMatchesWithPartners', () => {
+  function makePartner(id: string, overrides: object = {}) {
+    return {
+      id,
+      email: `${id}@example.com`,
+      username: id,
+      name: `User ${id}`,
+      avatarUrl: null,
+      bio: null,
+      city: 'Montevideo',
+      neighborhood: 'Centro',
+      whatsapp: null,
+      lat: null,
+      lng: null,
+      geoGranularity: 'none',
+      role: 'user',
+      publicProfile: false,
+      isSuspended: false,
+      notifyOnMatch: true,
+      emailFrequency: 'instant',
+      pushEnabled: false,
+      pushSubscription: null,
+      participatesInMatchmaking: true,
+      matchRadius: 'department',
+      offerUniques: false,
+      acceptUnbalanced: true,
+      isPro: false,
+      proExpiresAt: null,
+      reputation: 4.5,
+      tradesCompleted: 2,
+      createdAt: NOW,
+      lastSeenAt: NOW,
+      onboardingDoneAt: null,
+      ...overrides,
+    };
+  }
+
+  function makeMatchWithPartners(userAId: string, userBId: string, overrides: object = {}) {
+    return {
+      ...makeDbMatch({ userAId, userBId }),
+      userA: makePartner(userAId),
+      userB: makePartner(userBId),
+      ...overrides,
+    };
+  }
+
+  it('returns match from user-a perspective (youGive=aToB, youGet=bToA)', async () => {
+    mockRepo.findActiveByUserWithPartners.mockResolvedValue([
+      makeMatchWithPartners('user-a', 'user-b'),
+    ]);
+
+    const results = await matchService.getActiveMatchesWithPartners('user-a');
+
+    expect(results).toHaveLength(1);
+    expect(results[0].youGive).toEqual(['URU1', 'ARG2', 'BRA3']);
+    expect(results[0].youGet).toEqual(['ESP4', 'FRA5', 'GER6']);
+    expect(results[0].partner.id).toBe('user-b');
+  });
+
+  it('returns match from user-b perspective (youGive=bToA, youGet=aToB)', async () => {
+    mockRepo.findActiveByUserWithPartners.mockResolvedValue([
+      makeMatchWithPartners('user-a', 'user-b'),
+    ]);
+
+    const results = await matchService.getActiveMatchesWithPartners('user-b');
+
+    expect(results[0].youGive).toEqual(['ESP4', 'FRA5', 'GER6']);
+    expect(results[0].youGet).toEqual(['URU1', 'ARG2', 'BRA3']);
+    expect(results[0].partner.id).toBe('user-a');
+  });
+
+  it('maps partner public fields correctly', async () => {
+    mockRepo.findActiveByUserWithPartners.mockResolvedValue([
+      makeMatchWithPartners('user-a', 'user-b', {
+        userB: makePartner('user-b', { username: 'gonza', reputation: 4.8, tradesCompleted: 5 }),
+      }),
+    ]);
+
+    const results = await matchService.getActiveMatchesWithPartners('user-a');
+
+    expect(results[0].partner.username).toBe('gonza');
+    expect(results[0].partner.reputation).toBe(4.8);
+    expect(results[0].partner.tradesCompleted).toBe(5);
+  });
+
+  it('returns empty array when user has no active matches', async () => {
+    mockRepo.findActiveByUserWithPartners.mockResolvedValue([]);
+    const results = await matchService.getActiveMatchesWithPartners('user-x');
+    expect(results).toEqual([]);
+  });
+
+  it('serialises dates to ISO strings', async () => {
+    mockRepo.findActiveByUserWithPartners.mockResolvedValue([
+      makeMatchWithPartners('user-a', 'user-b'),
+    ]);
+
+    const results = await matchService.getActiveMatchesWithPartners('user-a');
+
+    expect(results[0].createdAt).toBe(NOW.toISOString());
+    expect(results[0].lastUpdated).toBe(NOW.toISOString());
   });
 });
 

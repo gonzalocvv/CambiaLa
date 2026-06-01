@@ -1,7 +1,7 @@
 import type { Match } from '@prisma/client';
 
 import type { MatchResult } from '@/types/match';
-import type { MatchStatus } from '@/lib/validations/match.schema';
+import type { ActiveMatchItem, MatchStatus } from '@/lib/validations/match.schema';
 import { matchRepository } from '@/repositories/match.repository';
 
 // Typed view of a Match record with decoded JSON arrays.
@@ -70,5 +70,33 @@ export const matchService = {
   async cleanupExpiredMatches(inactiveDays = 30): Promise<number> {
     const cutoff = new Date(Date.now() - inactiveDays * 24 * 60 * 60 * 1000);
     return matchRepository.markInactiveByLastSeen(cutoff);
+  },
+
+  // Returns matches with partner data normalised to the requesting user's perspective.
+  async getActiveMatchesWithPartners(userId: string): Promise<ActiveMatchItem[]> {
+    const matches = await matchRepository.findActiveByUserWithPartners(userId);
+    return matches.map((m) => {
+      const isA = m.userAId === userId;
+      const partner = isA ? m.userB : m.userA;
+      return {
+        id: m.id,
+        score: m.score,
+        status: m.status as MatchStatus,
+        youGive: isA ? (m.aToB as string[]) : (m.bToA as string[]),
+        youGet: isA ? (m.bToA as string[]) : (m.aToB as string[]),
+        partner: {
+          id: partner.id,
+          username: partner.username,
+          name: partner.name,
+          avatarUrl: partner.avatarUrl,
+          neighborhood: partner.neighborhood,
+          city: partner.city,
+          reputation: partner.reputation,
+          tradesCompleted: partner.tradesCompleted,
+        },
+        createdAt: m.createdAt.toISOString(),
+        lastUpdated: m.lastUpdated.toISOString(),
+      };
+    });
   },
 };
