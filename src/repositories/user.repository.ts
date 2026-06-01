@@ -24,6 +24,11 @@ export type UpdateLocationData = {
   neighborhood?: string;
 };
 
+export type UpdateReputationData = {
+  reputation: number;
+  tradesCompleted: number;
+};
+
 export const userRepository = {
   findByEmail(email: string) {
     return prisma.user.findUnique({
@@ -105,6 +110,17 @@ export const userRepository = {
         neighborhood: data.neighborhood ?? null,
       },
       select: { id: true, city: true, neighborhood: true },
+    });
+  },
+
+  updateReputation(userId: string, data: UpdateReputationData) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        reputation: data.reputation,
+        tradesCompleted: data.tradesCompleted,
+      },
+      select: { id: true, reputation: true, tradesCompleted: true },
     });
   },
 };
