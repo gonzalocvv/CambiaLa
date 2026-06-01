@@ -257,6 +257,125 @@ describe('matchRepository.findByIdWithPartners', () => {
   });
 });
 
+describe('matchRepository.findWithLastMessageByUser', () => {
+  it('queries matches with messages for the user and sorts by last message desc', async () => {
+    const msg1 = {
+      id: 'msg-1',
+      matchId: 'match-1',
+      fromUserId: 'user-a',
+      body: 'Hi',
+      createdAt: new Date('2026-06-01T12:00:00Z'),
+      readAt: null,
+    };
+    const msg2 = {
+      id: 'msg-2',
+      matchId: 'match-2',
+      fromUserId: 'user-b',
+      body: 'Hey',
+      createdAt: new Date('2026-06-01T11:00:00Z'),
+      readAt: null,
+    };
+    const partner = {
+      id: 'user-b',
+      email: 'b@example.com',
+      username: 'userb',
+      name: 'B',
+      avatarUrl: null,
+      bio: null,
+      city: null,
+      neighborhood: null,
+      whatsapp: null,
+      lat: null,
+      lng: null,
+      geoGranularity: 'none',
+      role: 'user',
+      publicProfile: false,
+      isSuspended: false,
+      notifyOnMatch: true,
+      emailFrequency: 'instant',
+      pushEnabled: false,
+      pushSubscription: null,
+      participatesInMatchmaking: true,
+      matchRadius: 'department',
+      offerUniques: false,
+      acceptUnbalanced: true,
+      isPro: false,
+      proExpiresAt: null,
+      reputation: 0,
+      tradesCompleted: 0,
+      createdAt: NOW,
+      lastSeenAt: NOW,
+      onboardingDoneAt: null,
+    };
+    // Prisma returns in DB order; our sort should reorder to newest first
+    const rawMatches = [
+      {
+        ...makeDbMatch({ id: 'match-2' }),
+        userA: { ...partner, id: 'user-a', email: 'a@example.com', username: 'usera' },
+        userB: partner,
+        messages: [msg2],
+      },
+      {
+        ...makeDbMatch({ id: 'match-1' }),
+        userA: { ...partner, id: 'user-a', email: 'a@example.com', username: 'usera' },
+        userB: partner,
+        messages: [msg1],
+      },
+    ];
+    mockMatchPrisma.findMany.mockResolvedValue(rawMatches);
+
+    const result = await matchRepository.findWithLastMessageByUser('user-a');
+
+    const call = mockMatchPrisma.findMany.mock.calls[0][0];
+    expect(call.where.OR).toEqual([{ userAId: 'user-a' }, { userBId: 'user-a' }]);
+    expect(call.where.messages).toEqual({ some: {} });
+    expect(call.include.userA).toBe(true);
+    expect(call.include.userB).toBe(true);
+    expect(call.include.messages).toEqual({ orderBy: { createdAt: 'desc' }, take: 1 });
+
+    // Sorted: match-1 (12:00) before match-2 (11:00)
+    expect(result[0].id).toBe('match-1');
+    expect(result[1].id).toBe('match-2');
+  });
+
+  it('returns empty array when no conversations exist', async () => {
+    mockMatchPrisma.findMany.mockResolvedValue([]);
+    const result = await matchRepository.findWithLastMessageByUser('user-x');
+    expect(result).toEqual([]);
+  });
+
+  it('uses 0 as fallback time when messages array is empty (sort stability)', async () => {
+    const partner = {
+      id: 'user-b', email: 'b@example.com', username: 'userb', name: 'B', avatarUrl: null,
+      bio: null, city: null, neighborhood: null, whatsapp: null, lat: null, lng: null,
+      geoGranularity: 'none', role: 'user', publicProfile: false, isSuspended: false,
+      notifyOnMatch: true, emailFrequency: 'instant', pushEnabled: false, pushSubscription: null,
+      participatesInMatchmaking: true, matchRadius: 'department', offerUniques: false,
+      acceptUnbalanced: true, isPro: false, proExpiresAt: null, reputation: 0, tradesCompleted: 0,
+      createdAt: NOW, lastSeenAt: NOW, onboardingDoneAt: null,
+    };
+    const rawMatches = [
+      {
+        ...makeDbMatch({ id: 'match-1' }),
+        userA: { ...partner, id: 'user-a', email: 'a@example.com', username: 'usera' },
+        userB: partner,
+        messages: [],
+      },
+      {
+        ...makeDbMatch({ id: 'match-2' }),
+        userA: { ...partner, id: 'user-a', email: 'a@example.com', username: 'usera' },
+        userB: partner,
+        messages: [],
+      },
+    ];
+    mockMatchPrisma.findMany.mockResolvedValue(rawMatches);
+
+    const result = await matchRepository.findWithLastMessageByUser('user-a');
+
+    expect(result).toHaveLength(2);
+  });
+});
+
 describe('matchRepository.markInactiveByLastSeen', () => {
   it('marks active matches inactive when a participant has not been seen since cutoff', async () => {
     const cutoff = new Date('2026-05-01T00:00:00Z');
