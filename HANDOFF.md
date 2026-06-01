@@ -3,6 +3,44 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 23
+
+- **Ítem**: RF-404 + RF-405 + RF-409 — Badge campana de notificaciones + dropdown + trigger al crear match
+- **Rama**: `claude/tender-archimedes-ltcOP`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge (REBASE) solicitado
+
+### Qué se hizo
+
+- `src/lib/auth.ts`: `getSession` envuelto con `React.cache()` para deduplicar llamadas concurrentes en el mismo request (AppNavbar + la página autenticada llaman getSession por separado).
+- `src/services/match.service.ts` (**RF-409**): `saveMatchResult` ahora llama `matchRepository.findByUsers` antes del upsert para detectar si el match es nuevo. Si es nuevo, crea `new_match` para ambos participantes vía `notificationService.createNotification`. Fallo de notificación no falla el save del match (try/catch silencioso).
+- `src/services/__tests__/match.service.test.ts`: 3 tests nuevos para RF-409 — (1) nuevo match crea 2 notificaciones, (2) match existente no crea notificaciones, (3) fallo de notificación no falla el save. Se agrega `findByUsers` al mock del repo y `mockNotificationService` hoisted.
+- `src/components/notifications/notification-bell.tsx` (**RF-404**, client): `initialUnreadCount` prop (SSR), estado local, polling `setInterval(60s)`, badge naranja con count, toggle del dropdown, click-outside handler.
+- `src/components/notifications/notification-dropdown.tsx` (**RF-405**, client): lista últimas 10 notificaciones, punto azul en no leídas, `PATCH /api/notifications/{id}` al hacer click + navega a `/matches/{matchId}` (o `/matches` como fallback). Fecha formateada en español uruguayo.
+- `src/components/layout/app-navbar.tsx`: server component sticky con logo, links "Mi álbum"/"Mis matches", `NotificationBell` (con count inicial SSR), ícono ⚙️ → `/settings`.
+- Páginas actualizadas con `<AppNavbar />`: `/album`, `/matches`, `/matches/[id]`, `/settings` (se eliminó el back-link redundante en settings).
+- `messages/es.json`: namespaces `AppNav` (3 claves) + `Notifications` (13 claves con tipos y detalles).
+- Tests: 186 tests (+3), branches 100%, lines 100%.
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (186 tests), build ✅ (todas las páginas como `ƒ Dynamic`).
+
+### Próximo paso
+
+1. **RF-112** — Avatar upload (JPG/PNG, máx 2MB, resize 200×200). Requiere decisión sobre almacenamiento: Supabase Storage (más integrado) vs URL externa. ⚠️ Necesita decisión de Gonza.
+2. **RF-113** — Nombre visible + bio en perfil público — display en `/u/[username]` o en la página de match como mejora al partner header.
+3. **RF-114** — Campo WhatsApp en settings (regex +598…) + **RF-116** toggle perfil público.
+4. **Chat (RF-501–506)** — Chat 1-a-1 entre los dos usuarios de un match. Requiere modelo `Message` en Prisma + UI + polling 10s. Candidato ideal para la próxima corrida.
+
+RF-501 (chat) es el siguiente hito más valioso: crea el ciclo completo de match → chat → completar cambio.
+
+### ⚠️ Bloqueos conocidos
+
+- RF-102 🔒 Google OAuth — requiere configurar el provider en el dashboard de Supabase.
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- RF-406 🔒 Resend — email transaccional custom.
+- RF-112 ⚠️ Avatar upload — pendiente de decisión: Supabase Storage vs URL externa (validar host del origen para evitar SSRF).
+
+---
+
 ## 2026-06-01 — Corrida 22
 
 - **Ítem**: RF-901 + RF-902 + RF-907 — Settings page (nombre/bio + ciudad/barrio + logout)
