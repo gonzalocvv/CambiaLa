@@ -1,10 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockRepo = vi.hoisted(() => ({
   upsert: vi.fn(),
   findById: vi.fn(),
   findActiveByUser: vi.fn(),
   updateStatus: vi.fn(),
+  markInactiveByLastSeen: vi.fn(),
 }));
 
 vi.mock('@/repositories/match.repository', () => ({
@@ -151,5 +152,43 @@ describe('matchService.markMatchInactive', () => {
 
     expect(mockRepo.updateStatus).toHaveBeenCalledWith('match-1', 'inactive');
     expect(result.status).toBe('inactive');
+  });
+});
+
+describe('matchService.cleanupExpiredMatches', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('calls markInactiveByLastSeen with 30-day cutoff by default', async () => {
+    vi.setSystemTime(new Date('2026-06-01T12:00:00Z'));
+    mockRepo.markInactiveByLastSeen.mockResolvedValue(3);
+
+    const result = await matchService.cleanupExpiredMatches();
+
+    expect(mockRepo.markInactiveByLastSeen).toHaveBeenCalledOnce();
+    const cutoff: Date = mockRepo.markInactiveByLastSeen.mock.calls[0][0];
+    const expected = new Date('2026-06-01T12:00:00Z');
+    expected.setDate(expected.getDate() - 30);
+    expect(cutoff.getTime()).toBe(expected.getTime());
+    expect(result).toBe(3);
+  });
+
+  it('respects custom inactiveDays', async () => {
+    vi.setSystemTime(new Date('2026-06-01T12:00:00Z'));
+    mockRepo.markInactiveByLastSeen.mockResolvedValue(1);
+
+    const result = await matchService.cleanupExpiredMatches(7);
+
+    const cutoff: Date = mockRepo.markInactiveByLastSeen.mock.calls[0][0];
+    const expected = new Date('2026-06-01T12:00:00Z');
+    expected.setDate(expected.getDate() - 7);
+    expect(cutoff.getTime()).toBe(expected.getTime());
+    expect(result).toBe(1);
+  });
+
+  it('returns count of marked inactive matches', async () => {
+    mockRepo.markInactiveByLastSeen.mockResolvedValue(42);
+    const count = await matchService.cleanupExpiredMatches();
+    expect(count).toBe(42);
   });
 });

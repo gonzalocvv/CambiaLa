@@ -5,6 +5,7 @@ const mockMatchPrisma = vi.hoisted(() => ({
   findUnique: vi.fn(),
   findMany: vi.fn(),
   update: vi.fn(),
+  updateMany: vi.fn(),
 }));
 
 vi.mock('@/lib/prisma', () => ({
@@ -134,5 +135,38 @@ describe('matchRepository.updateStatus', () => {
       data: { status: 'completed' },
     });
     expect(result.status).toBe('completed');
+  });
+});
+
+describe('matchRepository.markInactiveByLastSeen', () => {
+  it('marks active matches inactive when a participant has not been seen since cutoff', async () => {
+    const cutoff = new Date('2026-05-01T00:00:00Z');
+    mockMatchPrisma.findMany.mockResolvedValue([{ id: 'match-1' }, { id: 'match-2' }]);
+    mockMatchPrisma.updateMany.mockResolvedValue({ count: 2 });
+
+    const result = await matchRepository.markInactiveByLastSeen(cutoff);
+
+    const findCall = mockMatchPrisma.findMany.mock.calls[0][0];
+    expect(findCall.where.status).toBe('active');
+    expect(findCall.where.OR).toEqual([
+      { userA: { lastSeenAt: { lt: cutoff } } },
+      { userB: { lastSeenAt: { lt: cutoff } } },
+    ]);
+    expect(findCall.select).toEqual({ id: true });
+
+    const updateCall = mockMatchPrisma.updateMany.mock.calls[0][0];
+    expect(updateCall.where.id).toEqual({ in: ['match-1', 'match-2'] });
+    expect(updateCall.data).toEqual({ status: 'inactive' });
+
+    expect(result).toBe(2);
+  });
+
+  it('returns 0 and skips updateMany when no stale matches found', async () => {
+    mockMatchPrisma.findMany.mockResolvedValue([]);
+
+    const result = await matchRepository.markInactiveByLastSeen(new Date('2026-05-01T00:00:00Z'));
+
+    expect(mockMatchPrisma.updateMany).not.toHaveBeenCalled();
+    expect(result).toBe(0);
   });
 });

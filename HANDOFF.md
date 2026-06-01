@@ -3,6 +3,43 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 11
+
+- **Ítem**: RF-309 — TTL de matches: batch cleanup (repository + service + tests)
+- **Rama**: `claude/rf309-match-ttl`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge solicitado
+
+### Qué se hizo
+
+- `src/repositories/match.repository.ts`: nuevo método `markInactiveByLastSeen(cutoffDate: Date): Promise<number>` — enfoque de dos pasos (Prisma 6 no soporta relation filters en `updateMany`):
+  1. `findMany` con `status: 'active'` + `OR [userA.lastSeenAt < cutoff, userB.lastSeenAt < cutoff]` + `select: { id: true }`
+  2. `updateMany` con `id IN [...]` → `status: 'inactive'`
+  - Cortocircuita y retorna `0` si no hay matches a marcar (evita `updateMany` vacío).
+- `src/services/match.service.ts`: nuevo método `cleanupExpiredMatches(inactiveDays = 30): Promise<number>` — calcula cutoff como `now - inactiveDays * 24h` y delega al repo.
+- Tests:
+  - `match.repository.test.ts`: 2 tests nuevos (happy path con 2 stale matches + skip de updateMany cuando array vacío). Mock extendido con `updateMany`.
+  - `match.service.test.ts`: 3 tests nuevos para `cleanupExpiredMatches` (default 30 días, custom 7 días, retorna count). Usa `vi.useFakeTimers()` para tiempo determinístico. Mock extendido con `markInactiveByLastSeen`.
+- Gate: format ✅, lint ✅, type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (100% stmts/branches/funcs/lines, **56 tests**), build ✅
+
+### ⚠️ Nota sobre el job de limpieza diario (Inngest)
+
+El scheduling del job (`cleanupExpiredMatches` en cron diario) no se implementó porque requiere Inngest 🔒. La función está lista para ser llamada desde un Inngest handler cuando las credenciales estén disponibles.
+
+### Próximo paso
+
+Próximos ítems autónomos (sin credenciales):
+- **RF-310** — Lista de mis matches activos (GET /api/matches — API route + service ya existe): falta el endpoint REST + Zod schema de respuesta.
+- **RF-802 a RF-808** — Páginas estáticas SSG (`/como-funciona`, `/privacidad`, `/terminos`, `/contacto`, `/precios`): 100% autónomas, sin credenciales.
+- **RF-401** — Tabla `Notification` + API routes `GET /api/notifications` y `PATCH /api/notifications/[id]`: pura lógica DB + Zod, sin Inngest.
+
+### ⚠️ Bloqueos conocidos
+
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- S0.7 🔒 Supabase — toda la capa de Auth (Sprint 1) bloqueada.
+
+---
+
 ## 2026-06-01 — Corrida 10
 
 - **Ítem**: RF-308 — Persistencia del match en DB (schema Zod + repository + service)

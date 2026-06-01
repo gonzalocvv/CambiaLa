@@ -66,4 +66,9 @@ export const matchService = {
     const updated = await matchRepository.updateStatus(id, 'inactive' as MatchStatus);
     return decodeMatch(updated);
   },
+
+  async cleanupExpiredMatches(inactiveDays = 30): Promise<number> {
+    const cutoff = new Date(Date.now() - inactiveDays * 24 * 60 * 60 * 1000);
+    return matchRepository.markInactiveByLastSeen(cutoff);
+  },
 };
