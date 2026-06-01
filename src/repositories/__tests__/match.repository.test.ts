@@ -1,0 +1,138 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mockMatchPrisma = vi.hoisted(() => ({
+  upsert: vi.fn(),
+  findUnique: vi.fn(),
+  findMany: vi.fn(),
+  update: vi.fn(),
+}));
+
+vi.mock('@/lib/prisma', () => ({
+  prisma: { match: mockMatchPrisma },
+}));
+
+import { matchRepository } from '../match.repository';
+
+const NOW = new Date('2026-06-01T12:00:00Z');
+
+function makeDbMatch(overrides: object = {}) {
+  return {
+    id: 'match-1',
+    userAId: 'user-a',
+    userBId: 'user-b',
+    score: 3,
+    aToB: ['URU1', 'ARG2', 'BRA3'],
+    bToA: ['ESP4', 'FRA5', 'GER6'],
+    status: 'active',
+    lastUpdated: NOW,
+    createdAt: NOW,
+    ...overrides,
+  };
+}
+
+beforeEach(() => vi.clearAllMocks());
+
+describe('matchRepository.upsert', () => {
+  it('creates a new match with status active', async () => {
+    const db = makeDbMatch();
+    mockMatchPrisma.upsert.mockResolvedValue(db);
+
+    const result = await matchRepository.upsert({
+      userAId: 'user-a',
+      userBId: 'user-b',
+      aToB: ['URU1', 'ARG2', 'BRA3'],
+      bToA: ['ESP4', 'FRA5', 'GER6'],
+      score: 3,
+    });
+
+    expect(mockMatchPrisma.upsert).toHaveBeenCalledOnce();
+    const call = mockMatchPrisma.upsert.mock.calls[0][0];
+    expect(call.where).toEqual({
+      userAId_userBId: { userAId: 'user-a', userBId: 'user-b' },
+    });
+    expect(call.create.status).toBe('active');
+    expect(call.create.score).toBe(3);
+    expect(result).toEqual(db);
+  });
+
+  it('reactivates a match on update', async () => {
+    const db = makeDbMatch({ score: 5 });
+    mockMatchPrisma.upsert.mockResolvedValue(db);
+
+    await matchRepository.upsert({
+      userAId: 'user-a',
+      userBId: 'user-b',
+      aToB: ['URU1'],
+      bToA: ['ESP4'],
+      score: 5,
+    });
+
+    const call = mockMatchPrisma.upsert.mock.calls[0][0];
+    expect(call.update.status).toBe('active');
+    expect(call.update.score).toBe(5);
+  });
+});
+
+describe('matchRepository.findById', () => {
+  it('returns the match when found', async () => {
+    const db = makeDbMatch();
+    mockMatchPrisma.findUnique.mockResolvedValue(db);
+
+    const result = await matchRepository.findById('match-1');
+    expect(mockMatchPrisma.findUnique).toHaveBeenCalledWith({ where: { id: 'match-1' } });
+    expect(result).toEqual(db);
+  });
+
+  it('returns null when not found', async () => {
+    mockMatchPrisma.findUnique.mockResolvedValue(null);
+    const result = await matchRepository.findById('nonexistent');
+    expect(result).toBeNull();
+  });
+});
+
+describe('matchRepository.findByUsers', () => {
+  it('queries by canonical user pair', async () => {
+    const db = makeDbMatch();
+    mockMatchPrisma.findUnique.mockResolvedValue(db);
+
+    await matchRepository.findByUsers('user-a', 'user-b');
+    expect(mockMatchPrisma.findUnique).toHaveBeenCalledWith({
+      where: { userAId_userBId: { userAId: 'user-a', userBId: 'user-b' } },
+    });
+  });
+});
+
+describe('matchRepository.findActiveByUser', () => {
+  it('returns active matches ordered by score desc', async () => {
+    const matches = [makeDbMatch({ score: 5 }), makeDbMatch({ id: 'match-2', score: 2 })];
+    mockMatchPrisma.findMany.mockResolvedValue(matches);
+
+    const result = await matchRepository.findActiveByUser('user-a');
+
+    const call = mockMatchPrisma.findMany.mock.calls[0][0];
+    expect(call.where.status).toBe('active');
+    expect(call.where.OR).toEqual([{ userAId: 'user-a' }, { userBId: 'user-a' }]);
+    expect(call.orderBy).toEqual({ score: 'desc' });
+    expect(result).toHaveLength(2);
+  });
+
+  it('returns empty array when user has no active matches', async () => {
+    mockMatchPrisma.findMany.mockResolvedValue([]);
+    const result = await matchRepository.findActiveByUser('user-x');
+    expect(result).toEqual([]);
+  });
+});
+
+describe('matchRepository.updateStatus', () => {
+  it('updates the match status', async () => {
+    const db = makeDbMatch({ status: 'completed' });
+    mockMatchPrisma.update.mockResolvedValue(db);
+
+    const result = await matchRepository.updateStatus('match-1', 'completed');
+    expect(mockMatchPrisma.update).toHaveBeenCalledWith({
+      where: { id: 'match-1' },
+      data: { status: 'completed' },
+    });
+    expect(result.status).toBe('completed');
+  });
+});
