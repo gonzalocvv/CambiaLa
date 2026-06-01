@@ -72,15 +72,15 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ### Álbum (módulo 200) — ⛔ depende del seed (S0.6)
 
-- [ ] **RF-203** Vista de mi álbum: grid responsive, celda con número/nombre/color de estado/badge cantidad/dorado especial. (M)
-- [ ] **RF-206** Marcar figurita con click: cicla falta→tengo 1→2→3→falta (máx 99). (M)
-- [ ] **RF-207** Marcado reverso con long press (mobile) / click derecho (desktop). (S)
-- [ ] **RF-208** Autosave con debounce 500ms al server (sin botón guardar). (M)
-- [ ] **RF-209** Indicador "Guardando…" / "Guardado". (S)
+- [x] **RF-203** Vista de mi álbum: grid responsive, celda con número/nombre/color de estado/badge cantidad/dorado especial. (M) — _Corrida 20: /album con AlbumClient, sticker-cell, grupos por equipo_
+- [x] **RF-206** Marcar figurita con click: cicla falta→tengo 1→2→3→falta (máx 99). (M) — _Corrida 20: handleUpdate + optimistic UI_
+- [x] **RF-207** Marcado reverso con long press (mobile) / click derecho (desktop). (S) — _Corrida 20: onContextMenu (funciona con long press en mobile y right-click en desktop)_
+- [x] **RF-208** Autosave con debounce 500ms al server (sin botón guardar). (M) — _Corrida 20: debounce en AlbumClient + PATCH /api/album/stickers/[id]_
+- [x] **RF-209** Indicador "Guardando…" / "Guardado". (S) — _Corrida 20: floating toast con saveState_
 - [ ] **RF-204** Filtros del álbum: todas / me faltan / tengo / repetidas / especiales + por equipo. (M)
 - [ ] **RF-205** Búsqueda por número (URU9) o nombre (SUÁREZ), case-insensitive. (S)
-- [ ] **RF-210** Stats del álbum: tengo (X/900), faltan, repetidas, % completado, barra de progreso en vivo. (M)
-- [ ] **RF-211** Schema multi-álbum (modelo `Album`), MVP expone solo Mundial 2026. (M)
+- [x] **RF-210** Stats del álbum: tengo (X/900), faltan, repetidas, % completado, barra de progreso en vivo. (M) — _Corrida 20: stats live en AlbumClient (react state)_
+- [x] **RF-211** Schema multi-álbum (modelo `Album`), MVP expone solo Mundial 2026. (M) — _ya implementado en el schema Prisma inicial; stickerRepository usa slug 'mundial-2026'_
 
 ### Settings básico + Landing
 
