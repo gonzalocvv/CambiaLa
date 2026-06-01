@@ -3,6 +3,45 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-01 — Corrida 15
+
+- **Ítem**: RF-313 — Marcar match `completed` (cualquiera de las dos partes)
+- **Rama**: `claude/rf313-complete-match`
+- **PR**: (ver abajo)
+- **Estado**: ✅ completo, PR abierto con auto-merge solicitado
+
+### Qué se hizo
+
+- `src/app/api/matches/[id]/complete/route.ts`: `PATCH /api/matches/[id]/complete`
+  - 401 si no autenticado.
+  - Usa `getMatchDetailForUser` para verificar existencia y participación (404 si nulo).
+  - 409 si `status !== 'active'` (ya completado o inactivo).
+  - Llama `matchService.completeMatch(id)` y devuelve `{ ok: true }`.
+- `src/components/matches/complete-match-button.tsx`: client component `'use client'`
+  - Props: `matchId: string`.
+  - `useState` para `loading` y `done`.
+  - Llama `PATCH /api/matches/[matchId]/complete`; en éxito → `router.refresh()` + muestra confirmación.
+- `src/app/matches/[id]/page.tsx`: updated con:
+  - Botón `CompleteMatchButton` visible cuando `match.status === 'active'`.
+  - Badge "Completado" cuando `match.status === 'completed'`.
+- `messages/es.json`: 5 nuevas claves en namespace `MatchDetail` (`markCompleted`, `completing`, `completedConfirmation`, `completeHint`, `statusCompleted`).
+- Tests: 81 tests (+5 vs corrida anterior), 100% coverage.
+  - 5 tests en `src/app/api/matches/[id]/complete/__tests__/route.test.ts` (401, 404, 409 completed, 409 inactive, 200).
+- Gate: format ✅, lint ✅ (0 errores), type-check ✅, format:check ✅, prisma:generate ✅, test:coverage ✅ (81 tests, 100%), build ✅ (`/api/matches/[id]/complete` como `ƒ Dynamic`).
+
+### Próximo paso
+
+Próximos ítems autónomos (sin credenciales):
+- **RF-401** — Tabla `Notification` + API routes `GET /api/notifications` y `PATCH /api/notifications/[id]`: pura lógica DB + Zod. El modelo `Notification` ya existe en el schema de Prisma.
+- **RF-802–RF-808** — Páginas estáticas SSG (`/como-funciona`, `/precios`, `/privacidad`, `/terminos`, `/contacto`): 100% autónomas.
+
+### ⚠️ Bloqueos conocidos
+
+- RF-307 🔒 Inngest — scheduling del job de cleanup.
+- S0.7 🔒 Supabase — toda la capa de Auth (Sprint 1) bloqueada. `getSession()` retorna null hasta que esté listo.
+
+---
+
 ## 2026-06-01 — Corrida 14
 
 - **Ítem**: RF-312 — Detalle de match: página `/matches/[id]` con dos columnas "lo que te ofrece" / "lo que le das"
