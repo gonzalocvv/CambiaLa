@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
 import type { EmailOtpType, User } from '@supabase/supabase-js';
 
-import { userService } from '@/services/user.service';
+import { resolveDestinationForUser } from '@/lib/auth/resolve-destination';
 import { createClient } from '@/lib/supabase/server';
 
-// Handles the magic-link / OTP callback. Supports BOTH:
-//   1. PKCE flow  (?code=...)             — same-device, exchangeCodeForSession
-//   2. Token-hash flow (?token_hash=&type=) — cross-device, verifyOtp
+// Handles the magic-link / OAuth callback. Supports BOTH:
+//   1. PKCE flow  (?code=...)             — magic link same-device + Google OAuth
+//   2. Token-hash flow (?token_hash=&type=) — cross-device magic link
 // The token-hash flow is what the (recommended) server-side email template
 // produces and works even if the link is opened on a different device than the
 // one that requested it. See HANDOFF "RF-101b" for the required dashboard config.
+// (El código OTP de 6 dígitos se verifica aparte en POST /api/auth/verify-otp.)
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
@@ -41,14 +42,6 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/auth/login?error=no_email`);
   }
 
-  // RF-103: auto-register on first login
-  const dbUser = await userService.getOrCreate({
-    email: user.email,
-    name: user.user_metadata?.full_name as string | undefined,
-    avatarUrl: user.user_metadata?.avatar_url as string | undefined,
-  });
-
-  // RF-108: redirect to onboarding if not completed yet
-  const destination = dbUser.onboardingDoneAt ? next : '/onboarding';
+  const destination = await resolveDestinationForUser(user, next);
   return NextResponse.redirect(`${origin}${destination}`);
 }
