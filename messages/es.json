@@ -85,17 +85,27 @@
   "Auth": {
     "login": {
       "title": "Iniciá sesión",
-      "subtitle": "Te mandamos un link al mail. Sin contraseña.",
+      "subtitle": "Entrá con Google o con tu mail. Sin contraseña.",
+      "googleButton": "Continuar con Google",
+      "googleError": "No se pudo iniciar con Google. Intentá de nuevo.",
+      "dividerOr": "o con tu mail",
       "emailLabel": "Tu email",
       "emailPlaceholder": "vos@ejemplo.com",
-      "submitButton": "Mandarme el link",
+      "submitButton": "Mandarme el código",
       "submitting": "Enviando…",
-      "successTitle": "¡Listo! Revisá tu mail",
-      "successMessage": "Te mandamos un link a {email}. Hacé click y entrás.",
-      "successHint": "Si no ves el mail, revisá la carpeta de spam.",
+      "codeTitle": "Revisá tu mail",
+      "codeMessage": "Te mandamos un código de 6 dígitos a {email}. Escribilo acá.",
+      "codeLabel": "Código",
+      "codePlaceholder": "123456",
+      "codeSubmit": "Entrar",
+      "codeVerifying": "Verificando…",
+      "codeResend": "Reenviar código",
+      "codeHint": "Si no lo ves, revisá la carpeta de spam.",
+      "backToEmail": "← Usar otro mail",
       "errorGeneric": "Algo salió mal. Intentá de nuevo.",
-      "errorRateLimited": "Pediste muchos links en poco tiempo. Esperá unos minutos y volvé a intentar.",
+      "errorRateLimited": "Pediste muchos códigos en poco tiempo. Esperá unos minutos y volvé a intentar.",
       "errorInvalidEmail": "El email no parece válido.",
+      "errorInvalidCode": "El código no es correcto o venció. Pedí uno nuevo.",
       "backToHome": "← Volver al inicio",
       "callbackError": "Hubo un problema al iniciar sesión. Intentá de nuevo."
     }
@@ -147,9 +157,9 @@
     "logoutButton": "Cerrar sesión",
     "loggingOut": "Saliendo…",
     "whatsappLabel": "WhatsApp (opcional)",
-    "whatsappPlaceholder": "+598 9XXXXXXX",
+    "whatsappPlaceholder": "099 123 456",
     "whatsappHint": "Para que tus matches puedan contactarte directo.",
-    "whatsappError": "Formato inválido. Usá: +598 9XXXXXXX",
+    "whatsappError": "No parece un celular válido. Probá con el formato 099 123 456.",
     "publicProfileLabel": "Perfil público",
     "publicProfileSubtitle": "Otros coleccionistas pueden ver tu perfil en /u/usuario."
   },
@@ -294,7 +304,7 @@
     "proF3": "Estadísticas avanzadas de tu colección",
     "proComingSoon": "Estamos trabajando en el plan Pro. Te avisamos cuando esté disponible.",
     "faqTitle": "¿Alguna pregunta?",
-    "faqEmail": "hola@cambiala.uy"
+    "faqEmail": "consultas@cambiala.uy"
   },
   "Privacy": {
     "metaTitle": "Privacidad — CambiaLa",
@@ -319,13 +329,13 @@
     "right2": "Corregir datos incorrectos o desactualizados.",
     "right3": "Eliminar tu cuenta y todos tus datos de forma permanente.",
     "right4": "Portabilidad: solicitar tus datos en formato legible.",
-    "rightsEmail": "hola@cambiala.uy",
-    "rightsNote": "Para ejercer cualquiera de estos derechos, escribinos a <emailLink>hola@cambiala.uy</emailLink>.",
+    "rightsEmail": "consultas@cambiala.uy",
+    "rightsNote": "Para ejercer cualquiera de estos derechos, escribinos a <emailLink>consultas@cambiala.uy</emailLink>.",
     "securityTitle": "Seguridad",
     "securityDesc": "Usamos conexiones cifradas (HTTPS), cookies seguras (HTTPOnly, Secure, SameSite=Lax) y acceso restringido a la base de datos. El contenido de los chats solo es accesible para los participantes del match.",
     "contactTitle": "Contacto",
-    "contactEmail": "hola@cambiala.uy",
-    "contactNote": "¿Tenés preguntas sobre tu privacidad? Escribinos a <emailLink>hola@cambiala.uy</emailLink> y respondemos en 48 horas."
+    "contactEmail": "consultas@cambiala.uy",
+    "contactNote": "¿Tenés preguntas sobre tu privacidad? Escribinos a <emailLink>consultas@cambiala.uy</emailLink> y respondemos en 48 horas."
   },
   "Terms": {
     "metaTitle": "Términos de uso — CambiaLa",
@@ -346,8 +356,8 @@
     "changesTitle": "Cambios en los términos",
     "changesDesc": "Podemos actualizar estos términos. Te avisaremos por email ante cambios importantes. Seguir usando el servicio implica aceptar los nuevos términos.",
     "contactTitle": "Preguntas",
-    "contactEmail": "hola@cambiala.uy",
-    "contactNote": "Para dudas sobre los términos, escribinos a <emailLink>hola@cambiala.uy</emailLink>."
+    "contactEmail": "consultas@cambiala.uy",
+    "contactNote": "Para dudas sobre los términos, escribinos a <emailLink>consultas@cambiala.uy</emailLink>."
   },
   "PublicProfile": {
     "newCollector": "Coleccionista nuevo",
@@ -375,7 +385,7 @@
     "subtitle": "Somos un equipo chico pero respondemos. Escribinos y te contestamos.",
     "emailTitle": "Por correo electrónico",
     "emailDesc": "Consultas generales, reportar un problema o sugerencias.",
-    "email": "hola@cambiala.uy",
+    "email": "consultas@cambiala.uy",
     "responseTime": "Respondemos en 24-48 horas hábiles.",
     "privacyTitle": "Privacidad y datos personales",
     "privacyDesc": "Para solicitudes de derechos según la Ley 18.331 (acceso, rectificación, cancelación, oposición), escribinos al mismo correo con el asunto 'Ley 18.331'.",

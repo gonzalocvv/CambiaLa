@@ -144,11 +144,30 @@ describe('PUT /api/settings', () => {
       new Request('http://localhost/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ whatsapp: '099123456' }),
+        body: JSON.stringify({ whatsapp: '24001234' }), // fijo, no celular
       }),
     );
 
     expect(res.status).toBe(400);
+  });
+
+  it('normalizes local-format whatsapp (099 123 456) to +598', async () => {
+    mockGetSession.mockResolvedValue({ userId: 'cuid-user-1', onboardingDoneAt: new Date() });
+    mockUpdateProfile.mockResolvedValue(undefined);
+
+    const res = await PUT(
+      new Request('http://localhost/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ whatsapp: '099 123 456' }),
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockUpdateProfile).toHaveBeenCalledWith(
+      'cuid-user-1',
+      expect.objectContaining({ whatsapp: '+59899123456' }),
+    );
   });
 
   it('accepts valid whatsapp +598 number', async () => {
