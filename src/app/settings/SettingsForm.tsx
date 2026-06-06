@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { URUGUAY_DEPARTMENTS, MONTEVIDEO_NEIGHBORHOODS } from '@/lib/locations';
+import { normalizeUruguayanMobile } from '@/lib/phone';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -47,10 +48,16 @@ export default function SettingsForm({
     setProfileError('');
     setWhatsappError('');
 
-    if (whatsapp && !/^\+598\d{8}$/.test(whatsapp)) {
-      setWhatsappError(t('whatsappError'));
-      setProfileSaveState('error');
-      return;
+    // Aceptamos el celular como lo escriba el usuario y lo normalizamos acá.
+    let normalizedWhatsapp: string | undefined;
+    if (whatsapp.trim()) {
+      const normalized = normalizeUruguayanMobile(whatsapp);
+      if (!normalized) {
+        setWhatsappError(t('whatsappError'));
+        setProfileSaveState('error');
+        return;
+      }
+      normalizedWhatsapp = normalized;
     }
 
     try {
@@ -60,7 +67,7 @@ export default function SettingsForm({
         body: JSON.stringify({
           name: name || undefined,
           bio: bio || undefined,
-          whatsapp: whatsapp || undefined,
+          whatsapp: normalizedWhatsapp,
           publicProfile,
         }),
       });
@@ -70,6 +77,7 @@ export default function SettingsForm({
         setProfileSaveState('error');
         return;
       }
+      if (normalizedWhatsapp) setWhatsapp(normalizedWhatsapp);
       setProfileSaveState('saved');
       router.refresh();
       setTimeout(() => setProfileSaveState('idle'), 2000);
