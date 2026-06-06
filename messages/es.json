@@ -157,9 +157,9 @@
     "logoutButton": "Cerrar sesión",
     "loggingOut": "Saliendo…",
     "whatsappLabel": "WhatsApp (opcional)",
-    "whatsappPlaceholder": "+598 9XXXXXXX",
+    "whatsappPlaceholder": "099 123 456",
     "whatsappHint": "Para que tus matches puedan contactarte directo.",
-    "whatsappError": "Formato inválido. Usá: +598 9XXXXXXX",
+    "whatsappError": "No parece un celular válido. Probá con el formato 099 123 456.",
     "publicProfileLabel": "Perfil público",
     "publicProfileSubtitle": "Otros coleccionistas pueden ver tu perfil en /u/usuario."
   },

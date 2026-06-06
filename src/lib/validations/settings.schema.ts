@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { URUGUAY_DEPARTMENTS, MONTEVIDEO_NEIGHBORHOODS } from '@/lib/locations';
+import { normalizeUruguayanMobile } from '@/lib/phone';
 
 export const UpdateProfileSchema = z.object({
   name: z
@@ -9,11 +10,16 @@ export const UpdateProfileSchema = z.object({
     .optional()
     .or(z.literal('')),
   bio: z.string().max(140, 'Máximo 140 caracteres').optional().or(z.literal('')),
-  whatsapp: z
-    .string()
-    .regex(/^\+598\d{8}$/, 'Formato: +598 9XXXXXXX')
-    .optional()
-    .or(z.literal('')),
+  // Acepta el celular como lo escriba el usuario (099 123 456, +598..., etc.)
+  // y lo guarda normalizado a +5989XXXXXXX.
+  whatsapp: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() !== '' ? (normalizeUruguayanMobile(v) ?? v) : v),
+    z
+      .string()
+      .regex(/^\+5989\d{7}$/, 'No parece un celular uruguayo. Probá: 099 123 456')
+      .optional()
+      .or(z.literal('')),
+  ),
   publicProfile: z.boolean().optional(),
 });
 
