@@ -11,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const freeFeatures = ['freeF1', 'freeF2', 'freeF3', 'freeF4', 'freeF5', 'freeF6'] as const;
-const proFeatures = ['proF1', 'proF2', 'proF3'] as const;
+const proFeatures = ['proF1'] as const;
 
 export default async function PreciosPage() {
   const t = await getTranslations('Pricing');
