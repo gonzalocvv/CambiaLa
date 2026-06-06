@@ -197,14 +197,14 @@
   "Home": {
     "nav": {
       "login": "Iniciá sesión",
-      "cta": "Empezar gratis"
+      "cta": "Registrate"
     },
     "hero": {
       "titlePrefix": "Cambia",
       "titleHighlight": "La",
       "subtitle": "Cambiá tus figuritas del Mundial 2026 con coleccionistas de tu barrio.",
       "badge": "Mundial 2026 · Uruguay",
-      "cta": "Empezar gratis",
+      "cta": "Registrate",
       "ctaSecondary": "¿Cómo funciona?",
       "scrollHint": "Seguir leyendo"
     },
@@ -243,7 +243,7 @@
     "finalCta": {
       "title": "¿Listo para completar tu álbum?",
       "subtitle": "Uníte a los coleccionistas uruguayos del Mundial 2026. Es gratis.",
-      "cta": "Empezar gratis"
+      "cta": "Registrate"
     },
     "footer": "© 2026 CambiaLa"
   },
@@ -277,7 +277,7 @@
     "faq4A": "Por ahora sí. La arquitectura soporta múltiples álbumes y planeamos sumar más en el futuro.",
     "ctaTitle": "¿Todo claro?",
     "ctaSubtitle": "Empezar tarda menos de 5 minutos.",
-    "cta": "Empezar gratis"
+    "cta": "Registrate"
   },
   "Pricing": {
     "metaTitle": "Precios — CambiaLa",
