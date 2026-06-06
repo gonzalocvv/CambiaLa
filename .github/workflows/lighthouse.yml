@@ -31,7 +31,7 @@ jobs:
           max_timeout: 600
 
       - name: Run Lighthouse CI
-        uses: treosh/lighthouse-ci-action@v11
+        uses: treosh/lighthouse-ci-action@v12
         with:
           urls: |
             ${{ steps.vercel_preview.outputs.url }}/
