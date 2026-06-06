@@ -92,6 +92,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **RF-205** Búsqueda por número (URU9) o nombre (SUÁREZ), case-insensitive. (S) — _Corrida 21: input de búsqueda client-side en AlbumClient_
 - [x] **RF-210** Stats del álbum: tengo (X/900), faltan, repetidas, % completado, barra de progreso en vivo. (M) — _Corrida 20: stats live en AlbumClient (react state)_
 - [x] **RF-211** Schema multi-álbum (modelo `Album`), MVP expone solo Mundial 2026. (M) — _ya implementado en el schema Prisma inicial; stickerRepository usa slug 'mundial-2026'_
+- [ ] **RF-214b** 🆕 ⚠️ **Auditar catálogo vs álbum oficial.** (M) — _detectado 6-jun: fuentes de prensa indican que el álbum Panini 2026 tiene **980 figuritas**; nuestro seed tiene **896**. Verificar contra el álbum físico/fuentes oficiales: cantidad total, numeración por equipo, especiales/extras. Si faltan, ampliar `prisma/data/` + seed idempotente + migración segura (NO romper álbumes de usuarios existentes: solo agregar, nunca renumerar). Documentar la fuente usada en el commit._
 - [ ] **RF-213** 🆕 ⚡ **Guardado del álbum en bulk** — un solo request/query por ráfaga de clicks (hoy: 1 PATCH por figurita ≈ 40 clicks = 40 requests × ~3 queries c/u; medido 700-900ms por PATCH). (M) — _pedido por Gonza 2026-06-06 tras ver los logs._
   - **Endpoint nuevo**: `PATCH /api/album/stickers` (sin `[stickerId]`) con body `{ changes: [{ stickerId: string, count: number }] }`. Límites: 1-200 ítems, `count` entero 0-99 (misma semántica que `updateStickerCount`: 0 = me falta). Schema Zod `BulkUpdateStickersSchema` en `src/lib/validations/sticker.schema.ts`.
   - **Repository**: `stickerRepository.bulkUpsertCounts(userId, changes)` → **UNA sola query** con `prisma.$executeRaw` + `INSERT ... SELECT ... FROM unnest($ids::text[], $counts::int[]) ON CONFLICT (user_id, sticker_id) DO UPDATE SET count = EXCLUDED.count` (mirar nombres reales de tabla/columnas/constraint en `schema.prisma` — debe existir el unique compuesto). NADA de loops de upserts.
@@ -131,6 +132,10 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **RF-311** Match card: avatar/username del otro, barrio, distancia (si geo), score, "te da X / le das Y". (M)
 - [x] **RF-312** Detalle de match: dos columnas "lo que te ofrece" / "lo que le das". (M)
 - [x] **RF-313** Marcar match `completed` (cualquiera de las dos partes). (M)
+- [ ] **RF-318** 🆕 **Fallback de ubicación: sin barrio ⇒ todo el departamento.** (M) — _pedido por Gonza 6-jun. Refina RF-302; aplicar cuando se implemente RF-307._
+  - Regla: si el usuario **no seteó barrio** (`neighborhood = null`, ej. salteó el onboarding o no es de Montevideo), matchea contra **todo su departamento**. Si seteó barrio y su config es "mismo barrio", solo se restringe cuando **ambos** lados tienen barrio; un usuario sin barrio NUNCA queda excluido del pool departamental.
+  - Nadie debe quedar con 0 matches por no haber elegido barrio — es el caso típico del interior (depto sin lista de barrios) y del que saltea pasos.
+  - **TDD**: casos en los tests del candidate-pool: (a) ambos con barrio igual → match; (b) ambos con barrio distinto, config barrio → no match; (c) uno sin barrio, mismo depto → match; (d) ambos sin barrio, mismo depto → match; (e) deptos distintos → no match (salvo config "todo Uruguay").
 
 ### Chat (módulo 500)
 
@@ -190,6 +195,33 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **RF-808** `robots.txt` (bloquea rutas auth/API). (M) — _Corrida 34_
 - [x] **RF-810** Canonical URLs en páginas indexables. (M) — _Corrida 36_
 - [ ] **RF-809** Schema.org JSON-LD (Person en perfiles, WebSite/Organization en landing). (S)
+
+### 🔥 Landing v2 — reposicionamiento (agregado 6-jun, PRIORIDAD ALTA: aparecieron 3 competidores)
+
+> **Contexto**: salieron Cambio Figus (genérico, con ads), Figuri.App y está Figuritas App (2M usuarios, modelo amigos/QR). El diferencial de CambiaLa es el **descubrimiento**: match automático con desconocidos confiables del barrio. La landing tiene que gritar eso, no "coleccioná" (esa batalla ya tiene dueño). Mantener TODO con design tokens (`branding` en CLAUDE.md) — PROHIBIDO colores crudos, incluso si se toma inspiración de componentes de 21st.dev (vienen con `bg-slate-*` etc., adaptar siempre).
+
+- [ ] **RF-820** 🆕 **Hero nuevo — el match es el héroe.** (M)
+  - H1: **"Te encontramos con quién cambiar tus figuritas"**. Subtítulo: **"Cargá tu álbum del Mundial 2026 y te avisamos cuando alguien de tu barrio tiene las que te faltan — y quiere las que te sobran."** CTA primario "Registrate" (ya existe la key), secundario "¿Cómo funciona?".
+  - **Mock de tarjeta de match** visible en el hero (componente estático, no screenshot): avatar + "Juan de Pocitos" + "te da 5 / le das 3" + "⭐ 4.8 · 12 cambios". Reusar la estética real de `MatchCard` para que landing y app sean coherentes.
+  - **TDD**: primero las claves i18n nuevas en `Home.hero` (title, subtitle, matchMock.*), después el componente con test de render (asserts de los textos clave).
+- [ ] **RF-821** 🆕 **Animación "el intercambio"** — decorativa, detrás/junto al hero. (S)
+  - Dos mini-álbumes estilizados, una figurita sale de cada uno, se cruzan en el aire y cada una **encaja en el hueco del álbum opuesto**. Loop suave (~6-8s con pausa).
+  - **Stack de animación**: CSS transforms/keyframes para el loop decorativo + **Motion (framer-motion) permitido y recomendado** para springs, stagger y reveals al scroll (el "encaje" con spring físico, la match card del hero que se arma escalonada). PROHIBIDO en el MVP: canvas/WebGL/Three.js/GSAP (peso y jank en gama media; revisitar post-launch solo como detalle puntual, ej. shader de brillo en la figurita dorada).
+  - Reglas duras: `aria-hidden="true"` en lo decorativo, respetar **`prefers-reduced-motion`** (estado estático con las dos figuritas ya encajadas), no degradar LCP (decorativo, sin imágenes pesadas; SVG/divs).
+  - **Figuritas genéricas estilizadas** (número + colores por token, ej. celeste/naranja) — NUNCA imágenes reales del álbum Panini (IP de terceros).
+  - Inspiración permitida: componentes de animación de 21st.dev, adaptados a tokens. (Si está instalada una skill de UI/UX en el entorno, usarla para refinar.)
+- [ ] **RF-824** 🆕 📱 **Navbar mobile: bottom tab bar** — el nav actual desborda en mobile. (M) — _reportado por Gonza 6-jun con captura: "Mi álbum"/"Mis matches" quiebran en dos líneas y el header ocupa demasiado alto._
+  - En viewport `< md`: header reducido a **logo + campanita de notificaciones**; navegación principal pasa a **bottom tab bar fija** (4 tabs: Mi álbum, Matches, Chats, Ajustes) con ícono + label corto, área táctil ≥ 44px, `safe-area-inset-bottom` (iPhone), estado activo con token `primary`.
+  - En `≥ md` queda el navbar horizontal actual.
+  - El badge de no-leídos de la campanita y el de chats sin leer deben verse en los tabs correspondientes.
+  - **TDD**: test de render del tab bar (4 links con href correcto + aria-current en el activo). Verificar que ninguna página tape contenido detrás del tab bar (padding-bottom en el layout).
+- [ ] **RF-822** 🆕 **Sección "¿Por qué CambiaLa?"** — 3 diferenciales en cards. (M)
+  - 1) **Match automático por barrio**: "No buscás vos — nosotros te avisamos cuando hay cambio posible cerca tuyo." 2) **Reputación real**: "Reseñas y estrellas después de cada cambio. Cambiá con desconocidos sin miedo." 3) **Gratis y sin publicidad**: "Sin banners, sin sponsors, sin vender tus datos."
+  - Sin nombrar competidores. i18n primero, test de render.
+- [ ] **RF-823** 🆕 **SEO on-page del reposicionamiento.** (M)
+  - `Metadata.title` → incluir la frase de búsqueda real: ej. "CambiaLa — Cambiar figuritas del Mundial 2026 en Uruguay". `Metadata.description` alineada al posicionamiento (match por barrio).
+  - H1/H2 de la landing deben contener naturalmente "cambiar figuritas", "Mundial 2026", "Uruguay", "barrio". Revisar OG tags.
+  - Actualizar también `/como-funciona` para reflejar el matching como protagonista.
 
 ### PWA
 
