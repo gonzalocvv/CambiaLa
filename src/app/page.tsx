@@ -1,4 +1,3 @@
-import { ScrollHint } from '@/components/coming-soon/ScrollHint';
 import { ExchangeAnimation } from '@/components/landing/exchange-animation';
 import { Reveal } from '@/components/landing/reveal';
 import { WhySection } from '@/components/landing/why-section';
@@ -22,8 +21,8 @@ export default async function Home() {
       <Navbar loginLabel={t('nav.login')} ctaLabel={t('nav.cta')} />
 
       {/* Hero — el match es el héroe */}
-      <section className="bg-secondary/40 relative px-6 py-16 md:py-20 dark:bg-transparent">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 lg:min-h-[78vh] lg:grid-cols-2">
+      <section className="bg-secondary/40 relative px-6 py-14 md:py-20 dark:bg-transparent">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-8">
           {/* Copy (estático para no afectar el LCP) */}
           <div className="text-center lg:text-left">
             <div className="bg-secondary text-secondary-foreground ring-primary/20 dark:bg-accent/10 dark:text-accent dark:ring-accent/20 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium ring-1 ring-inset">
@@ -58,12 +57,10 @@ export default async function Home() {
           </div>
 
           {/* Escena del intercambio + match card como desenlace */}
-          <div className="flex justify-center lg:justify-end">
+          <div className="flex justify-center">
             <ExchangeAnimation />
           </div>
         </div>
-
-        <ScrollHint targetId="como-funciona" label={t('hero.scrollHint')} />
       </section>
 
       {/* Stats bar */}
