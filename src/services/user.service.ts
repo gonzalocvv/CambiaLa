@@ -4,6 +4,8 @@ import {
   type OnboardingData,
   type UpdateProfileData,
   type UpdateLocationData,
+  type UpdateNotificationsData,
+  type UpdateMatchmakingData,
 } from '@/repositories/user.repository';
 
 export class UsernameConflictError extends Error {
@@ -68,5 +70,17 @@ export const userService = {
     const user = await userRepository.findByUsername(username);
     if (!user || !user.publicProfile) throw new PublicProfileNotFoundError();
     return user;
+  },
+
+  async updateNotifications(userId: string, data: UpdateNotificationsData): Promise<void> {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new UserNotFoundError();
+    await userRepository.updateNotifications(userId, data);
+  },
+
+  async updateMatchmaking(userId: string, data: UpdateMatchmakingData): Promise<void> {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new UserNotFoundError();
+    await userRepository.updateMatchmaking(userId, data);
   },
 };
