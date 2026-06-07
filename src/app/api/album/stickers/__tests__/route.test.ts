@@ -2,15 +2,23 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGetSession = vi.hoisted(() => vi.fn());
 const mockBulkUpdateCounts = vi.hoisted(() => vi.fn());
+const mockCheckRateLimit = vi.hoisted(() => vi.fn(() => ({ allowed: true, remaining: 29 })));
 
 vi.mock('@/lib/auth', () => ({ getSession: mockGetSession }));
 vi.mock('@/services/sticker.service', () => ({
   stickerService: { bulkUpdateCounts: mockBulkUpdateCounts },
 }));
+vi.mock('@/lib/rate-limit', () => ({
+  checkRateLimit: mockCheckRateLimit,
+  getClientIp: vi.fn(() => '127.0.0.1'),
+}));
 
 import { PATCH } from '../route';
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockCheckRateLimit.mockReturnValue({ allowed: true, remaining: 29 });
+});
 
 const SESSION = { userId: 'user-1', onboardingDoneAt: new Date() };
 
@@ -29,6 +37,19 @@ function makeRawRequest(raw: string) {
     body: raw,
   });
 }
+
+describe('PATCH /api/album/stickers — rate limit', () => {
+  it('429 cuando se excede el rate limit', async () => {
+    mockGetSession.mockResolvedValue(SESSION);
+    mockCheckRateLimit.mockReturnValueOnce({ allowed: false, remaining: 0 });
+
+    const res = await PATCH(makeRequest({ changes: [{ stickerId: 's1', count: 1 }] }) as never);
+
+    expect(res.status).toBe(429);
+    expect((await res.json()).error).toBe('rate_limited');
+    expect(mockBulkUpdateCounts).not.toHaveBeenCalled();
+  });
+});
 
 describe('PATCH /api/album/stickers (bulk)', () => {
   it('returns 401 when unauthenticated', async () => {

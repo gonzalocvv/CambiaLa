@@ -2,17 +2,40 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGetSession = vi.hoisted(() => vi.fn());
 const mockCheckUsername = vi.hoisted(() => vi.fn());
+const mockCheckRateLimit = vi.hoisted(() => vi.fn(() => ({ allowed: true, remaining: 19 })));
 
 vi.mock('@/lib/auth', () => ({ getSession: mockGetSession }));
 vi.mock('@/services/user.service', () => ({
   userService: { checkUsernameAvailability: mockCheckUsername },
+}));
+vi.mock('@/lib/rate-limit', () => ({
+  checkRateLimit: mockCheckRateLimit,
+  getClientIp: vi.fn(() => '127.0.0.1'),
 }));
 
 import { GET } from '../route';
 
 const SESSION = { userId: 'user-1', onboardingDoneAt: null };
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockCheckRateLimit.mockReturnValue({ allowed: true, remaining: 19 });
+});
+
+describe('GET /api/onboarding/check-username — rate limit', () => {
+  it('429 cuando se excede el rate limit', async () => {
+    mockGetSession.mockResolvedValue(SESSION);
+    mockCheckRateLimit.mockReturnValueOnce({ allowed: false, remaining: 0 });
+
+    const res = await GET(
+      new Request('http://localhost/api/onboarding/check-username?username=gonza'),
+    );
+
+    expect(res.status).toBe(429);
+    expect((await res.json()).error).toBe('rate_limited');
+    expect(mockCheckUsername).not.toHaveBeenCalled();
+  });
+});
 
 describe('GET /api/onboarding/check-username', () => {
   it('returns 401 when unauthenticated', async () => {

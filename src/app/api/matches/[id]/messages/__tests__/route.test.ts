@@ -3,12 +3,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockGetSession = vi.hoisted(() => vi.fn());
 const mockGetMessages = vi.hoisted(() => vi.fn());
 const mockSendMessage = vi.hoisted(() => vi.fn());
+const mockCheckRateLimit = vi.hoisted(() => vi.fn(() => ({ allowed: true, remaining: 59 })));
 
 vi.mock('@/lib/auth', () => ({ getSession: mockGetSession }));
 vi.mock('@/services/message.service', () => ({
   messageService: { getMessages: mockGetMessages, sendMessage: mockSendMessage },
   MatchNotFoundError: class MatchNotFoundError extends Error {},
   MessageAccessError: class MessageAccessError extends Error {},
+}));
+vi.mock('@/lib/rate-limit', () => ({
+  checkRateLimit: mockCheckRateLimit,
+  getClientIp: vi.fn(() => '127.0.0.1'),
 }));
 
 import { GET, POST } from '../route';
@@ -31,7 +36,10 @@ function makeMessage(overrides = {}) {
   };
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockCheckRateLimit.mockReturnValue({ allowed: true, remaining: 59 });
+});
 
 describe('GET /api/matches/[id]/messages', () => {
   it('returns 401 when unauthenticated', async () => {
@@ -87,6 +95,26 @@ describe('GET /api/matches/[id]/messages', () => {
     );
 
     expect(res.status).toBe(404);
+  });
+});
+
+describe('POST /api/matches/[id]/messages — rate limit', () => {
+  it('429 cuando se excede el rate limit', async () => {
+    mockGetSession.mockResolvedValue({ userId: 'user-a', onboardingDoneAt: new Date() });
+    mockCheckRateLimit.mockReturnValueOnce({ allowed: false, remaining: 0 });
+
+    const res = await POST(
+      new Request('http://localhost/api/matches/match-1/messages', {
+        method: 'POST',
+        body: JSON.stringify({ body: 'Hola' }),
+        headers: { 'Content-Type': 'application/json' },
+      }),
+      makeParams('match-1'),
+    );
+
+    expect(res.status).toBe(429);
+    expect((await res.json()).error).toBe('rate_limited');
+    expect(mockSendMessage).not.toHaveBeenCalled();
   });
 });
 
