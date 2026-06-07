@@ -152,6 +152,13 @@ describe('userRepository.findById', () => {
         neighborhood: true,
         whatsapp: true,
         publicProfile: true,
+        notifyOnMatch: true,
+        emailFrequency: true,
+        pushEnabled: true,
+        participatesInMatchmaking: true,
+        matchRadius: true,
+        offerUniques: true,
+        acceptUnbalanced: true,
       },
     });
   });
