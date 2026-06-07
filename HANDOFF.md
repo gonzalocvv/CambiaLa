@@ -3,6 +3,45 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Corrida 49: S3.2 (loading/empty/error states — todas las pantallas)
+
+- **Ítem**: S3.2 — Loading / empty / error states en todas las pantallas autenticadas.
+- **Rama**: `claude/cool-volta-viVUu`.
+- **Estado**: ✅ completo. Gate verde. **472 tests** (51 archivos).
+
+### Qué se hizo
+
+**Empty states con CTA** (reemplaza <p> de texto plano sin acción):
+- `/matches` vacío: ícono 🤝 + título "Todavía no tenés matches" + descripción + botón "Cargar mi álbum" → `/album`.
+- `/conversations` vacío: ícono 💬 + título "Todavía no tenés chats" + descripción + botón "Ver mis matches" → `/matches`.
+- i18n: claves `emptyTitle` / `emptyDescription` / `emptyCta` en `MatchesList` y `Conversations`.
+
+**Loading skeletons nuevos** (`animate-pulse`, tokens de color, `aria-busy`):
+- `src/app/settings/loading.tsx`: skeleton de formulario (sección perfil + ubicación + toggles + botón).
+- `src/app/admin/loading.tsx`: skeleton de tabla (barra de búsqueda + 8 filas de usuarios).
+
+Loading de `/album`, `/matches`, `/conversations` ya existían desde RF-328.
+Error boundary (`error.tsx`, `not-found.tsx`, `global-error.tsx`) ya existían desde RF-328.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-329** (Should) — `text-accent` sobre fondo claro falla WCAG AA → token `--accent-text` (~`#c2410c`). Afecta sticker-cell, ScrollHint, AlbumClient.
+2. **RF-322** (Should) — Tests de componentes client (AlbumClient, LoginForm, chat-panel).
+3. **RF-325** (Should) — Logger estructurado: adoptar o eliminar.
+4. **RF-326** (Should) — Tests de schemas Zod (sticker, onboarding, rating, message).
+5. **D-001** (Must) — Update CLAUDE.md (sección auth desactualizada).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
 ## 2026-06-07 — Corrida 48: RF-1001..RF-1004 (Admin module)
 
 - **Ítems**: RF-1001 (protección /admin), RF-1002 (lista usuarios), RF-1003 (detalle), RF-1004 (suspensión).

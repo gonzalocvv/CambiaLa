@@ -247,7 +247,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ### Polish
 
-- [ ] **S3.2** Loading / empty / error states en todas las pantallas, microcopy uruguayo, animaciones sutiles. (M)
+- [x] **S3.2** Loading / empty / error states en todas las pantallas, microcopy uruguayo, animaciones sutiles. (M) — _Corrida 49 (2026-06-07): empty states con CTA en /matches (🤝 → "Cargar mi álbum") y /conversations (💬 → "Ver mis matches"); loading.tsx para /settings y /admin. loading.tsx de album/matches/conversations ya existían desde RF-328. 472 tests verdes._
 
 ---
 
