@@ -3,6 +3,50 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Corrida 52: RF-325 (logger estructurado adoptado en API routes)
+
+- **Ítem**: RF-325 — Wiring del logger en los catch blocks de API routes (decisión A).
+- **Rama**: `claude/rf325-logger`.
+- **Estado**: ✅ completo. Gate verde. **490 tests** (53 archivos).
+
+### Qué se hizo
+
+**Decisión**: Opción A (recomendada en BACKLOG) — adoptar `logger.error(...)` en los `catch` de API routes que hacían `throw err` o `return 500` sin ningún rastro estructurado en producción.
+
+**9 routes modificadas** (import `@/lib/logger` + `logger.error('Unhandled error', { error: ... })` antes del throw/return 500):
+- `src/app/api/admin/users/[id]/route.ts` — GET y PATCH
+- `src/app/api/matches/[id]/messages/route.ts` — GET y POST
+- `src/app/api/matches/[id]/ratings/route.ts` — GET y POST
+- `src/app/api/onboarding/route.ts` — POST
+- `src/app/api/settings/route.ts` — PUT
+- `src/app/api/settings/account/route.ts` — DELETE (caso `return 500`)
+- `src/app/api/settings/location/route.ts` — PUT
+- `src/app/api/settings/matchmaking/route.ts` — PUT
+- `src/app/api/settings/notifications/route.ts` — PUT
+
+**No se loguea PII**: el contexto solo incluye `error.message` (sin userId, sin body). Las rutas `auth/verify-otp` y `album/stickers` no tienen catch con throw/500, sin cambios.
+
+**Test TDD (1 nuevo)**: en `src/app/api/settings/__tests__/route.test.ts` — spy `mockLoggerError` sobre `@/lib/logger`, test `logs unexpected errors before rethrowing` verifica que `logger.error('Unhandled error', { error: 'db boom' })` se llama antes del rethrow en PUT /api/settings.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-326** (Should) — Tests directos de schemas Zod (sticker, onboarding, rating, message) — funciones puras de dominio, sin mocks.
+2. **D-001** (Must) — Update CLAUDE.md (§2/§12/§22 todavía dicen que Auth es stub).
+3. **RF-331** (Could) — Renombrar PascalCase → kebab-case en 5 archivos.
+4. **RF-332** (Could) — Partir SettingsForm.tsx (326 líneas).
+5. **RF-333** (Could) — `verify-otp` route: validación manual → Zod schema.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
 ## 2026-06-07 — Corrida 51: RF-322 (tests de componentes client con lógica real)
 
 - **Ítem**: RF-322 — Tests de LoginForm (OTP state machine) y ChatPanel (polling + cleanup).
