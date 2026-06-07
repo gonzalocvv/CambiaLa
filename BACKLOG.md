@@ -240,10 +240,10 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 - [x] **RF-905** Config de notificaciones (email frequency, notify on new match, push). (M) — _Corrida 46 (2026-06-07): sección Notificaciones en /settings (notifyOnMatch toggle, emailFrequency select, pushEnabled toggle) + PUT /api/settings/notifications + service/repo. 435 tests verdes._
 - [x] **RF-906** Config de matchmaking (participar, radio, ofrecer únicas, aceptar desequilibrados). (M) — _Corrida 46 (2026-06-07): sección Matchmaking en /settings (participatesInMatchmaking, matchRadius, offerUniques, acceptUnbalanced) + PUT /api/settings/matchmaking + service/repo. 435 tests verdes._
-- [ ] **RF-903** Editar WhatsApp con validación. (S)
+- [x] **RF-903** Editar WhatsApp con validación. (S) — _ya implementado desde RF-114 (Corrida 25): campo en SettingsForm con normalización y validación de celular uruguayo; marcado [x]._
 - [x] **RF-904** Toggle perfil público en settings. (M) — _ya implementado desde RF-901 (Corrida 22); marcado [x]._
 - [ ] **RF-115** Geo opt-in con granularidad (ninguna / barrio / exacta, default ninguna). (C)
-- [ ] **RF-119 / RF-908** Borrado de cuenta con doble confirmación + cascade real (Ley 18.331). (M) — **crítico compliance**
+- [x] **RF-119 / RF-908** Borrado de cuenta con doble confirmación + cascade real (Ley 18.331). (M) — **crítico compliance** — _Corrida 47 (2026-06-07): `userRepository.deleteUserCascade` (borra ratings → matches → messages → user en orden FK-safe); `userService.deleteAccount`; `DELETE /api/settings/account` (session → delete DB → signOut Supabase → best-effort admin delete auth user); "Zona de peligro" en SettingsForm con modal de doble confirmación. 443 tests verdes._
 
 ### Polish
 
