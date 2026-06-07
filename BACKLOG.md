@@ -67,15 +67,8 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **RF-105** Sesión persistente (cookie HTTPOnly+Secure+SameSite=Lax). (M) — _Corrida 18: middleware.ts con `@supabase/ssr` refresca cookies automáticamente_
 - [x] **RF-106** Logout (invalida cookies). (M) — _Corrida 18: POST `/api/auth/logout` llama `supabase.auth.signOut()`_
 - [x] **RF-107** Recuperación de cuenta (nuevo magic link). (M) — _Corrida 18: mismo flujo de magic link (Supabase re-envía el OTP si se pide desde la misma página)_
-- [ ] **RF-120** 🆕 **Destino post-login = `/album` (no `/matches`)**. (M) — _pedido por Gonza 2026-06-06: matches suele estar vacío al principio; lo primero que hace alguien al entrar es actualizar su álbum._
-  - Cambiar el default `next = '/matches'` → `'/album'` en `resolveDestinationForUser` (`src/lib/auth/resolve-destination.ts`) y el default del `GET /api/auth/callback`.
-  - Revisar el redirect post-onboarding (al completar onboarding también debe caer en `/album`).
-  - **TDD**: actualizar PRIMERO los tests existentes que esperan `/matches` como default (`src/lib/auth/__tests__/resolve-destination.test.ts`, `src/app/api/auth/callback/__tests__/route.test.ts`) → ver que fallan → cambiar el código. El `next` explícito (`?next=/algo`) debe seguir respetándose (ya hay test).
-- [ ] **RF-121** 🆕 **Logo "CambiaLa" del navbar navega a `/album` cuando hay sesión** (hoy va a `/` landing y parece que "te saca de la app"). (M) — _pedido por Gonza 2026-06-06._
-  - En el navbar de la app (`AppNavbar` o equivalente, donde está el wordmark): el href del logo pasa de `/` a `/album`. El navbar ya se renderiza solo para usuarios con sesión, así que no hace falta lógica condicional — verificarlo; si el mismo componente se usa en páginas públicas, hacer el href condicional a la sesión.
-  - En la landing pública (`/`) el logo sigue apuntando a `/`.
-  - **TDD**: test del componente que renderiza el navbar autenticado y asserta `href="/album"` en el link del wordmark.
-  - Nota: NO se pierde la sesión al ir a `/` (la cookie sigue) — es un problema de percepción; igual el fix aplica. Alternativa "landing in-session" descartada por ahora.
+- [x] **RF-120** 🆕 **Destino post-login = `/album` (no `/matches`)**. (M) — _Corrida 37 (2026-06-07): `resolveDestinationForUser` default `/album`; `GET /api/auth/callback` fallback `/album`; `OnboardingForm` → `router.push('/album')`; `onboarding/page` redirect → `/album`. Tests actualizados._
+- [x] **RF-121** 🆕 **Logo "CambiaLa" del navbar navega a `/album` cuando hay sesión**. (M) — _Corrida 37 (2026-06-07): `AppNavbar` wordmark `href="/album"`. `AppNavbar` solo se monta en páginas autenticadas (verificado). Test en `src/components/layout/__tests__/app-navbar.test.tsx`._
 
 - [x] **RF-108** Onboarding — elegir username único (3-20 chars, alfanumérico). (M) — _Corrida 19: /onboarding + POST /api/onboarding + GET check-username_
 - [x] **RF-109** Onboarding — elegir ciudad (lista fija). (M) — _Corrida 19: 19 departamentos de Uruguay_
