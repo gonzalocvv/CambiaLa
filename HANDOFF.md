@@ -3,6 +3,64 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Corrida 48: RF-1001..RF-1004 (Admin module)
+
+- **Ítems**: RF-1001 (protección /admin), RF-1002 (lista usuarios), RF-1003 (detalle), RF-1004 (suspensión).
+- **Rama**: `claude/cool-volta-d7BiL`.
+- **Estado**: ✅ completo. Gate verde. **472 tests** (51 archivos).
+
+### Qué se hizo
+
+**Auth layer extendido:**
+- `Session` ahora incluye `role: string` (sin cambio de superficie — misma función `getSession()`).
+- `userRepository.findByEmail` selecciona `role` junto con los otros campos.
+
+**Repository — 3 métodos nuevos en `userRepository`:**
+- `findAllForAdmin({search?, page, pageSize})`: paginación + búsqueda case-insensitive por email/username. `Promise.all` para `findMany` + `count` en paralelo.
+- `findByIdForAdmin(id)`: devuelve todos los campos privados del User (email, role, isSuspended, reputation, timestamps, etc.).
+- `updateSuspension(id, isSuspended)`: update puntual a `isSuspended`.
+
+**Service — 3 métodos nuevos en `userService`:**
+- `listUsersForAdmin(opts)`: delega a repo.
+- `getUserDetailForAdmin(id)`: delega + lanza `UserNotFoundError` si null.
+- `toggleSuspension(id, isSuspended)`: verifica existencia → `updateSuspension`.
+
+**API routes:**
+- `GET /api/admin/users?search=&page=&pageSize=`: 401/403/400/200. Valida con `ListUsersQuerySchema`.
+- `GET /api/admin/users/[id]`: 401/403/404/200. Detalle completo.
+- `PATCH /api/admin/users/[id]`: 401/403/400/404/200. Body `{isSuspended}` validado con `SuspendUserSchema`.
+
+**Pages:**
+- `src/app/admin/layout.tsx`: guard `session.role !== 'admin'` → redirect `/album` (RF-1001).
+- `src/app/admin/page.tsx`: tabla de usuarios con búsqueda (form GET), badges rol/estado, paginación por `searchParams` (RF-1002).
+- `src/app/admin/users/[id]/page.tsx`: detalle completo con filas label/value (RF-1003) + `SuspendButton` (RF-1004).
+- `src/components/admin/suspend-button.tsx` (client): confirm() → PATCH → `router.refresh()`.
+
+**Middleware:** `/admin` agregado a `PROTECTED_PATHS`. Test de middleware actualizado.
+
+**i18n:** namespace `Admin` (35 claves) en `messages/es.json`.
+
+**TDD:** 29 tests nuevos (repo + service + 2 API routes × múltiples casos).
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **S3.2** (M) — Loading/empty/error states: revisar qué pantallas autenticadas carecen de empty state con CTA claro (album, matches, conversations ya tienen, revisar /admin y /settings).
+2. **RF-329** (Should) — `text-accent` sobre fondo claro falla WCAG AA → token `--accent-text` (~`#c2410c`).
+3. **RF-322** (Should) — Tests de componentes client (AlbumClient, LoginForm, chat-panel).
+4. **RF-326** (Should) — Tests directos de schemas Zod.
+5. **D-001** (Must) — Update CLAUDE.md (auth section desactualizada).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
 ## 2026-06-07 — Corrida 47: RF-119/RF-908 (borrado de cuenta — compliance Ley 18.331)
 
 - **Ítems**: RF-119/RF-908 — Borrado de cuenta con doble confirmación + cascade real. RF-903 marcado [x] (ya estaba cubierto por RF-114).

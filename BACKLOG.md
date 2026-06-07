@@ -230,10 +230,10 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ### Admin (módulo 1000)
 
-- [ ] **RF-1001** `/admin` solo con `role=admin`. (M)
-- [ ] **RF-1002** Lista de usuarios con búsqueda (email/username), tabla paginada. (M)
-- [ ] **RF-1003** Ver perfil completo (datos privados). (M)
-- [ ] **RF-1004** Suspender usuario (soft delete `isSuspended`). (M)
+- [x] **RF-1001** `/admin` solo con `role=admin`. (M) — _Corrida 48 (2026-06-07): middleware `/admin` en PROTECTED_PATHS; `AdminLayout` redirige a `/album` si `session.role !== 'admin'`; `Session` ahora incluye `role`. 472 tests verdes._
+- [x] **RF-1002** Lista de usuarios con búsqueda (email/username), tabla paginada. (M) — _Corrida 48 (2026-06-07): `GET /api/admin/users` + `findAllForAdmin` (repo) + `listUsersForAdmin` (service) + `/admin/page.tsx` con searchParams, tabla, paginación._
+- [x] **RF-1003** Ver perfil completo (datos privados). (M) — _Corrida 48 (2026-06-07): `GET /api/admin/users/[id]` + `findByIdForAdmin` (repo) + `getUserDetailForAdmin` (service) + `/admin/users/[id]/page.tsx` con todos los campos privados._
+- [x] **RF-1004** Suspender usuario (soft delete `isSuspended`). (M) — _Corrida 48 (2026-06-07): `PATCH /api/admin/users/[id]` + `updateSuspension` (repo) + `toggleSuspension` (service) + `SuspendButton` client component con confirm() + router.refresh()._
 - [ ] **RF-1005** Link al dashboard de Sentry. (S)
 
 ### Settings completo + Geo + Compliance
