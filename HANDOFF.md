@@ -32,13 +32,17 @@
   - **Lote 4 (docs):** **§15 de CLAUDE.md** ahora permite `$executeRaw` parametrizado para bulk upserts sin equivalente tipado (nunca `*Unsafe`); marcadores `⏸️ RESERVADO` en RF-318/320/321/406/407/408/824/825; follow-ups RF-338 (scoping albumId) y RF-339 (perf render); notas en RF-320 (M7/N5) y RF-324 (L5).
   - **Descartados:** N1, N8, N10, N11.
 
-### ⚠️ Bloqueante de merge (lo corre Gonza)
+### ✅ Validación contra Supabase (HECHA, 2026-06-07)
 
-- **Validación manual contra Supabase real** de la query raw `bulkUpsertCounts` (el CI no tiene DB; los tests mockean `$executeRaw`): confirmar que upsertea y que `count`/`updatedAt` se actualizan. Sin esto, NO mergear.
+- `bulkUpsertCounts` validada a mano contra Supabase real por Gonza: ráfagas → **1 request por ráfaga**, filas upserteadas, `count`/`updatedAt` actualizados. **Merge desbloqueado.**
+
+### ⚠️ Limitación conocida de RF-213 (aceptada en MVP)
+
+- **Cierre inmediato pierde clicks**: cerrar la pestaña justo después de clickear (antes del debounce de 800ms / flush) puede perder esos cambios — el `pagehide`+keepalive no siempre alcanza a salvarlos (visto en dev). La ventana es <800ms; el camino mobile común (cambiar de app/pestaña) va por `visibilitychange`, que sí hace flush awaiteable. Fix propuesto: **RF-340** (persistir el buffer en `localStorage` + rehidratar).
 
 ### Próximo paso
 
-- Tras tu review + validación Supabase + merge: **Ola RF-320 + RF-318 + RF-321** (`feat/matching-runtime`) — recompute síncrono colgado de `bulkUpdateCounts` (revive el core).
+- Tras el merge (validación Supabase ✅): **Ola RF-320 + RF-318 + RF-321** (`feat/matching-runtime`) — recompute síncrono colgado de `bulkUpdateCounts` (revive el core).
 
 ---
 
