@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { resolveDestinationForUser } from '@/lib/auth/resolve-destination';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { createClient } from '@/lib/supabase/server';
 
 // Verifica el código OTP de 6 dígitos que el usuario recibe por mail.
@@ -22,6 +23,13 @@ export async function POST(request: Request) {
 
   if (!cleanEmail.includes('@') || cleanToken.length < 6) {
     return NextResponse.json({ error: 'missing_fields' }, { status: 400 });
+  }
+
+  // Anti brute-force: 10 intentos por IP+email cada 15 min
+  const ip = getClientIp(request.headers);
+  const rl = checkRateLimit(`otp:${ip}:${cleanEmail}`, 10, 15 * 60 * 1000);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
   }
 
   const supabase = await createClient();
