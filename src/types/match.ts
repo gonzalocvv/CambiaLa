@@ -26,6 +26,31 @@ export type MatchResult = {
 
 export type MatchRadius = 'neighborhood' | 'department' | 'country';
 
+// RF-320: DTO del usuario target para el recompute de matches. `matchRadius` es el
+// String crudo del schema (validado en el service antes de castear a MatchRadius).
+export type MatchmakingProfile = {
+  id: string;
+  city: string | null;
+  neighborhood: string | null;
+  matchRadius: string;
+  offerUniques: boolean;
+  participatesInMatchmaking: boolean;
+  lastSeenAt: Date;
+  stickers: StickerEntry[];
+};
+
+// RF-320: DTO de un candidato del pool. No incluye `matchRadius` — el radius lo
+// decide el target (RF-302/RF-318); el del candidato no se usa.
+export type MatchmakingCandidate = {
+  id: string;
+  city: string | null;
+  neighborhood: string | null;
+  offerUniques: boolean;
+  participatesInMatchmaking: boolean;
+  lastSeenAt: Date;
+  stickers: StickerEntry[];
+};
+
 export type FindMatchesOptions = {
   radius?: MatchRadius; // RF-302: default 'department'
   activeDays?: number; // RF-303: default 30

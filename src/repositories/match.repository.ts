@@ -2,6 +2,15 @@ import type { Match, Prisma } from '@prisma/client';
 
 import { prisma } from '@/lib/prisma';
 import type { MatchStatus, UpsertMatchInput } from '@/lib/validations/match.schema';
+import type { MatchmakingCandidate, MatchmakingProfile } from '@/types/match';
+
+// RF-320: solo cargamos las figus con count >= 1 (las que el usuario puede ofrecer
+// o ya tiene). Las ausentes/count 0 las infiere el engine como "necesita". Filtrar
+// acá es una optimización de storage, no cambia el resultado del match.
+const OFFERABLE_STICKERS = {
+  where: { count: { gte: 1 } },
+  select: { count: true, sticker: { select: { number: true } } },
+} as const;
 
 export type MatchWithPartners = Prisma.MatchGetPayload<{
   include: { userA: true; userB: true };
@@ -123,5 +132,71 @@ export const matchRepository = {
     });
 
     return result.count;
+  },
+
+  // RF-320: carga el perfil de matchmaking del target + su set de figus ofrecibles.
+  // `matchRadius` se devuelve crudo (String del schema); el service lo valida.
+  async findMatchmakingProfile(userId: string): Promise<MatchmakingProfile | null> {
+    const u = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        city: true,
+        neighborhood: true,
+        matchRadius: true,
+        offerUniques: true,
+        participatesInMatchmaking: true,
+        lastSeenAt: true,
+        stickers: OFFERABLE_STICKERS,
+      },
+    });
+    if (!u) return null;
+    return {
+      id: u.id,
+      city: u.city,
+      neighborhood: u.neighborhood,
+      matchRadius: u.matchRadius,
+      offerUniques: u.offerUniques,
+      participatesInMatchmaking: u.participatesInMatchmaking,
+      lastSeenAt: u.lastSeenAt,
+      stickers: u.stickers.map((s) => ({ number: s.sticker.number, count: s.count })),
+    };
+  },
+
+  // RF-320 + RF-302/303/304 + RF-318: pool de candidatos en UNA query (join a stickers
+  // por relación → sin N+1). Filtra activos (<30d), opt-in, no suspendidos, excluye self.
+  // `city` null ⇒ sin filtro de ciudad (radius 'country'); con city ⇒ mismo depto.
+  // NO filtra por barrio: el fallback de barrio (RF-318) lo resuelve el engine.
+  async findCandidatePool(
+    targetUserId: string,
+    { city, cutoffDate }: { city: string | null; cutoffDate: Date },
+  ): Promise<MatchmakingCandidate[]> {
+    const users = await prisma.user.findMany({
+      where: {
+        id: { not: targetUserId },
+        participatesInMatchmaking: true,
+        isSuspended: false,
+        lastSeenAt: { gt: cutoffDate },
+        ...(city ? { city } : {}),
+      },
+      select: {
+        id: true,
+        city: true,
+        neighborhood: true,
+        offerUniques: true,
+        participatesInMatchmaking: true,
+        lastSeenAt: true,
+        stickers: OFFERABLE_STICKERS,
+      },
+    });
+    return users.map((u) => ({
+      id: u.id,
+      city: u.city,
+      neighborhood: u.neighborhood,
+      offerUniques: u.offerUniques,
+      participatesInMatchmaking: u.participatesInMatchmaking,
+      lastSeenAt: u.lastSeenAt,
+      stickers: u.stickers.map((s) => ({ number: s.sticker.number, count: s.count })),
+    }));
   },
 };

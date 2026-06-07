@@ -8,8 +8,13 @@ const mockMatchPrisma = vi.hoisted(() => ({
   updateMany: vi.fn(),
 }));
 
+const mockUserPrisma = vi.hoisted(() => ({
+  findUnique: vi.fn(),
+  findMany: vi.fn(),
+}));
+
 vi.mock('@/lib/prisma', () => ({
-  prisma: { match: mockMatchPrisma },
+  prisma: { match: mockMatchPrisma, user: mockUserPrisma },
 }));
 
 import { matchRepository } from '../match.repository';
@@ -429,5 +434,113 @@ describe('matchRepository.markInactiveByLastSeen', () => {
 
     expect(mockMatchPrisma.updateMany).not.toHaveBeenCalled();
     expect(result).toBe(0);
+  });
+});
+
+describe('matchRepository.findMatchmakingProfile', () => {
+  function makeDbUser(overrides: object = {}) {
+    return {
+      id: 'user-a',
+      city: 'Montevideo',
+      neighborhood: 'Pocitos',
+      matchRadius: 'department',
+      offerUniques: false,
+      participatesInMatchmaking: true,
+      lastSeenAt: NOW,
+      stickers: [
+        { count: 2, sticker: { number: 'URU1' } },
+        { count: 1, sticker: { number: 'ARG2' } },
+      ],
+      ...overrides,
+    };
+  }
+
+  it('returns null when the user does not exist', async () => {
+    mockUserPrisma.findUnique.mockResolvedValue(null);
+    const result = await matchRepository.findMatchmakingProfile('ghost');
+    expect(result).toBeNull();
+  });
+
+  it('flattens stickers to { number, count } and returns the raw matchRadius', async () => {
+    mockUserPrisma.findUnique.mockResolvedValue(makeDbUser());
+
+    const result = await matchRepository.findMatchmakingProfile('user-a');
+
+    const call = mockUserPrisma.findUnique.mock.calls[0][0];
+    expect(call.where).toEqual({ id: 'user-a' });
+    expect(call.select.stickers.where).toEqual({ count: { gte: 1 } });
+    expect(result).toEqual({
+      id: 'user-a',
+      city: 'Montevideo',
+      neighborhood: 'Pocitos',
+      matchRadius: 'department',
+      offerUniques: false,
+      participatesInMatchmaking: true,
+      lastSeenAt: NOW,
+      stickers: [
+        { number: 'URU1', count: 2 },
+        { number: 'ARG2', count: 1 },
+      ],
+    });
+  });
+});
+
+describe('matchRepository.findCandidatePool', () => {
+  function makeDbCandidate(overrides: object = {}) {
+    return {
+      id: 'user-b',
+      city: 'Montevideo',
+      neighborhood: 'Centro',
+      offerUniques: false,
+      participatesInMatchmaking: true,
+      lastSeenAt: NOW,
+      stickers: [{ count: 3, sticker: { number: 'BRA5' } }],
+      ...overrides,
+    };
+  }
+
+  const cutoffDate = new Date('2026-05-08T12:00:00Z');
+
+  it('builds the where-clause: excludes self, opt-in, not suspended, active, same city', async () => {
+    mockUserPrisma.findMany.mockResolvedValue([makeDbCandidate()]);
+
+    await matchRepository.findCandidatePool('user-a', { city: 'Montevideo', cutoffDate });
+
+    const call = mockUserPrisma.findMany.mock.calls[0][0];
+    expect(call.where).toEqual({
+      id: { not: 'user-a' },
+      participatesInMatchmaking: true,
+      isSuspended: false,
+      lastSeenAt: { gt: cutoffDate },
+      city: 'Montevideo',
+    });
+    expect(call.select.stickers.where).toEqual({ count: { gte: 1 } });
+  });
+
+  it('omits the city filter when city is null (country radius)', async () => {
+    mockUserPrisma.findMany.mockResolvedValue([]);
+
+    await matchRepository.findCandidatePool('user-a', { city: null, cutoffDate });
+
+    const call = mockUserPrisma.findMany.mock.calls[0][0];
+    expect(call.where).not.toHaveProperty('city');
+    expect(call.where.id).toEqual({ not: 'user-a' });
+  });
+
+  it('flattens each candidate stickers to { number, count }', async () => {
+    mockUserPrisma.findMany.mockResolvedValue([
+      makeDbCandidate(),
+      makeDbCandidate({ id: 'user-c', stickers: [] }),
+    ]);
+
+    const result = await matchRepository.findCandidatePool('user-a', {
+      city: 'Montevideo',
+      cutoffDate,
+    });
+
+    expect(result).toHaveLength(2);
+    expect(result[0].stickers).toEqual([{ number: 'BRA5', count: 3 }]);
+    expect(result[1].stickers).toEqual([]);
+    expect(result[1]).not.toHaveProperty('matchRadius');
   });
 });
