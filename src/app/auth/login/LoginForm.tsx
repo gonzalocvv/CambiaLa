@@ -118,7 +118,7 @@ export function LoginForm() {
       });
 
       if (!res.ok) {
-        setErrorMsg(t('errorInvalidCode'));
+        setErrorMsg(res.status === 429 ? t('errorRateLimited') : t('errorInvalidCode'));
         setStatus('error');
         return;
       }
