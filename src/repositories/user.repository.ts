@@ -29,6 +29,19 @@ export type UpdateReputationData = {
   tradesCompleted: number;
 };
 
+export type UpdateNotificationsData = {
+  notifyOnMatch?: boolean;
+  emailFrequency?: 'instant' | 'daily' | 'weekly' | 'never';
+  pushEnabled?: boolean;
+};
+
+export type UpdateMatchmakingData = {
+  participatesInMatchmaking?: boolean;
+  matchRadius?: 'neighborhood' | 'department' | 'country';
+  offerUniques?: boolean;
+  acceptUnbalanced?: boolean;
+};
+
 export const userRepository = {
   findByEmail(email: string) {
     return prisma.user.findUnique({
@@ -85,6 +98,13 @@ export const userRepository = {
         neighborhood: true,
         whatsapp: true,
         publicProfile: true,
+        notifyOnMatch: true,
+        emailFrequency: true,
+        pushEnabled: true,
+        participatesInMatchmaking: true,
+        matchRadius: true,
+        offerUniques: true,
+        acceptUnbalanced: true,
       },
     });
   },
@@ -140,6 +160,39 @@ export const userRepository = {
         tradesCompleted: data.tradesCompleted,
       },
       select: { id: true, reputation: true, tradesCompleted: true },
+    });
+  },
+
+  updateNotifications(userId: string, data: UpdateNotificationsData) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.notifyOnMatch !== undefined ? { notifyOnMatch: data.notifyOnMatch } : {}),
+        ...(data.emailFrequency !== undefined ? { emailFrequency: data.emailFrequency } : {}),
+        ...(data.pushEnabled !== undefined ? { pushEnabled: data.pushEnabled } : {}),
+      },
+      select: { id: true, notifyOnMatch: true, emailFrequency: true, pushEnabled: true },
+    });
+  },
+
+  updateMatchmaking(userId: string, data: UpdateMatchmakingData) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.participatesInMatchmaking !== undefined
+          ? { participatesInMatchmaking: data.participatesInMatchmaking }
+          : {}),
+        ...(data.matchRadius !== undefined ? { matchRadius: data.matchRadius } : {}),
+        ...(data.offerUniques !== undefined ? { offerUniques: data.offerUniques } : {}),
+        ...(data.acceptUnbalanced !== undefined ? { acceptUnbalanced: data.acceptUnbalanced } : {}),
+      },
+      select: {
+        id: true,
+        participatesInMatchmaking: true,
+        matchRadius: true,
+        offerUniques: true,
+        acceptUnbalanced: true,
+      },
     });
   },
 };
