@@ -3,6 +3,42 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Corrida 41: RF-321 (Enforced coverage CI para match-engine)
+
+- **Ítem**: RF-321 — Cobertura forzada al 100% sobre `src/lib/match-engine.ts` en el CI.
+- **Rama**: `claude/cool-volta-pVjTy` (desde `develop`).
+- **Estado**: ✅ completo. Gate verde. **386 tests** (42 archivos).
+
+### Qué se hizo
+
+- **`vitest.config.ts`**: `coverage.include: ['src/**/*.{ts,tsx}']` para que todos los archivos fuente aparezcan en el reporte (antes: solo los importados por algún test). `coverage.exclude`: `src/types/**`, `src/test/**`, `src/**/*.d.ts`, `**/__tests__/**`, `**/*.{test,spec}.{ts,tsx}`. `coverage.thresholds['src/lib/match-engine.ts']`: 100% en statements/branches/functions/lines.
+- **`package.json`**: removido `--passWithNoTests` de `test` y `test:coverage`. Un glob roto o suite vacía ahora falla visiblemente en vez de pasar en verde.
+
+### Verificación negativa
+
+Introducido temporalmente `function _neverCalled() { return false; }` en `match-engine.ts` → `pnpm test:coverage` devuelve **exit code 1** con:
+```
+ERROR: Coverage for functions (92.3%) does not meet "src/lib/match-engine.ts" threshold (100%)
+```
+Revertido. Funciona.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-328** (Must) — `error.tsx` / `not-found.tsx` / `loading.tsx` branded (skeletons para `/matches`, `/album`, `/conversations`). 100% autónomo.
+2. **RF-323** (Must) — Proteger rutas privadas en el middleware.
+3. **RF-324** (Must) — Rate limiting in-memory (verify-otp, messages, check-username).
+4. **RF-327** (Should) — pnpm CI versión fix (CI usa pnpm 9, repo declara pnpm@10).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime.
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+
+---
+
 ## 2026-06-07 — Corrida 40: S3.1 (PWA — manifest + service worker + instalable)
 
 - **Ítem**: S3.1 — Web App Manifest + Service Worker + instalable como PWA.
