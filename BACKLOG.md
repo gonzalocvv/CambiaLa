@@ -202,11 +202,11 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 > **Contexto**: salieron Cambio Figus (genérico, con ads), Figuri.App y está Figuritas App (2M usuarios, modelo amigos/QR). El diferencial de CambiaLa es el **descubrimiento**: match automático con desconocidos confiables del barrio. La landing tiene que gritar eso, no "coleccioná" (esa batalla ya tiene dueño). Mantener TODO con design tokens (`branding` en CLAUDE.md) — PROHIBIDO colores crudos, incluso si se toma inspiración de componentes de 21st.dev (vienen con `bg-slate-*` etc., adaptar siempre).
 
-- [ ] **RF-820** 🆕 **Hero nuevo — el match es el héroe.** (M)
+- [x] **RF-820** 🆕 **Hero nuevo — el match es el héroe.** (M) — _rama `feat/landing-v2`: hero a dos columnas, H1 value-prop (t.rich) + `match-card-mock` 1:1 con MatchCard como desenlace de la animación; render test._
   - H1: **"Te encontramos con quién cambiar tus figuritas"**. Subtítulo: **"Cargá tu álbum del Mundial 2026 y te avisamos cuando alguien de tu barrio tiene las que te faltan — y quiere las que te sobran."** CTA primario "Registrate" (ya existe la key), secundario "¿Cómo funciona?".
   - **Mock de tarjeta de match** visible en el hero (componente estático, no screenshot): avatar + "Juan de Pocitos" + "te da 5 / le das 3" + "⭐ 4.8 · 12 cambios". Reusar la estética real de `MatchCard` para que landing y app sean coherentes.
   - **TDD**: primero las claves i18n nuevas en `Home.hero` (title, subtitle, matchMock.*), después el componente con test de render (asserts de los textos clave).
-- [ ] **RF-821** 🆕 **Animación "el intercambio"** — decorativa, detrás/junto al hero. (S)
+- [x] **RF-821** 🆕 **Animación "el intercambio"** — decorativa, detrás/junto al hero. (S) — _rama `feat/landing-v2`: escena 3D CSS (aria-hidden), loop 100% CSS solo transform/opacity, reduced-motion = estado final, pausa offscreen. Sin Motion (se quitó por LCP/TBT); reveal al scroll con CSS+IntersectionObserver. Lighthouse Perf 97._
   - Dos mini-álbumes estilizados, una figurita sale de cada uno, se cruzan en el aire y cada una **encaja en el hueco del álbum opuesto**. Loop suave (~6-8s con pausa).
   - **Stack de animación**: CSS transforms/keyframes para el loop decorativo + **Motion (framer-motion) permitido y recomendado** para springs, stagger y reveals al scroll (el "encaje" con spring físico, la match card del hero que se arma escalonada). PROHIBIDO en el MVP: canvas/WebGL/Three.js/GSAP (peso y jank en gama media; revisitar post-launch solo como detalle puntual, ej. shader de brillo en la figurita dorada).
   - Reglas duras: `aria-hidden="true"` en lo decorativo, respetar **`prefers-reduced-motion`** (estado estático con las dos figuritas ya encajadas), no degradar LCP (decorativo, sin imágenes pesadas; SVG/divs).
@@ -217,10 +217,10 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - En `≥ md` queda el navbar horizontal actual.
   - El badge de no-leídos de la campanita y el de chats sin leer deben verse en los tabs correspondientes.
   - **TDD**: test de render del tab bar (4 links con href correcto + aria-current en el activo). Verificar que ninguna página tape contenido detrás del tab bar (padding-bottom en el layout).
-- [ ] **RF-822** 🆕 **Sección "¿Por qué CambiaLa?"** — 3 diferenciales en cards. (M)
+- [x] **RF-822** 🆕 **Sección "¿Por qué CambiaLa?"** — 3 diferenciales en cards. (M) — _rama `feat/landing-v2`: 3 cards (barrio / reputación / gratis), íconos lucide, render test._
   - 1) **Match automático por barrio**: "No buscás vos — nosotros te avisamos cuando hay cambio posible cerca tuyo." 2) **Reputación real**: "Reseñas y estrellas después de cada cambio. Cambiá con desconocidos sin miedo." 3) **Gratis y sin publicidad**: "Sin banners, sin sponsors, sin vender tus datos."
   - Sin nombrar competidores. i18n primero, test de render.
-- [ ] **RF-823** 🆕 **SEO on-page del reposicionamiento.** (M)
+- [x] **RF-823** 🆕 **SEO on-page del reposicionamiento.** (M) — _rama `feat/landing-v2`: title/description al reposicionamiento + OpenGraph/Twitter, H1/H2 con keywords (cambiar figuritas / Mundial 2026 / Uruguay / barrio), `/como-funciona` con el matching de protagonista. Lighthouse A11y 95._
   - `Metadata.title` → incluir la frase de búsqueda real: ej. "CambiaLa — Cambiar figuritas del Mundial 2026 en Uruguay". `Metadata.description` alineada al posicionamiento (match por barrio).
   - H1/H2 de la landing deben contener naturalmente "cambiar figuritas", "Mundial 2026", "Uruguay", "barrio". Revisar OG tags.
   - Actualizar también `/como-funciona` para reflejar el matching como protagonista.

@@ -3,6 +3,41 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-06 — Landing v2 (RF-820/821/822/823)
+
+- **Ítem**: RF-820 + RF-821 + RF-822 + RF-823 — reposicionamiento de la landing (el match es el héroe).
+- **Rama**: `feat/landing-v2` (desde `develop`). Antes: PR de docs `docs/backlog-landing-v2` (#64) mergeado a develop (RF-215 + nota fuente RF-214b).
+- **PR**: (ver abajo) — abierto con auto-merge, **NO mergeado** (lo revisa Gonza).
+- **Estado**: ✅ completo. Gate verde + Lighthouse prod Perf **97** / A11y **95**.
+
+### Qué se hizo
+
+- **RF-820** — Hero a dos columnas: H1 value-prop "Te encontramos con quién cambiar tus figuritas" (`t.rich`, resalte en accent), subtítulo nuevo. Componente `match-card-mock` **1:1 con `MatchCard`** (campos separados: avatar/nombre/barrio/score/te da-le das/reputación), aparece como **desenlace** de la animación.
+- **RF-821** — `exchange-animation` (client, `aria-hidden`): escena 3D CSS, dos mini-álbumes tilteados, dos figuritas retrato que vuelan hacia la cámara, se cruzan y encajan; "¡Match!" → match card → reposo → reset. **Loop 100% CSS, período compartido 12s, SOLO transform/opacity** (glow del hueco = overlay por opacity, sin animar box-shadow). `prefers-reduced-motion` = estado final estático; pausa offscreen con IntersectionObserver. Keyframes en `globals.css`.
+- **RF-822** — `why-section`: 3 diferenciales (match por barrio / reputación real / gratis sin publicidad), íconos lucide, render test.
+- **RF-823** — `Metadata` title/description al reposicionamiento + OpenGraph/Twitter en `layout.tsx`; H1/H2 con keywords; `/como-funciona` con el matching de protagonista.
+- **Infra de tests**: `vitest.config.ts` con `test.projects` (node + jsdom acotado a `src/components/landing/**`) + `src/test/render-intl.tsx`. 330 tests verdes (3 nuevos de render).
+- **Tooling**: `scripts/landing-shots.mjs` (Playwright standalone, 390/1440 × light/dark, output a `.shots/` gitignored).
+
+### Decisiones / notas
+
+- **Se quitó Motion (framer-motion)**: bajaba Performance (LCP 3.4s→2.8s, TBT 310→40ms al sacarlo). El reveal al scroll quedó en **CSS + IntersectionObserver** (sin librería). `package.json` sin cambios netos.
+- **Lighthouse CI está deshabilitado** en el repo (necesita preview de Vercel + secrets) → se autoverificó local contra `pnpm build && pnpm start`.
+- **A11y 95** (no 100): el `color-contrast` restante es el **naranja de marca `text-accent`** sobre fondo claro (wordmark "La", resalte del H1, eyebrows celeste) — tradeoff de marca preexistente en toda la app — y la escena decorativa `aria-hidden`. No se tocó la paleta (CLAUDE.md §7).
+- **RF-824 (bottom tab bar mobile) NO entra acá** (es app, no landing). Va en rama/PR aparte.
+
+### Próximo paso
+
+1. **RF-824** — Navbar mobile bottom tab bar (rama `feat/mobile-tab-bar`).
+2. **RF-121** — Logo navbar → `/album` con sesión.
+3. **RF-809** — Schema.org JSON-LD.
+
+### ⚠️ Bloqueos conocidos
+
+- Sin cambios respecto a Corrida 36 (Inngest/Resend/Google OAuth/avatar siguen igual).
+
+---
+
 ## 2026-06-01 — Corrida 36
 
 - **Ítem**: RF-810 — Canonical URLs en páginas indexables
