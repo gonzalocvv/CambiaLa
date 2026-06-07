@@ -123,4 +123,25 @@ describe('stickerRepository.bulkUpsertCounts', () => {
     expect(stickerIds).toEqual(['a', 'b']);
     expect(counts).toEqual([1, 0]);
   });
+
+  it('ordena por stickerId y mantiene la alineación posicional ids/stickerIds/counts', async () => {
+    mockExecuteRaw.mockResolvedValue(3);
+
+    await stickerRepository.bulkUpsertCounts(USER_ID, [
+      { stickerId: 'c', count: 3 },
+      { stickerId: 'a', count: 1 },
+      { stickerId: 'b', count: 2 },
+    ]);
+
+    const [, userId, ids, stickerIds, counts] = mockExecuteRaw.mock.calls[0];
+    expect(userId).toBe(USER_ID);
+    expect(stickerIds).toEqual(['a', 'b', 'c']); // ordenado
+    expect(counts).toEqual([1, 2, 3]); // alineado al orden ordenado de stickerIds
+    expect(ids).toHaveLength(3);
+  });
+
+  it('no llama a $executeRaw con un array vacío (guard N6)', async () => {
+    await stickerRepository.bulkUpsertCounts(USER_ID, []);
+    expect(mockExecuteRaw).not.toHaveBeenCalled();
+  });
 });

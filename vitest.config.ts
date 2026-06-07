@@ -20,7 +20,13 @@ export default defineConfig({
           name: 'node',
           environment: 'node',
           include: ['src/**/*.{test,spec}.{ts,tsx}'],
-          exclude: ['src/components/landing/**', 'e2e/**', 'scripts/**', '**/node_modules/**'],
+          exclude: [
+            'src/components/landing/**',
+            'src/app/album/**',
+            'e2e/**',
+            'scripts/**',
+            '**/node_modules/**',
+          ],
         },
       },
       {
@@ -29,7 +35,10 @@ export default defineConfig({
           name: 'dom',
           environment: 'jsdom',
           setupFiles: ['./src/test/setup.ts'],
-          include: ['src/components/landing/**/*.{test,spec}.{ts,tsx}'],
+          include: [
+            'src/components/landing/**/*.{test,spec}.{ts,tsx}',
+            'src/app/album/**/*.{test,spec}.{ts,tsx}',
+          ],
         },
       },
     ],
