@@ -1,5 +1,7 @@
 import type { AlbumStats, GetAlbumResponse } from '@/lib/validations/sticker.schema';
+import { logger } from '@/lib/logger';
 import { stickerRepository } from '@/repositories/sticker.repository';
+import { matchService } from '@/services/match.service';
 
 function computeStats(stickers: { count: number }[]): AlbumStats {
   const total = stickers.length;
@@ -39,6 +41,14 @@ export const stickerService = {
 
     if (valid.length > 0) {
       await stickerRepository.bulkUpsertCounts(userId, valid);
+      // RF-320: recompute síncrono de matches tras escribir el álbum. Va en try/catch
+      // porque el álbum YA se guardó: un recompute lento/fallido no debe romper el PATCH
+      // ni perder el guardado (mismo principio que el catch de notificaciones en match.service).
+      try {
+        await matchService.recomputeForUser(userId);
+      } catch (error) {
+        logger.error('match recompute failed', { error });
+      }
     }
 
     return { applied: valid.length, ignored };
