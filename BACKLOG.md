@@ -306,7 +306,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - Verificar que `pnpm install --frozen-lockfile` sigue verde en CI tras el cambio.
   - **Criterio**: CI, corepack local y `package.json` apuntan a la misma major de pnpm.
 
-- [ ] **RF-329** 🆕 **`text-accent` (naranja) sobre fondo claro falla WCAG AA (2.8:1).** (S) — _detectado 6-jun: `--accent #f97316` sobre `--background #ffffff` da 2.80:1 (falla AA normal 4.5 y grande 3.0); peor sobre bg-accent/10 (2.53:1, sticker-cell count) y bg-accent/5 (2.67:1, ScrollHint). Solo afecta light (dark da 6.8:1). El badge bg-accent+accent-foreground SÍ pasa — el problema es naranja como TEXTO sobre claro._
+- [x] **RF-329** 🆕 **`text-accent` (naranja) sobre fondo claro falla WCAG AA (2.8:1).** (S) — _Corrida 50 (2026-06-07): token `--accent-text: #c2410c` (light, ≈4.5:1 sobre blanco) + `#f97316` (dark) en `globals.css`; `--color-accent-text` en `@theme inline`. `text-accent-text` en sticker-cell (repes), ScrollHint, AlbumClient (stat duplicates), page.tsx (H1 highlight), rating-modal (estrellas). Wordmark "La" y elementos aria-hidden decorativos mantienen text-accent (tradeoff de marca). 472 tests verdes._ — _detectado 6-jun: `--accent #f97316` sobre `--background #ffffff` da 2.80:1 (falla AA normal 4.5 y grande 3.0); peor sobre bg-accent/10 (2.53:1, sticker-cell count) y bg-accent/5 (2.67:1, ScrollHint). Solo afecta light (dark da 6.8:1). El badge bg-accent+accent-foreground SÍ pasa — el problema es naranja como TEXTO sobre claro._
   - Agregar a `globals.css` un token tipo `--accent-text` más oscuro (~`#c2410c`, ≈4.5:1 sobre blanco) para light, y su par en dark; exponerlo en `@theme inline` (`--color-accent-text`).
   - Reemplazar `text-accent` por `text-accent-text` en usos de naranja como foreground sobre fondos claros: `sticker-cell.tsx:32` (contador de repes), `ScrollHint.tsx:21`, `AlbumClient.tsx:155` (stat), eyebrows en naranja.
   - Verificar que dark sigue OK y que el badge/bg-accent no cambia.
@@ -343,7 +343,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - **TDD**: test de la route con body malformado → 400 (hoy 500).
   - Nota: si RF-213 borra esta route, este fix se aplica al endpoint bulk nuevo en su lugar.
 
-- [ ] **RF-336** 🆕 **`--passWithNoTests` activo enmascara suites vacías.** (C) — _detectado 6-jun: `test` y `test:coverage` (`package.json:21,23`) usan `--passWithNoTests`; hoy no hay suites vacías, pero en un pipeline con auto-merge un glob roto o una suite vaciada pasaría en verde._
+- [x] **RF-336** 🆕 **`--passWithNoTests` activo enmascara suites vacías.** (C) — _ya removido por RF-321 (Corrida 41): `pnpm test` y `pnpm test:coverage` en `package.json` no tienen `--passWithNoTests`._ — _detectado 6-jun: `test` y `test:coverage` (`package.json:21,23`) usan `--passWithNoTests`; hoy no hay suites vacías, pero en un pipeline con auto-merge un glob roto o una suite vaciada pasaría en verde._
   - Quitar `--passWithNoTests` de `test:coverage` (y de `test` salvo razón concreta de globs que matcheen vacío legítimamente).
   - **Criterio**: un archivo de test sin casos `it()/test()` hace fallar el CI.
 
