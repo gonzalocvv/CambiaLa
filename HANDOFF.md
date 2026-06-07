@@ -3,6 +3,61 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Ola A: RF-320 + RF-318 (recompute de matches en runtime — LAUNCH BLOCKER)
+
+- **Ítems**: RF-320 (cablear el recompute SÍNCRONO de matches) + RF-318 (fallback de ubicación sin barrio ⇒ depto).
+- **Rama**: `feat/matching-runtime` (desde `develop`). **PR de código → SIN auto-merge** (review gstack + Gonza).
+- **Estado**: ✅ completo en la rama. Gate completo verde. **514 tests** (53 archivos). Falta el cierre **E2E manual** (lo corre Gonza).
+
+### Qué se hizo (sesión supervisada, plan mode + /plan-design-review + eng-review multi-agente + TDD)
+
+El match engine tenía 100% cobertura pero **cero callers en runtime** → la tabla `Match` nunca se escribía y `/matches` siempre vacío. Esta ola revive el core:
+
+- **`src/repositories/match.repository.ts`** — 2 métodos nuevos (+ tipos `MatchmakingProfile`/`MatchmakingCandidate` en `src/types/match.ts`):
+  - `findMatchmakingProfile(userId)`: perfil del target + figus ofrecibles (`count >= 1`, optimización de storage; las ausentes las infiere el engine como "necesita").
+  - `findCandidatePool(targetUserId, { city, cutoffDate })`: pool en **una** query con `include` (sin N+1). Filtra activos (`lastSeenAt > cutoff`), `participatesInMatchmaking`, no suspendidos, excluye self. `city: null` ⇒ sin filtro (radius `country`); con `city` ⇒ mismo depto. NO filtra por barrio (el fallback RF-318 lo resuelve el engine).
+- **`src/services/match.service.ts`** — `recomputeForUser(userId, now = new Date())`:
+  - Early-returns: target inexistente / `participatesInMatchmaking=false` / radius local sin `city` / `matchRadius` inválido (log + `{matched:0}`).
+  - Scope del pool espeja `isSameLocation`; arma `UserCollectionInput`; llama `findMatchesForUser` puro (con `now` inyectado → determinismo); persiste cada match vía `saveMatchResult` (upsert idempotente RF-308 + notificación `new_match` RF-409 a ambas partes solo en match nuevo).
+  - Guardrails: `MAX_POOL_SIZE` (5000, exportado, placeholder a tunear) + `now` inyectable + loop en try/catch que re-lanza con `attempted` (idempotente ⇒ retry-safe).
+- **`src/services/sticker.service.ts`** — hook RF-320: dentro del `if (valid.length > 0)` (único write del álbum, guardado por `applied > 0`), tras `bulkUpsertCounts` → `await matchService.recomputeForUser(userId)` en **try/catch + `logger.error`** (el álbum ya se guardó; un recompute lento/fallido no rompe el PATCH).
+- **`src/lib/match-engine.ts`** — **SIN CAMBIOS** (RF-318 ya implementado; se preserva el 100% forzado por CI, RF-321). Route `PATCH /api/album/stickers` SIN cambios (contrato intacto).
+
+### RF-318
+
+Entregado por pool-por-depto + radius-del-target. Los 5 casos del BACKLOG (a-e) son tests de `recomputeForUser` con el engine real. Nadie queda con 0 matches por no setear barrio.
+
+### Tests (TDD)
+
+`match.repository.test.ts` (+6: where exacto, omite city en country, aplana stickers), `match.service.test.ts` (+16: full chain, early returns, country scope, RF-318 a-e, inactivo, orden por score desc, rethrow parcial, pool cap), `sticker.service.test.ts` (+3: recompute on applied>0, no-recompute on applied=0, error no-fatal). Mocks: se agregó mock de `@/services/match.service` y `@/lib/logger` en sticker.service.test (si no, arrastra Prisma real).
+
+### Decisiones (aprobadas por Gonza, NO relitigar)
+
+`acceptUnbalanced` no se aplica · sin stale-pruning · reactivación de `inactive` sin re-notificar · radius del target · M7 diferido · single-álbum.
+
+### Eng-review (multi-agente, pre-código) — verdicto IMPLEMENT-WITH-FIXES, todo aplicado
+
+Critical/high foldeados (repo methods, scope espejando isSameLocation, `now` inyectable, mocks de tests, `lastSeenAt` en el select). Mediums baratos foldeados (validación de radius, pool cap, tests extra, rethrow, tipos en `src/types`). Detalle en el plan (`~/.claude/plans/clever-noodling-cocoa.md`).
+
+### Pendiente / follow-ups (diferidos, NO en esta ola)
+
+- **Cierre E2E (Gonza)**: 2 cuentas mismo depto con sets complementarios → guardar una → la otra ve el match en `/matches` + notificación `new_match`. (La query real ya se validó contra Supabase en RF-213.)
+- Índice compuesto `@@index([participatesInMatchmaking, isSuspended, lastSeenAt])` en `User` (migración = dominio de Gonza, §10; solo-perf, si latencia del pool >500ms).
+- Tunear `MAX_POOL_SIZE` tras test de capacidad.
+- RF-307 (mover el recompute a Inngest async cuando el volumen lo pida; keys ya cargadas).
+
+### Próximo paso
+
+En orden del plan maestro v2: **Ola B — `feat/emails` (RF-406 + RF-407 + RF-408)**.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 (lo provee Gonza).
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
 ## 2026-06-07 — Corrida 52: RF-325 (logger estructurado adoptado en API routes)
 
 - **Ítem**: RF-325 — Wiring del logger en los catch blocks de API routes (decisión A).
