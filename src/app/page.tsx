@@ -43,7 +43,7 @@ export default async function Home() {
 
             <h1 className="mt-6 text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">
               {t.rich('hero.title', {
-                hl: (chunks) => <span className="text-accent">{chunks}</span>,
+                hl: (chunks) => <span className="text-accent-text">{chunks}</span>,
               })}
             </h1>
 

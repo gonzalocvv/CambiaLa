@@ -306,7 +306,7 @@ export function AlbumClient({ stickers, initialStats }: Props) {
           <div className="text-muted-foreground text-xs">{t('statsMissing')}</div>
         </div>
         <div className="bg-card border-border rounded-lg border p-3 text-center">
-          <div className="text-accent text-2xl font-bold">{displayStats.duplicates}</div>
+          <div className="text-accent-text text-2xl font-bold">{displayStats.duplicates}</div>
           <div className="text-muted-foreground text-xs">{t('statsDuplicates')}</div>
         </div>
         <div className="bg-card border-border rounded-lg border p-3 text-center">

@@ -29,7 +29,7 @@ export function StickerCell({ sticker, onUpdate }: Props) {
       ? 'bg-muted text-muted-foreground border-border'
       : count === 1
         ? 'bg-primary/10 text-primary border-primary/30'
-        : 'bg-accent/10 text-accent border-accent/30';
+        : 'bg-accent/10 text-accent-text border-accent/30';
 
   const specialRing = isSpecial ? 'ring-2 ring-special' : '';
 
