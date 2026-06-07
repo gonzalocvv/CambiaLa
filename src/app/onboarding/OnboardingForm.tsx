@@ -102,7 +102,7 @@ export default function OnboardingForm() {
         setSubmitting(false);
         return;
       }
-      router.push('/matches');
+      router.push('/album');
     } catch {
       setError(t('errorGeneric'));
       setSubmitting(false);
