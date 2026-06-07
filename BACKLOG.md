@@ -278,11 +278,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - No tocar las rutas públicas (`/`, `/como-funciona`, `/precios`, `/privacidad`, `/terminos`, `/contacto`, `/auth/*`, `/u/[username]` público).
   - **TDD**: tests del middleware — usuario sin sesión en ruta protegida → 307/302 a `/auth/login`; usuario con sesión → pasa; ruta pública sin sesión → pasa.
 
-- [ ] **RF-324** 🆕 **Rate limiting in-memory (ADR-016) — hoy no existe ninguno.** (M) — _detectado 6-jun: grep de rateLimit en `src/` solo arroja el manejo del 429 ajeno de Supabase; verify-otp (brute-force del OTP de 6 dígitos), messages (spam) y check-username (enumeración) no tienen throttle propio._ — _Nota review RF-213 (L5): la ruta bulk `PATCH /api/album/stickers` (hasta 200 ítems, 1 SELECT + 1 upsert) debe ser de las primeras en aplicar el rate limit._
-  - Helper simple en `src/lib` (ventana fija por `IP + userId`/email, mapa en memoria con limpieza por TTL) — ADR-016 lo define para el MVP; documentar migración a Redis en F2.
-  - Aplicar al menos en: `POST /api/auth/verify-otp` (anti brute-force OTP), `POST /api/matches/[id]/messages` (anti-spam), `GET /api/onboarding/check-username` (anti-enumeración).
-  - Responder 429 con mensaje i18n cuando se excede; no filtrar si la cuenta existe (check-username).
-  - **TDD**: tests del helper (permite N en la ventana, bloquea el N+1, resetea tras la ventana) + test de cada route que devuelve 429 al exceder.
+- [x] **RF-324** 🆕 **Rate limiting in-memory (ADR-016) — hoy no existe ninguno.** (M) — _Corrida 44 (2026-06-07): `src/lib/rate-limit.ts` (ventana fija, Map en memoria, cleanup periódico, `getClientIp`). Aplicado en: `POST /api/auth/verify-otp` (10/15min por IP+email), `POST /api/matches/[id]/messages` (60/min por userId), `GET /api/onboarding/check-username` (20/min por userId), `PATCH /api/album/stickers` (30/min por userId). 429 `{error:"rate_limited"}`. `LoginForm.verifyCode` maneja 429 → `errorRateLimited`. i18n `Errors.rateLimited`. 422 tests verdes._
 
 - [x] **RF-328** 🆕 **No existen error.tsx / not-found.tsx / loading.tsx en el App Router.** (M) — _Corrida 42 (2026-06-07): `not-found.tsx` (server, async, branded, i18n, CTA /album + /); `error.tsx` (client, branded, i18n, reintentar + volver); `global-error.tsx` (client, último recurso fuera del provider — strings hardcodeados, excepción documentada); `loading.tsx` skeletons en `/album`, `/matches`, `/conversations` (animate-pulse, tokens, aria-busy). 394 tests verdes._
 
