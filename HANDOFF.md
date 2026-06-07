@@ -3,6 +3,35 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Corrida 43: RF-323 (protección de rutas privadas en el middleware)
+
+- **Ítem**: RF-323 — `middleware.ts` redirige usuarios sin sesión en rutas protegidas.
+- **Rama**: `claude/cool-volta-4gOGV` (desde `develop`).
+- **Estado**: ✅ completo. Gate verde. **411 tests** (45 archivos).
+
+### Qué se hizo
+
+- **`middleware.ts`**: `isProtectedPath(pathname)` — exact match o `startsWith(p + '/')` contra la lista `['/album', '/matches', '/conversations', '/settings', '/onboarding']`. Si `!user && isProtectedPath(...)` → `NextResponse.redirect` a `/auth/login?next=<pathname>` (307). Rutas públicas (`/`, `/como-funciona`, `/auth/*`, `/u/*`, `/api/*`, páginas estáticas) no se tocan.
+- **`src/__tests__/middleware.test.ts`** (TDD primero — 16 tests): mocks de `@supabase/ssr` vía `vi.hoisted`; `NextRequest` real de `next/server`. Casos: 5 rutas protegidas sin sesión → 307+location; subruta `/matches/abc123` → 307 con next encodado; ruta protegida con sesión → pasa; 6 rutas públicas sin sesión → pasan; `/auth/login`, `/u/gonzalo`, `/api/auth/callback` → pasan.
+- Layers: solo `middleware.ts` (no toca Services/Repositories). Chequeos `getSession()` por page/route se mantienen como segunda capa.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-324** (Must) — Rate limiting in-memory (verify-otp, messages, check-username). ADR-016.
+2. **RF-327** (Should) — pnpm 10 en CI (hoy: PNPM_VERSION: 9 en ci.yml vs package.json pnpm@10.34.1).
+3. **RF-330** (Should) — `bg-black/80` en `dialog.tsx` → `bg-foreground/60`.
+4. **RF-329** (Should) — `text-accent` sobre fondo claro falla WCAG AA → token `--accent-text`.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+
+---
+
 ## 2026-06-07 — Corrida 42: RF-328 (error.tsx / not-found.tsx / loading.tsx brandados)
 
 - **Ítem**: RF-328 — Error boundaries y loading skeletons en App Router.
