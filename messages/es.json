@@ -46,7 +46,9 @@
   },
   "MatchesList": {
     "title": "Mis matches",
-    "empty": "Todavía no tenés matches activos. Cargá tu álbum y te avisamos cuando aparezca un cambio.",
+    "emptyTitle": "Todavía no tenés matches",
+    "emptyDescription": "Cargá tu álbum y te avisamos cuando alguien de tu barrio tenga las que te faltan.",
+    "emptyCta": "Cargar mi álbum",
     "notAuthenticated": "Iniciá sesión para ver tus matches."
   },
   "MatchCard": {
@@ -205,7 +207,9 @@
   },
   "Conversations": {
     "title": "Mis chats",
-    "empty": "Todavía no tenés chats. Cuando coordines un cambio, los mensajes aparecen acá.",
+    "emptyTitle": "Todavía no tenés chats",
+    "emptyDescription": "Cuando coordines un cambio con alguien, los mensajes aparecen acá.",
+    "emptyCta": "Ver mis matches",
     "notAuthenticated": "Iniciá sesión para ver tus chats.",
     "unknownUser": "Usuario",
     "youPrefix": "Vos:",
