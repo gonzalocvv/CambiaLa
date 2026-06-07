@@ -3,6 +3,42 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Corrida 37: RF-120 + RF-121 (destino post-login y logo navbar)
+
+- **Ítems**: RF-120 (destino post-login = `/album`) + RF-121 (logo navbar → `/album`)
+- **Rama**: `claude/cool-volta-U6cB8` (desde `develop`).
+- **Estado**: ✅ completo. Gate verde (format/lint/type-check/format:check/prisma:generate/test:coverage/build). **360 tests** (38 archivos).
+
+### Qué se hizo
+
+**RF-120 — Destino post-login = `/album`:**
+- `src/lib/auth/resolve-destination.ts`: default `next` cambia de `'/matches'` a `'/album'`.
+- `src/app/api/auth/callback/route.ts`: fallback `?? '/album'` (antes `'/matches'`).
+- `src/app/onboarding/OnboardingForm.tsx`: `router.push('/album')` tras completar onboarding.
+- `src/app/onboarding/page.tsx`: `redirect('/album')` si ya onboardeó (para que `/onboarding` no lo deje colgado).
+- Tests actualizados en `resolve-destination.test.ts` y `callback/route.test.ts`.
+
+**RF-121 — Logo navbar → `/album`:**
+- `src/components/layout/app-navbar.tsx`: wordmark `href="/album"` (antes `"/"`).
+- `AppNavbar` solo se monta en páginas autenticadas (verificado: `/album`, `/matches`, `/matches/[id]`, `/conversations`, `/settings`, `/u/[username]`). No hace falta lógica condicional.
+- Test nuevo: `src/components/layout/__tests__/app-navbar.test.tsx` — mocks de `getTranslations`, `getSession`, `notificationService`, `NotificationBell` y `next/link`; llama `await AppNavbar()` y verifica con `renderToStaticMarkup` que `href="/album"` y no `href="/"`.
+
+### Próximo paso
+
+En orden de BACKLOG (primer ítem `[ ]` de SPRINT 1 en adelante que no sea 🔒/⏸️ RESERVADO):
+1. **RF-214b** (M) — Auditar catálogo vs álbum oficial (980 vs 896 figuritas). Solo datos, seed idempotente.
+2. **RF-215** (M) — Nombres de país en headers del álbum (mapping código→nombre + bandera emoji).
+3. **RF-809** (S) — Schema.org JSON-LD (`Person` en perfiles, `WebSite`/`Organization` en landing).
+4. **S3.1** (M) — PWA: manifest + service worker.
+
+### Bloqueos conocidos
+
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch, pero marcado como ola supervisada).
+- RF-406 🔒 Resend — email transaccional (código ya disponible cuando Gonza confirme).
+- RF-112 ⚠️ Avatar upload — pendiente decisión Supabase Storage vs URL externa.
+
+---
+
 ## 2026-06-07 — Ola RF-213: Guardado del álbum en bulk (perf)
 
 - **Ítem**: RF-213 — una ráfaga de clicks en el álbum se manda en **1 request + 1 query de escritura** (antes: 1 PATCH por figurita).
