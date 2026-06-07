@@ -3,6 +3,18 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Review gstack de Ola A (PR #85): 4 fixes de correctness + 2 trivials
+
+Review pre-landing de `feat/matching-runtime`. El engine pasó a ser el write-path más caliente (antes `saveMatchResult`/`upsert` eran código muerto), lo que volvió alcanzables varias aristas. Gonza aprobó aplicar los 4 fixes + 2 trivials en este PR; el pruning de fantasmas va como follow-up (RF-342).
+
+- **D1 — `upsert` ya NO resucita estados terminales.** `matchRepository.upsert` pasó de `prisma.match.upsert` (que forzaba `status:'active'` en el branch update) a **create-catch-P2002**: el INSERT que entra ⇒ match nuevo; el que choca con `@@unique` ⇒ `updateMany WHERE status IN ('active','inactive')` (reactiva inactivos, **deja intactos `completed`/`trading`**). Antes, editar el álbum revivía un cambio ya `completed` → reaparecía en `/matches` y rompía el alta de reseña (`rating.service` exige `status==='completed'`).
+- **D4 — novedad race-safe + sin TOCTOU de notificaciones.** La novedad la decide el INSERT (`{ match, created }`), no un `findByUsers` previo. Dos recomputes concurrentes (A y B editando a la vez) ya no disparan `new_match` duplicado; reactivar un inactivo no re-notifica; se elimina una query en el camino de match nuevo. `saveMatchResult` ahora devuelve `{ created }` (su único caller, `recomputeForUser`, no usa la fila).
+- **D2 — `notifyOnMatch` respetado.** `MatchmakingProfile`/`MatchmakingCandidate` cargan `notifyOnMatch`; `recomputeForUser` arma un mapa `id → notifyOnMatch` (target + pool) y `saveMatchResult` gatea cada `new_match` por destinatario. El toggle de settings ("avisame cuando aparezca un match") dejó de ser letra muerta.
+- **D3 — guard de suspendido + LIMIT en la query.** `findMatchmakingProfile` trae `isSuspended`; `recomputeForUser` corta si el target está suspendido (el pool ya los excluía, faltaba el iniciador). `findCandidatePool` recibe `take` (= `MAX_POOL_SIZE`, lo pasa el service para respetar capas) + `orderBy: { lastSeenAt: 'desc' }` → el LIMIT vive en SQL (no se trae todo el padrón a memoria) y la truncación deja de ser arbitraria.
+- **Trivials**: el log de fallo parcial reporta el conteo real persistido (`persisted` + `total`, no `results.length`); `ACTIVE_DAYS` se importa de `match-engine` (`ACTIVE_DAYS_DEFAULT` exportado) → una sola fuente para el cutoff SQL y el filtro del engine.
+- **Follow-up (NO este PR)**: **RF-342** — pruning de matches fantasma (un par que dejó de complementar queda `active` con listas stale; no se autocorrige para usuarios activos).
+- **`match-engine.ts`**: solo se exportó `ACTIVE_DAYS_DEFAULT` (sin cambios de lógica → 100% RF-321 intacto). Tests actualizados/agregados (repo upsert create-catch + terminal-state, `isSuspended`/`notifyOnMatch`/`take`/`orderBy`, service novedad/gating/suspendido/persisted). Gate completo verde.
+
 ## 2026-06-07 — Ola A: RF-320 + RF-318 (recompute de matches en runtime — LAUNCH BLOCKER)
 
 - **Ítems**: RF-320 (cablear el recompute SÍNCRONO de matches) + RF-318 (fallback de ubicación sin barrio ⇒ depto).
