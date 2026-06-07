@@ -284,7 +284,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ### Should (S)
 
-- [ ] **RF-322** 🆕 **Tests de componentes client con lógica de verdad — hoy 0 tests.** (S) — _detectado 6-jun: AlbumClient (optimistic+debounce+rollback), LoginForm (máquina de estados OTP) y chat-panel (polling 10s) concentran lógica de UX crítica sin un solo test; el toolchain (@testing-library/react, user-event, jsdom) ya está instalado pero el project `dom` de vitest limita el include a `src/components/landing/**`._
+- [x] **RF-322** 🆕 **Tests de componentes client con lógica de verdad.** (S) — _Corrida 51 (2026-06-07): `vitest.config.ts` dom project ampliado a `src/app/auth/**` + `src/components/chat/**`; `LoginForm.test.tsx` (8 tests: email→code, verifyCode éxito/400/429/short, backToEmail); `chat-panel.test.tsx` (8 tests: render, polling 10s con fake timers, cleanup unmount, envío). AlbumClient ya tenía tests completos desde RF-213. 489 tests verdes._
   - Ampliar el `include` del project `dom` en `vitest.config.ts` (ej. `src/components/**` + `src/app/**/*{Client,Form}.tsx`) o crear un project jsdom dedicado para `app/`.
   - **AlbumClient**: con fake timers — update optimista del count, flush del debounce dispara el PATCH, rollback + estado de error si el PATCH falla. (Ojo: si se hace junto a RF-213, testear el buffer compartido + flush único.)
   - **LoginForm**: transición email→code, éxito (verify-otp 200 → redirect), código inválido (muestra error sin avanzar).

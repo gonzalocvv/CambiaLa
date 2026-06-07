@@ -3,6 +3,59 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Corrida 51: RF-322 (tests de componentes client con lógica real)
+
+- **Ítem**: RF-322 — Tests de LoginForm (OTP state machine) y ChatPanel (polling + cleanup).
+- **Rama**: `claude/cool-volta-Hn8Vi`.
+- **Estado**: ✅ completo. Gate verde. **489 tests** (53 archivos).
+
+### Qué se hizo
+
+**`vitest.config.ts`:**
+- Dom project: agregados `src/app/auth/**` y `src/components/chat/**` al `include`.
+- Node project: agregados `src/app/auth/**` y `src/components/chat/**` al `exclude` para evitar doble ejecución.
+
+**`src/app/auth/login/__tests__/LoginForm.test.tsx`** (8 tests, TDD):
+- Email step rinde por defecto (sin input de código).
+- Email válido → `signInWithOtp` llamado, avanza a paso código.
+- Email sin `@` → `errorInvalidEmail`, no avanza.
+- Error de Supabase → `errorGeneric`, no avanza.
+- `verifyCode` exitoso (200) → `fetch /api/auth/verify-otp` + `window.location.assign(destination)`.
+- `verifyCode` 400 → `errorInvalidCode` sin redirigir.
+- `verifyCode` 429 → `errorRateLimited`.
+- Código <6 dígitos → error sin `fetch`.
+- "← Usar otro mail" → vuelve al paso de email.
+- Técnica: `vi.hoisted` para el mock de `@/lib/supabase/client`; `fireEvent.submit(form)` en vez de `fireEvent.click(submitButton)` (jsdom no dispara `onSubmit` con click sintético en submit buttons).
+
+**`src/components/chat/__tests__/chat-panel.test.tsx`** (8 tests, TDD):
+- Render: mensajes iniciales, estado vacío, distinción propios/otros.
+- Polling: dispara `fetch` cada 10s (fake timers), sin `fetch` en mount; actualiza mensajes con datos del poll.
+- Cleanup: al desmontar no hay más `fetch` (interval limpiado).
+- Envío: mensaje exitoso → agrega al listado; fallo → muestra error.
+- `scrollIntoView` mockeado en `beforeEach` (no implementado en jsdom).
+- Con fake timers: `act(async () => { await vi.advanceTimersByTimeAsync(...) })` para asentar promesas; NO usar `waitFor` con timers falsos (usa timers reales internamente).
+
+**AlbumClient** ya tenía 9 tests completos desde RF-213 (buffer, flush, retry, unmount, etc.).
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-325** (Should) — Logger estructurado: adoptar `logger.error` en catches 500 o eliminar el módulo muerto.
+2. **RF-326** (Should) — Tests directos de schemas Zod (sticker, onboarding, rating, message).
+3. **D-001** (Must) — Update CLAUDE.md (sección auth todavía dice "stub return null").
+4. **RF-331** (Could) — Renombrar PascalCase → kebab-case en 5 archivos.
+5. **RF-332** (Could) — Partir SettingsForm.tsx (326 líneas, supera el techo).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
 ## 2026-06-07 — Corrida 50: RF-329 (WCAG AA — token accent-text para naranja sobre fondo claro)
 
 - **Ítem**: RF-329 — `text-accent` sobre fondo claro falla WCAG AA (2.80:1 < 3.0 grande / 4.5 normal).
