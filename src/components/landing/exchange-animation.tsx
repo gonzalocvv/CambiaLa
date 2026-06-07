@@ -45,19 +45,20 @@ function StickerFace({
 
 /**
  * Mini-álbum tilteado con grilla 3×3. Tiene:
- *  - una celda "repe" con una copia ESTÁTICA de la figurita que sale (se desvanece en el takeoff),
- *  - una celda "hueco" que CONTIENE la figurita voladora que llega (anclada inset-0 → encaje perfecto
- *    a cualquier viewport, rotada igual que el álbum).
+ *  - una celda "repe" que CONTIENE la figurita que SALE: anclada inset-0 → ES la figurita en reposo
+ *    (sin clon) y despega desde ahí, con encaje perfecto y CERO calibración.
+ *  - una celda "hueco" con una copia ESTÁTICA de la figurita que LLEGA, anclada inset-0 → encaje
+ *    perfecto del aterrizaje; aparece por opacity cuando la voladora del otro álbum llega.
  */
 function MiniAlbum({ side }: { side: 'a' | 'b' }) {
   const isA = side === 'a';
-  // A da URU/9 (celeste) y recibe BRA/7 (naranja). B al revés.
-  const repe = isA
-    ? { code: 'URU', number: '9', variant: 'primary' as const }
-    : { code: 'BRA', number: '7', variant: 'accent' as const };
-  const incoming = isA
-    ? { code: 'BRA', number: '7', variant: 'accent' as const, fly: 'fly-b' }
-    : { code: 'URU', number: '9', variant: 'primary' as const, fly: 'fly-a' };
+  // A tiene la repe URU/9 (sale) y recibe BRA/7. B al revés.
+  const source = isA
+    ? { code: 'URU', number: '9', variant: 'primary' as const, fly: 'fly-a' }
+    : { code: 'BRA', number: '7', variant: 'accent' as const, fly: 'fly-b' };
+  const landed = isA
+    ? { code: 'BRA', number: '7', variant: 'accent' as const }
+    : { code: 'URU', number: '9', variant: 'primary' as const };
   const repeIndex = isA ? 0 : 8;
   const holeIndex = isA ? 7 : 1;
 
@@ -68,8 +69,9 @@ function MiniAlbum({ side }: { side: 'a' | 'b' }) {
           if (i === repeIndex) {
             return (
               <div key={i} className="relative rounded-[4px]">
-                <div className={`repe-fade repe-fade-${side} absolute inset-0`}>
-                  <StickerFace {...repe} />
+                {/* La repe ES la voladora: despega desde su propia celda → sin clon, sin calibrar */}
+                <div className={`fly ${source.fly} absolute inset-0`}>
+                  <StickerFace code={source.code} number={source.number} variant={source.variant} />
                 </div>
               </div>
             );
@@ -84,13 +86,9 @@ function MiniAlbum({ side }: { side: 'a' | 'b' }) {
                 <div
                   className={`hole-fill hole-fill-${side} border-primary bg-primary/20 ring-primary/40 absolute inset-0 rounded-[4px] border ring-2`}
                 />
-                {/* Figurita que llega: anclada en el hueco → transform:none = encaje perfecto */}
-                <div className={`fly ${incoming.fly} absolute inset-0`}>
-                  <StickerFace
-                    code={incoming.code}
-                    number={incoming.number}
-                    variant={incoming.variant}
-                  />
+                {/* Copia aterrizada: anclada en el hueco → encaje perfecto, aparece al llegar */}
+                <div className={`static-dst static-dst-${side} absolute inset-0`}>
+                  <StickerFace code={landed.code} number={landed.number} variant={landed.variant} />
                 </div>
               </div>
             );
@@ -111,11 +109,11 @@ function MiniAlbum({ side }: { side: 'a' | 'b' }) {
 }
 
 /**
- * RF-821 — Animación decorativa "el intercambio". Cada figurita voladora vive
- * DENTRO de la celda-hueco del álbum destino (hereda su tilt y posición → encaje
- * perfecto a cualquier viewport); el despegue se resuelve con una copia estática
- * en el álbum origen que se desvanece. Loop 100% CSS (solo transform/opacity),
- * transforms en % (escalan con el álbum). `aria-hidden`, pausa offscreen.
+ * RF-821 — Animación decorativa "el intercambio". La figurita "repe" vive en su
+ * celda ORIGEN y ES la que despega (sin clon) → takeoff con encaje perfecto y cero
+ * calibración. Vuela al álbum opuesto; el aterrizaje EXACTO lo da una copia estática
+ * anclada en el hueco destino (handoff por opacity). Loop 100% CSS (solo
+ * transform/opacity). `aria-hidden`, pausa offscreen, reduced-motion = estado final.
  */
 export function ExchangeAnimation() {
   const t = useTranslations('Home.hero.matchMock');
