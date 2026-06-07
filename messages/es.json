@@ -392,6 +392,16 @@
     "missingTitle": "Le faltan",
     "missingHint": "Estas está buscando — si las tenés, podés hacer match."
   },
+  "ErrorPages": {
+    "notFoundTitle": "Página no encontrada",
+    "notFoundSubtitle": "El link que seguiste no existe o ya no está disponible.",
+    "notFoundCta": "Volver al álbum",
+    "notFoundCtaAlt": "Ir al inicio",
+    "errorTitle": "Algo salió mal",
+    "errorSubtitle": "Ocurrió un error inesperado. Podés intentar de nuevo o volver al inicio.",
+    "errorRetry": "Intentar de nuevo",
+    "errorCta": "Ir al inicio"
+  },
   "Contact": {
     "metaTitle": "Contacto — CambiaLa",
     "eyebrow": "¿Necesitás ayuda?",
