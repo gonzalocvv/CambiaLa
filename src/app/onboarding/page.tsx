@@ -14,7 +14,7 @@ export default async function OnboardingPage() {
   const session = await getSession();
 
   if (!session) redirect('/auth/login');
-  if (session.onboardingDoneAt) redirect('/matches');
+  if (session.onboardingDoneAt) redirect('/album');
 
   return (
     <div className="bg-background flex min-h-screen flex-col items-center justify-center px-6 py-12">

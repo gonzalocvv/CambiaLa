@@ -12,7 +12,7 @@ import { userService } from '@/services/user.service';
  * RF-103: alta automática en el primer login.
  * RF-108: si todavía no completó el onboarding, va a /onboarding.
  */
-export async function resolveDestinationForUser(user: User, next = '/matches'): Promise<string> {
+export async function resolveDestinationForUser(user: User, next = '/album'): Promise<string> {
   const dbUser = await userService.getOrCreate({
     email: user.email!,
     name: user.user_metadata?.full_name as string | undefined,

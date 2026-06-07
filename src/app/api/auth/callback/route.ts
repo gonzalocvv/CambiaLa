@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const tokenHash = searchParams.get('token_hash');
   const type = searchParams.get('type') as EmailOtpType | null;
-  const next = searchParams.get('next') ?? '/matches';
+  const next = searchParams.get('next') ?? '/album';
 
   const supabase = await createClient();
 
