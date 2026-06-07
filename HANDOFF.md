@@ -3,6 +3,42 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Corrida 47: RF-119/RF-908 (borrado de cuenta — compliance Ley 18.331)
+
+- **Ítems**: RF-119/RF-908 — Borrado de cuenta con doble confirmación + cascade real. RF-903 marcado [x] (ya estaba cubierto por RF-114).
+- **Rama**: `claude/cool-volta-mfaNa` (acumula corridas 45..47).
+- **Estado**: ✅ completo. Gate verde. **443 tests** (49 archivos).
+
+### Qué se hizo
+
+**RF-119/RF-908 — Borrado de cuenta:**
+- **`userRepository.deleteUserCascade(userId)`**: borra en orden FK-safe — (1) `rating.deleteMany(raterId|ratedId)`, (2) `match.deleteMany(userAId|userBId)` (cascada `Message` vía `matchId`), (3) `message.deleteMany(fromUserId)` (red de seguridad), (4) `user.delete` (cascada `UserSticker` y `Notification`). Sin migración (borrado manual en orden).
+- **`userService.deleteAccount(userId)`**: verifica existencia del user (lanza `UserNotFoundError` si no existe) → llama `deleteUserCascade`.
+- **`DELETE /api/settings/account`**: session → `userService.deleteAccount` → `supabase.auth.signOut()` → best-effort `supabase.auth.admin.deleteUser(authUserId)` (usa `@supabase/supabase-js` con `SUPABASE_SERVICE_ROLE_KEY`). 401 sin sesión, 404 user no encontrado, 500 error inesperado, 200 éxito.
+- **SettingsForm**: nuevos estados `showDeleteModal`, `isDeleting`, `deleteError` + `handleDeleteAccount`. Sección "Zona de peligro" con botón rojo + modal de doble confirmación (mensaje de advertencia + "Cancelar" / "Sí, borrar definitivamente"). Tokens de color: `border-destructive/50`, `text-destructive`, `bg-destructive`.
+- **i18n**: 9 claves nuevas en `Settings` namespace (`dangerZoneTitle`, `deleteAccountButton`, `deleteAccountModalTitle`, `deleteAccountModalBody`, `deleteAccountModalConfirm`, `deleteAccountModalCancel`, `deleteAccountDeleting`, `deleteAccountError`).
+- **Tests TDD (8 nuevos)**: `deleteUserCascade` — verifica orden de llamadas + invocation order; `deleteAccount` (service) — happy path + UserNotFoundError; `DELETE` route — 401, 200, 404, 500, best-effort falla → sigue 200.
+
+**RF-903 marcado [x]:** el campo WhatsApp ya estaba implementado desde RF-114 (Corrida 25) con validación `normalizeUruguayanMobile`.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **S3.2** (M) — Loading/empty/error states (RF-328 cubrió error/not-found/loading para `/album`, `/matches`, `/conversations`; revisar si hay pantallas sin estado vacío con CTA claro).
+2. **RF-329** (Should) — `text-accent` sobre fondo claro falla WCAG AA → token `--accent-text` (~`#c2410c`).
+3. **RF-322** (Should) — Tests de componentes client (AlbumClient, LoginForm, chat-panel).
+4. **RF-326** (Should) — Tests directos de schemas Zod.
+5. **Admin module** RF-1001..1005 (M) — `/admin` solo con `role=admin`.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+
+---
+
 ## 2026-06-07 — Corrida 46: RF-905 + RF-906 + RF-904 (settings de notificaciones y matchmaking)
 
 - **Ítems**: RF-905 (config notificaciones) + RF-906 (config matchmaking) + RF-904 marcado [x] (ya implementado desde Corrida 22).
