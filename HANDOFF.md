@@ -3,6 +3,35 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Corrida 39: RF-809 (Schema.org JSON-LD)
+
+- **Ítem**: RF-809 — Schema.org JSON-LD (`Person` en perfiles públicos, `WebSite` + `Organization` en landing).
+- **Rama**: `claude/cool-volta-m0Fn1` (continúa desde corridas 37 + 38).
+- **Estado**: ✅ completo. Gate verde. **377 tests** (40 archivos).
+
+### Qué se hizo
+
+- **`src/lib/json-ld.ts`** (Domain, funciones puras): `buildWebSiteJsonLd(url)`, `buildOrganizationJsonLd(url)`, `buildPersonJsonLd({username, name, bio?, city?, baseUrl})`, `toJsonLdString(data)` — serializa con escape de `<`, `>`, `&` para prevenir inyección de `</script>` vía contenido de usuario.
+- **`src/lib/__tests__/json-ld.test.ts`** (TDD primero — 9 tests): estructura correcta de cada builder + fallback sin campos opcionales + escaping de `</script>`, `& ` en `toJsonLdString`.
+- **`src/app/page.tsx`**: 2 `<script type="application/ld+json">` — `WebSite` (con `potentialAction: SearchAction` a `/u/{username}`) y `Organization`.
+- **`src/app/u/[username]/page.tsx`**: 1 `<script type="application/ld+json">` — `Person` con `name`, `url`, `description` (bio), `address` (ciudad + `addressCountry: UY`).
+
+### Próximo paso
+
+En orden de BACKLOG (primer ítem `[ ]` de SPRINT 1 en adelante que no sea 🔒/⏸️ RESERVADO):
+1. **RF-214b** (M) — Auditar catálogo vs álbum oficial (980 vs 896 figuritas). Requiere research externo. ⚠️ Documentar bloqueante si no hay fuente confiable.
+2. **RF-112** (M) — Avatar upload — pendiente decisión storage.
+3. **S3.1** (M) — PWA: manifest + service worker. 100% autónomo.
+4. Deuda Must: **RF-323** (middleware route protection), **RF-324** (rate limiting), **RF-328** (error/not-found pages).
+
+### Bloqueos conocidos
+
+- RF-320 ⏸️ RESERVADO — match engine en runtime.
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ Avatar upload — pendiente decisión.
+
+---
+
 ## 2026-06-07 — Corrida 38: RF-215 (nombres de país en headers del álbum)
 
 - **Ítem**: RF-215 — headers de equipo muestran nombre completo en español + bandera emoji.
