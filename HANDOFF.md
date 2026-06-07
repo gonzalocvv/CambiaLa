@@ -3,6 +3,32 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Ola RF-213: Guardado del álbum en bulk (perf)
+
+- **Ítem**: RF-213 — una ráfaga de clicks en el álbum se manda en **1 request + 1 query de escritura** (antes: 1 PATCH por figurita).
+- **Rama**: `feat/album-bulk` (desde `develop`). **PR de código → SIN auto-merge** (lo revisás vos con gstack).
+- **Estado**: ✅ completo. Gate local verde (format/lint/type-check/format:check/prisma:generate/test:coverage + build mock). **343 tests** (36 archivos).
+
+### Qué se hizo (TDD: schema → repo → service → route → cliente)
+
+- **Schema** `BulkUpdateStickersSchema` (`src/lib/validations/sticker.schema.ts`): `changes` array 1..200 de `{stickerId, count 0..99}` + tests.
+- **Repository** (`src/repositories/sticker.repository.ts`): `getExistingStickerIds(ids)` (clasifica válidos/ignorados) + `bulkUpsertCounts(userId, changes)` = **UN** `$executeRaw` parametrizado: `INSERT … SELECT … FROM unnest(ids, stickerIds, counts) ON CONFLICT ("userId","stickerId") DO UPDATE SET count, updatedAt`. IDs de filas nuevas con **`@paralleldrive/cuid2`** (`createId()`) — nueva dep; convivencia cuid v1 (filas viejas) / cuid2 (nuevas), documentada en el repo.
+- **Service** (`src/services/sticker.service.ts`): `bulkUpdateCounts` dedupea (último gana), ignora ids fuera del catálogo (evita romper la FK), devuelve `{applied, ignored}`. Es el **único punto de escritura** del álbum → RF-320 cuelga acá el recompute síncrono.
+- **Route** nueva `PATCH /api/album/stickers` (`src/app/api/album/stickers/route.ts`): session → Zod → service → `{ok, applied, ignored}`; 401/400.
+- **Cliente** (`src/app/album/AlbumClient.tsx`): buffer compartido (`Map`, último count gana) + **1 timer global 800ms** + guard `isFlushing` (no superpone requests) + snapshot/partial-clear (preserva clicks en vuelo) + reintento 1 vez sin vaciar buffer + flush en `visibilitychange`/`pagehide` con `keepalive`. Un solo ciclo de toast por flush.
+- **Limpieza**: borrado el endpoint `PATCH /api/album/stickers/[stickerId]` + su test, y el código muerto (`updateStickerCount`, `StickerNotFoundError`, `upsertUserStickerCount`, `getStickerById`, `UpdateStickerCountSchema`).
+
+### ⚠️ A verificar (review de Gonza)
+
+- La query raw se testea a nivel de **parámetros** (mock de `$executeRaw`); **no se ejecuta contra Postgres en CI** (no hay DB). **Validar 1 vez contra Supabase real** (o vía /qa): que upsertea, que `count`/`updatedAt` se actualizan, y que `UserSticker` no rompe por columna faltante (verificado en schema: NOT NULL sin default DB = `id`+`updatedAt`, ambos provistos; no hay `createdAt`).
+- Criterio de aceptación manual: en `/album`, ráfaga de clicks → **un solo** PATCH a `/api/album/stickers` en Network.
+
+### Próximo paso
+
+- Tras tu review + merge: **Ola RF-320 + RF-318 + RF-321** (`feat/matching-runtime`) — recompute síncrono colgado de `bulkUpdateCounts` (revive el core).
+
+---
+
 ## 2026-06-06 — Etapa 0: Auditoría gstack post-landing (solo mapeo, sin código)
 
 - **Ítem**: Etapa 0 del "Plan maestro" — auditoría gstack multi-agente del repo. **No se tocó código** (read-only).
