@@ -1,16 +1,45 @@
 import type { Match } from '@prisma/client';
 
-import type { MatchResult } from '@/types/match';
+import type {
+  MatchmakingCandidate,
+  MatchmakingProfile,
+  MatchRadius,
+  MatchResult,
+  UserCollectionInput,
+} from '@/types/match';
 import type { ActiveMatchItem, MatchStatus } from '@/lib/validations/match.schema';
+import { findMatchesForUser } from '@/lib/match-engine';
+import { logger } from '@/lib/logger';
 import { matchRepository } from '@/repositories/match.repository';
 import { messageRepository } from '@/repositories/message.repository';
 import { notificationService } from '@/services/notification.service';
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const ACTIVE_DAYS = 30;
+const VALID_RADII: readonly MatchRadius[] = ['neighborhood', 'department', 'country'];
+
+// RF-320: tope defensivo del pool síncrono dentro del PATCH (placeholder, tunear tras
+// un test de capacidad). Recompute pesado real → RF-307/Inngest. Exportado para tests.
+export const MAX_POOL_SIZE = 5000;
 
 // Typed view of a Match record with decoded JSON arrays.
 export type MatchRecord = Omit<Match, 'aToB' | 'bToA'> & {
   aToB: string[];
   bToA: string[];
 };
+
+// Adapta un perfil/candidato de matchmaking al input puro del engine.
+function toCollectionInput(p: MatchmakingProfile | MatchmakingCandidate): UserCollectionInput {
+  return {
+    userId: p.id,
+    stickers: p.stickers,
+    offerUniques: p.offerUniques,
+    city: p.city,
+    neighborhood: p.neighborhood,
+    lastSeenAt: p.lastSeenAt,
+    participatesInMatchmaking: p.participatesInMatchmaking,
+  };
+}
 
 // Normalize ordering so [userAId, userBId] is always lexicographically sorted,
 // guaranteeing the @@unique([userAId, userBId]) constraint is hit consistently
@@ -64,6 +93,68 @@ export const matchService = {
       }
     }
     return decodeMatch(saved);
+  },
+
+  // RF-320 + RF-318: recalcula los matches del usuario tras un cambio de álbum y los
+  // persiste (upsert idempotente + notificación new_match en match nuevo, vía saveMatchResult).
+  // Síncrono por diseño (sin Inngest — eso es RF-307). El engine queda puro: el pool
+  // y el perfil se cargan en el repository; acá solo se orquesta. `now` es inyectable
+  // para tests deterministas: alimenta tanto el cutoff de actividad como el engine.
+  async recomputeForUser(userId: string, now: Date = new Date()): Promise<{ matched: number }> {
+    const target = await matchRepository.findMatchmakingProfile(userId);
+    if (!target || !target.participatesInMatchmaking) return { matched: 0 };
+
+    if (!VALID_RADII.includes(target.matchRadius as MatchRadius)) {
+      logger.warn('recompute: invalid matchRadius', { userId, radius: target.matchRadius });
+      return { matched: 0 };
+    }
+    const radius = target.matchRadius as MatchRadius;
+
+    // Scope del pool espejando isSameLocation: 'country' ⇒ sin filtro de ciudad;
+    // 'department'/'neighborhood' ⇒ misma ciudad. Sin ciudad y radius local ⇒ el engine
+    // rechazaría a todos, así que cortamos antes de cargar el pool.
+    let city: string | null;
+    if (radius === 'country') {
+      city = null;
+    } else {
+      if (!target.city) return { matched: 0 };
+      city = target.city;
+    }
+
+    const cutoffDate = new Date(now.getTime() - ACTIVE_DAYS * MS_PER_DAY);
+    let pool = await matchRepository.findCandidatePool(userId, { city, cutoffDate });
+
+    if (pool.length > MAX_POOL_SIZE) {
+      logger.warn('recompute: candidate pool truncated', {
+        userId,
+        poolSize: pool.length,
+        max: MAX_POOL_SIZE,
+      });
+      pool = pool.slice(0, MAX_POOL_SIZE);
+    }
+
+    const results = findMatchesForUser(toCollectionInput(target), pool.map(toCollectionInput), {
+      radius,
+      activeDays: ACTIVE_DAYS,
+      now,
+    });
+
+    try {
+      for (const result of results) {
+        await this.saveMatchResult(result);
+      }
+    } catch (error) {
+      // Upsert idempotente ⇒ reintentar es seguro. Reportamos cuántos se intentaban y
+      // re-lanzamos: el caller (sticker.service) lo atrapa para no romper el guardado del álbum.
+      logger.error('recompute: partial match persistence failed', {
+        userId,
+        attempted: results.length,
+        error,
+      });
+      throw error;
+    }
+
+    return { matched: results.length };
   },
 
   async getMatchById(id: string): Promise<MatchRecord | null> {
