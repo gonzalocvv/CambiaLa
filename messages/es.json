@@ -1,7 +1,8 @@
 {
   "Metadata": {
-    "title": "CambiaLa — Cambia tus figuritas del Mundial 2026",
-    "description": "Plataforma para coleccionistas uruguayos. Cargá tu álbum, te avisamos cuando aparece alguien para cambiar."
+    "title": "CambiaLa — Cambiar figuritas del Mundial 2026 en Uruguay",
+    "description": "Cargá tu álbum del Mundial 2026 y te encontramos coleccionistas de tu barrio para cambiar las figuritas que te faltan. Gratis y sin publicidad.",
+    "ogSiteName": "CambiaLa"
   },
   "Rating": {
     "title": "¿Cómo fue el cambio?",
@@ -200,13 +201,17 @@
       "cta": "Registrate"
     },
     "hero": {
-      "titlePrefix": "Cambia",
-      "titleHighlight": "La",
-      "subtitle": "Cambiá tus figuritas del Mundial 2026 con coleccionistas de tu barrio.",
+      "title": "Te encontramos con quién <hl>cambiar tus figuritas</hl>",
+      "subtitle": "Cargá tu álbum del Mundial 2026 y te avisamos cuando alguien de tu barrio tiene las que te faltan — y quiere las que te sobran.",
       "badge": "Mundial 2026 · Uruguay",
       "cta": "Registrate",
       "ctaSecondary": "¿Cómo funciona?",
-      "scrollHint": "Seguir leyendo"
+      "scrollHint": "Seguir leyendo",
+      "matchMock": {
+        "matchBadge": "¡Match!",
+        "name": "Juan",
+        "neighborhood": "Pocitos"
+      }
     },
     "stats": {
       "stickersValue": "~900",
@@ -229,7 +234,7 @@
     },
     "useCases": {
       "eyebrow": "¿Para quién es?",
-      "title": "Hecho para coleccionistas como vos",
+      "title": "Hecho para coleccionistas uruguayos del Mundial 2026",
       "case1Emoji": "😩",
       "case1Title": "Tenés repetidas sin destino",
       "case1Desc": "Cargá lo que te sobra y encontrá quién lo necesita cerca tuyo. Sin posteos en grupos, sin spam.",
@@ -239,6 +244,16 @@
       "case3Emoji": "📍",
       "case3Title": "Querés cambiar cerca de casa",
       "case3Desc": "Filtramos por tu barrio o ciudad. Coordinás por chat y arreglan el punto de encuentro."
+    },
+    "why": {
+      "eyebrow": "Por qué CambiaLa",
+      "title": "Cambiá las figuritas del Mundial 2026 con tu barrio",
+      "card1Title": "Match automático por barrio",
+      "card1Desc": "No buscás vos — nosotros te avisamos cuando hay un cambio posible cerca tuyo.",
+      "card2Title": "Reputación real",
+      "card2Desc": "Reseñas y estrellas después de cada cambio. Cambiá con desconocidos sin miedo.",
+      "card3Title": "Gratis y sin publicidad",
+      "card3Desc": "Sin banners, sin sponsors, sin vender tus datos."
     },
     "finalCta": {
       "title": "¿Listo para completar tu álbum?",
@@ -256,10 +271,10 @@
     "contactLink": "Contacto"
   },
   "ComoFunciona": {
-    "metaTitle": "Cómo funciona — CambiaLa",
+    "metaTitle": "Cómo funciona — Cambiar figuritas del Mundial 2026 | CambiaLa",
     "eyebrow": "El proceso",
-    "title": "Cómo funciona",
-    "subtitle": "Del álbum incompleto al cambio arreglado en tres pasos.",
+    "title": "Cómo te encontramos con quién cambiar",
+    "subtitle": "Cargás tu álbum del Mundial 2026, cruzamos el tuyo con el de coleccionistas de tu barrio y te avisamos cuando hay match.",
     "step1Title": "Cargá tu álbum",
     "step1Desc": "Ingresá y marcá cada figurita: cuáles tenés, cuáles te faltan y cuántas repetidas tenés de cada una. El sistema lo guarda automáticamente sin que tengas que hacer nada extra.",
     "step2Title": "Buscamos tu match",

@@ -14,11 +14,29 @@ const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
 });
 
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://cambia-la.vercel.app';
+
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('Metadata');
+  const title = t('title');
+  const description = t('description');
   return {
-    title: t('title'),
-    description: t('description'),
+    metadataBase: new URL(BASE_URL),
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      locale: 'es_UY',
+      siteName: t('ogSiteName'),
+      url: BASE_URL,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
   };
 }
 
