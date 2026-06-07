@@ -3,6 +3,7 @@ import { Reveal } from '@/components/landing/reveal';
 import { WhySection } from '@/components/landing/why-section';
 import { Navbar } from '@/components/layout/navbar';
 import { SiteFooter } from '@/components/layout/site-footer';
+import { buildOrganizationJsonLd, buildWebSiteJsonLd, toJsonLdString } from '@/lib/json-ld';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -18,6 +19,16 @@ export default async function Home() {
 
   return (
     <div className="bg-background text-foreground flex flex-1 flex-col">
+      {/* Schema.org JSON-LD — RF-809 */}
+      {/* dangerouslySetInnerHTML es seguro aquí: toJsonLdString escapa <, >, & */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: toJsonLdString(buildWebSiteJsonLd(BASE_URL)) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: toJsonLdString(buildOrganizationJsonLd(BASE_URL)) }}
+      />
       <Navbar loginLabel={t('nav.login')} ctaLabel={t('nav.cta')} />
 
       {/* Hero — el match es el héroe */}
