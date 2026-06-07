@@ -3,6 +3,52 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Corrida 46: RF-905 + RF-906 + RF-904 (settings de notificaciones y matchmaking)
+
+- **Ítems**: RF-905 (config notificaciones) + RF-906 (config matchmaking) + RF-904 marcado [x] (ya implementado desde Corrida 22).
+- **Rama**: `claude/cool-volta-upCdx` (desde `develop`).
+- **Estado**: ✅ completo. Gate verde. **435 tests** (48 archivos).
+
+### Qué se hizo
+
+**RF-905 — Config de notificaciones:**
+- `src/lib/validations/settings.schema.ts`: `UpdateNotificationsSchema` (`notifyOnMatch`, `emailFrequency: enum instant|daily|weekly|never`, `pushEnabled`).
+- `src/repositories/user.repository.ts`: `UpdateNotificationsData` type + método `updateNotifications` (patch parcial) + extendido `findById` con los campos notification + matchmaking.
+- `src/services/user.service.ts`: `updateNotifications(userId, data)`.
+- `PUT /api/settings/notifications` (nueva route): session → Zod → service → 200.
+- `SettingsForm.tsx`: sección "Notificaciones" con toggle `notifyOnMatch`, select `emailFrequency`, toggle `pushEnabled` (marcado "próximamente").
+
+**RF-906 — Config de matchmaking:**
+- `src/lib/validations/settings.schema.ts`: `UpdateMatchmakingSchema` (`participatesInMatchmaking`, `matchRadius: enum neighborhood|department|country`, `offerUniques`, `acceptUnbalanced`).
+- `src/repositories/user.repository.ts`: `UpdateMatchmakingData` type + método `updateMatchmaking` (patch parcial).
+- `src/services/user.service.ts`: `updateMatchmaking(userId, data)`.
+- `PUT /api/settings/matchmaking` (nueva route): session → Zod → service → 200.
+- `SettingsForm.tsx`: sección "Matchmaking" con 2 toggles + select `matchRadius` + toggle `offerUniques` + toggle `acceptUnbalanced`.
+
+**RF-904 — Toggle perfil público:** ya estaba implementado desde Corrida 22 (RF-901). Solo marcado [x] en BACKLOG.
+
+**Tests (TDD):**
+- `src/app/api/settings/notifications/__tests__/route.test.ts` (6 tests): 401, 400 malformed, 400 emailFrequency inválido, 200 notifyOnMatch, 200 emailFrequency=weekly, 404 user not found.
+- `src/app/api/settings/matchmaking/__tests__/route.test.ts` (6 tests): 401, 400 malformed, 400 matchRadius inválido, 200 participatesInMatchmaking, 200 matchRadius=neighborhood, todos los campos, 404 user not found.
+- `src/repositories/__tests__/user.repository.test.ts`: test de `findById` actualizado para reflejar los nuevos campos en el select.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-903** (Should) — Editar WhatsApp con validación (ya hay un campo en el form pero sin sección separada — revisar si ya está cubierto).
+2. **RF-119/RF-908** (M) — Borrado de cuenta con doble confirmación (compliance crítico Ley 18.331).
+3. **S3.2** (M) — Loading/empty/error states (ya parcialmente cubierto por RF-328).
+4. **RF-329** (Should, Deuda) — `text-accent` sobre fondo claro falla WCAG AA → token `--accent-text`.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+
+---
+
 ## 2026-06-07 — Corrida 45: RF-327 + RF-330 (pnpm CI + overlay token)
 
 - **Ítems**: RF-327 (pnpm version drift en CI) + RF-330 (bg-black/80 → design token).
