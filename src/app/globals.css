@@ -25,6 +25,7 @@
   --special-foreground: #ffffff;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
+  --overlay: #0f172a; /* dialog/modal scrim — always dark regardless of theme */
   --border: #e2e8f0;
   --input: #e2e8f0;
   --ring: #0284c7;
@@ -110,6 +111,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-overlay: var(--overlay);
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
