@@ -72,7 +72,7 @@ describe('GET /api/auth/callback — PKCE code flow', () => {
 });
 
 describe('GET /api/auth/callback — token_hash flow', () => {
-  it('verifies the OTP and redirects to /matches when onboarding done', async () => {
+  it('verifies the OTP and redirects to /album when onboarding done', async () => {
     mockAuth.verifyOtp.mockResolvedValue({
       data: { user: { email: 'gonza@example.com', user_metadata: {} } },
       error: null,
@@ -82,7 +82,7 @@ describe('GET /api/auth/callback — token_hash flow', () => {
     const res = await GET(makeRequest('?token_hash=xyz&type=magiclink'));
 
     expect(mockAuth.verifyOtp).toHaveBeenCalledWith({ token_hash: 'xyz', type: 'magiclink' });
-    expect(location(res)).toBe(`${ORIGIN}/matches`);
+    expect(location(res)).toBe(`${ORIGIN}/album`);
   });
 
   it('redirects with verify_failed when verifyOtp errors', async () => {
