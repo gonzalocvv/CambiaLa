@@ -22,6 +22,7 @@ export default defineConfig({
           include: ['src/**/*.{test,spec}.{ts,tsx}'],
           exclude: [
             'src/components/landing/**',
+            'src/components/pwa/**',
             'src/app/album/**',
             'e2e/**',
             'scripts/**',
@@ -37,6 +38,7 @@ export default defineConfig({
           setupFiles: ['./src/test/setup.ts'],
           include: [
             'src/components/landing/**/*.{test,spec}.{ts,tsx}',
+            'src/components/pwa/**/*.{test,spec}.{ts,tsx}',
             'src/app/album/**/*.{test,spec}.{ts,tsx}',
           ],
         },
