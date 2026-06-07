@@ -284,10 +284,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - Responder 429 con mensaje i18n cuando se excede; no filtrar si la cuenta existe (check-username).
   - **TDD**: tests del helper (permite N en la ventana, bloquea el N+1, resetea tras la ventana) + test de cada route que devuelve 429 al exceder.
 
-- [ ] **RF-328** 🆕 **No existen error.tsx / not-found.tsx / loading.tsx en el App Router.** (M) — _detectado 6-jun: no hay ningún boundary de ruta en `src/app` (ni `global-error.tsx`); un 404 (`notFound()` en `matches/[id]/page.tsx:38`) cae al not-found por defecto de Next sin branding ni i18n, y un fallo de Server Component muestra la pantalla de error genérica._
-  - Agregar `src/app/not-found.tsx` y `src/app/error.tsx` (client) branded: tokens + i18n + CTA a `/album`/`/`. Considerar `global-error.tsx`.
-  - Agregar `loading.tsx` con skeleton para las rutas server async (`/matches`, `/conversations`, `/album`) que hoy hacen `await` sin fallback de ruta.
-  - **TDD**: render test de not-found/error (asserts de texto i18n + CTA con href correcto).
+- [x] **RF-328** 🆕 **No existen error.tsx / not-found.tsx / loading.tsx en el App Router.** (M) — _Corrida 42 (2026-06-07): `not-found.tsx` (server, async, branded, i18n, CTA /album + /); `error.tsx` (client, branded, i18n, reintentar + volver); `global-error.tsx` (client, último recurso fuera del provider — strings hardcodeados, excepción documentada); `loading.tsx` skeletons en `/album`, `/matches`, `/conversations` (animate-pulse, tokens, aria-busy). 394 tests verdes._
 
 ### Should (S)
 
