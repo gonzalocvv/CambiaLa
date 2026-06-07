@@ -38,7 +38,7 @@ for (const vp of viewports) {
 
 // Frames del loop en movimiento (390 Y 1440) para revisar despegue/cruce/aterrizaje.
 for (const vp of viewports) {
-  for (const t of [600, 1920, 2280, 4200, 6800]) {
+  for (const t of [600, 1920, 4200, 7400]) {
     const ctx = await browser.newContext({
       viewport: { width: vp.width, height: vp.height },
       colorScheme: 'light',
