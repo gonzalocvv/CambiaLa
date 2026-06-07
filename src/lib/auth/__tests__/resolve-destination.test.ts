@@ -32,9 +32,9 @@ describe('resolveDestinationForUser', () => {
     expect(await resolveDestinationForUser(makeUser())).toBe('/onboarding');
   });
 
-  it('manda a /matches (default) cuando ya completó el onboarding', async () => {
+  it('manda a /album (default) cuando ya completó el onboarding', async () => {
     mockUserService.getOrCreate.mockResolvedValue({ onboardingDoneAt: new Date() });
-    expect(await resolveDestinationForUser(makeUser())).toBe('/matches');
+    expect(await resolveDestinationForUser(makeUser())).toBe('/album');
   });
 
   it('respeta el next provisto', async () => {
