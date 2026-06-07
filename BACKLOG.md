@@ -252,6 +252,134 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ---
 
+## 🔍 Deuda y hallazgos — Auditoría gstack 2026-06-06
+
+> Generado por la suite gstack multi-agente (6 lentes: Producto/CEO, Arquitectura, Testing, Seguridad, DevEx, Diseño/A11y). 36 hallazgos, 9 críticos/altos verificados adversarialmente (0 refutados). **Informe completo: `reports/gstack-audit-2026-06-06.md`.**
+> **Prioridad de launch: RF-320 es el bloqueante #1** — el match engine (core del producto) está implementado y testeado pero NINGÚN path lo invoca en runtime → `/matches` siempre vacío para usuarios reales. Tratarlo antes que el resto de esta sección. El gate quedó verde y la arquitectura/seguridad en lo crítico, sólidas.
+
+### Must (M)
+
+- [ ] **RF-320** 🆕 🔥 **Cablear el recompute de matches en runtime — el engine existe pero NINGÚN path lo invoca.** (M) — _detectado 6-jun por auditoría: `findMatchesForUser` y `matchService.saveMatchResult` tienen 100% cobertura pero cero callers fuera de tests; nada escribe la tabla `Match` → `/matches` SIEMPRE renderiza vacío para usuarios reales. Bloqueante #1 de launch._
+  - **Disparador**: tras persistir cambios del álbum del usuario (en `stickerService.updateStickerCount` y, cuando exista, en el bulk de RF-213), recalcular matches para ese usuario de forma **SÍNCRONA** (sin Inngest — Inngest queda para RF-307 en F2). Para no inflar el request del PATCH por figurita, disparar el recompute en el flush bulk (RF-213) o, si RF-213 aún no está, hacerlo con dedupe/debounce a nivel service.
+  - **Flujo**: cargar el pool de candidatos activos del mismo depto/filtros desde el repository (NO en el dominio) → llamar `findMatchesForUser` (función pura, intacta) → por cada resultado, `matchService.saveMatchResult` (que ya hace upsert idempotente + dispara la notificación `new_match` de RF-409 si es nuevo).
+  - **Capas**: el orquestador vive en Service (ej. `matchService.recomputeForUser(userId)`); el armado del pool de candidatos vive en `matchRepository`/`stickerRepository` (único acceso a Prisma). El engine sigue puro. NO meter Prisma en `src/lib/match-engine.ts`.
+  - **Idempotencia/TTL**: respetar RF-308 (upsert por par) y RF-309 (no recrear matches inactivos sin razón). Recompute debe ser seguro de correr N veces.
+  - **TDD (en este orden)**: (1) test del service `recomputeForUser` con repos mockeados — verifica que arma el pool, llama al engine y persiste cada match vía `saveMatchResult`; (2) test de que un usuario sin contraparte no crea filas; (3) test de que tras el flush del álbum se llama el recompute (mock); (4) test de que un match nuevo dispara la notificación a ambas partes (RF-409 ya existe, asegurar el wiring).
+  - **Criterio de aceptación**: dos usuarios del mismo depto con sets complementarios cargan sus álbumes → la tabla `Match` se puebla y ambos ven el match en `/matches` SIN ningún job/cron/Inngest corriendo.
+
+- [ ] **RF-321** 🆕 **Enforced coverage — el 100% del match engine NO está garantizado por el CI.** (M) — _detectado 6-jun: `vitest.config.ts` usa `coverage: { provider: 'v8' }` sin `all`/`include`/`thresholds`, así que el reporte solo mide archivos que algún test importa (summary dice 98.85% listando ~5 archivos) y `match-engine.ts` ni siquiera aparece; una regresión del engine a 80% mantendría el CI verde → CLAUDE.md §11 es honor-system._
+  - Agregar a `vitest.config.ts`: `coverage.include: ['src/**/*.{ts,tsx}']` con `exclude` de tipos/`index`/`*.d.ts`/configs, para que el reporte muestre la cobertura real del repo.
+  - Agregar `coverage.thresholds` con un override per-file de **100%** sobre `src/lib/match-engine.ts` (statements/branches/functions/lines) → el CI rompe si baja.
+  - Quitar `--passWithNoTests` de `test:coverage` (ver RF-336) para que un glob roto no pase en verde.
+  - **Criterio**: bajar a propósito un test del engine hace fallar `pnpm test:coverage` (y por ende el job `test` del CI).
+
+- [ ] **RF-323** 🆕 **Proteger rutas privadas en el middleware — hoy solo refresca la cookie.** (M) — _detectado 6-jun: `middleware.ts` llama `supabase.auth.getUser()` y devuelve `response` sin ningún `redirect`/guard; toda la protección depende de que CADA page/route llame `getSession()` por su cuenta (hoy bien hecho, pero frágil ante un olvido futuro)._
+  - En `middleware.ts`: si no hay `user` y la ruta es protegida (`/album`, `/matches`, `/conversations`, `/settings`, `/onboarding`, y `/u/[username]` solo si es el propio), redirigir a `/auth/login?next=<path>` (el `?next` ya lo respeta `resolveDestinationForUser`).
+  - Mantener los chequeos `getSession()` por page/route como **segunda capa** (no quitarlos).
+  - No tocar las rutas públicas (`/`, `/como-funciona`, `/precios`, `/privacidad`, `/terminos`, `/contacto`, `/auth/*`, `/u/[username]` público).
+  - **TDD**: tests del middleware — usuario sin sesión en ruta protegida → 307/302 a `/auth/login`; usuario con sesión → pasa; ruta pública sin sesión → pasa.
+
+- [ ] **RF-324** 🆕 **Rate limiting in-memory (ADR-016) — hoy no existe ninguno.** (M) — _detectado 6-jun: grep de rateLimit en `src/` solo arroja el manejo del 429 ajeno de Supabase; verify-otp (brute-force del OTP de 6 dígitos), messages (spam) y check-username (enumeración) no tienen throttle propio._
+  - Helper simple en `src/lib` (ventana fija por `IP + userId`/email, mapa en memoria con limpieza por TTL) — ADR-016 lo define para el MVP; documentar migración a Redis en F2.
+  - Aplicar al menos en: `POST /api/auth/verify-otp` (anti brute-force OTP), `POST /api/matches/[id]/messages` (anti-spam), `GET /api/onboarding/check-username` (anti-enumeración).
+  - Responder 429 con mensaje i18n cuando se excede; no filtrar si la cuenta existe (check-username).
+  - **TDD**: tests del helper (permite N en la ventana, bloquea el N+1, resetea tras la ventana) + test de cada route que devuelve 429 al exceder.
+
+- [ ] **RF-328** 🆕 **No existen error.tsx / not-found.tsx / loading.tsx en el App Router.** (M) — _detectado 6-jun: no hay ningún boundary de ruta en `src/app` (ni `global-error.tsx`); un 404 (`notFound()` en `matches/[id]/page.tsx:38`) cae al not-found por defecto de Next sin branding ni i18n, y un fallo de Server Component muestra la pantalla de error genérica._
+  - Agregar `src/app/not-found.tsx` y `src/app/error.tsx` (client) branded: tokens + i18n + CTA a `/album`/`/`. Considerar `global-error.tsx`.
+  - Agregar `loading.tsx` con skeleton para las rutas server async (`/matches`, `/conversations`, `/album`) que hoy hacen `await` sin fallback de ruta.
+  - **TDD**: render test de not-found/error (asserts de texto i18n + CTA con href correcto).
+
+### Should (S)
+
+- [ ] **RF-322** 🆕 **Tests de componentes client con lógica de verdad — hoy 0 tests.** (S) — _detectado 6-jun: AlbumClient (optimistic+debounce+rollback), LoginForm (máquina de estados OTP) y chat-panel (polling 10s) concentran lógica de UX crítica sin un solo test; el toolchain (@testing-library/react, user-event, jsdom) ya está instalado pero el project `dom` de vitest limita el include a `src/components/landing/**`._
+  - Ampliar el `include` del project `dom` en `vitest.config.ts` (ej. `src/components/**` + `src/app/**/*{Client,Form}.tsx`) o crear un project jsdom dedicado para `app/`.
+  - **AlbumClient**: con fake timers — update optimista del count, flush del debounce dispara el PATCH, rollback + estado de error si el PATCH falla. (Ojo: si se hace junto a RF-213, testear el buffer compartido + flush único.)
+  - **LoginForm**: transición email→code, éxito (verify-otp 200 → redirect), código inválido (muestra error sin avanzar).
+  - **chat-panel**: con fake timers — el polling dispara fetch cada 10s; cleanup del interval en unmount.
+  - **TDD**: escribir los tests, verlos fallar/pasar; usar `vi.useFakeTimers()` para debounce/poll.
+
+- [ ] **RF-325** 🆕 **El logger estructurado obligatorio no se usa en ningún lado.** (S) — _detectado 6-jun: `src/lib/logger.ts` exporta `logger` pero grep de `lib/logger` en todo `src/` da 0 imports → código muerto mandado por CLAUDE.md §9; los catch de las routes devuelven JSON sin loguear, así que en prod no hay rastro estructurado de fallos._
+  - Decisión A (recomendada): adoptar `logger.error(...)` en los `catch` de services/routes para errores 500 inesperados (sin loguear secretos ni PII — CLAUDE.md §15). Empezar por los `catch` que hoy hacen `throw`/`return 500` mudos.
+  - Decisión B: si se decide no usarlo en el MVP, borrar `src/lib/logger.ts` y relajar la regla en CLAUDE.md §9 para que no quede deuda mandada por doc.
+  - **TDD**: si A, test de que un 500 inesperado en una route llama `logger.error` (spy).
+
+- [ ] **RF-326** 🆕 **Tests directos de schemas Zod — 6 de 7 sin test propio.** (S) — _detectado 6-jun: solo `match.schema.ts` se importa desde tests; message/notification/onboarding/rating/settings/sticker dependen 100% de que el happy-path de su route los ejercite, justo donde un off-by-one se escapa._
+  - Test unitario por schema cubriendo bordes: acepta válidos / rechaza fuera de rango. Empezar por los de más reglas: sticker (count 0-99 entero), onboarding (username 3-20 alfanumérico/regex), rating (1-5 + comentario máx 200), message (máx 1000).
+  - Son funciones puras de dominio (CLAUDE.md §6) — baratas, sin mocks.
+  - **TDD**: para cada schema, casos límite (mínimo, máximo, fuera por 1, tipo inválido).
+
+- [ ] **RF-327** 🆕 **CI usa pnpm 9 pero el repo declara pnpm@10.34.1 — drift de versión.** (S) — _detectado 6-jun: `.github/workflows/ci.yml:17` setea `PNPM_VERSION: 9` y los 3 jobs hacen `--frozen-lockfile`, pero `package.json:10` declara `pnpm@10.34.1` y CLAUDE.md §3 dice pnpm 10; el lockfile `9.0` lo salva hoy, pero un cambio de resolución entre majors puede romper el gate con --frozen-lockfile._
+  - Subir `PNPM_VERSION` a `10` en `ci.yml` (o quitar el override y dejar que `pnpm/action-setup` respete el campo `packageManager`).
+  - Verificar que `pnpm install --frozen-lockfile` sigue verde en CI tras el cambio.
+  - **Criterio**: CI, corepack local y `package.json` apuntan a la misma major de pnpm.
+
+- [ ] **RF-329** 🆕 **`text-accent` (naranja) sobre fondo claro falla WCAG AA (2.8:1).** (S) — _detectado 6-jun: `--accent #f97316` sobre `--background #ffffff` da 2.80:1 (falla AA normal 4.5 y grande 3.0); peor sobre bg-accent/10 (2.53:1, sticker-cell count) y bg-accent/5 (2.67:1, ScrollHint). Solo afecta light (dark da 6.8:1). El badge bg-accent+accent-foreground SÍ pasa — el problema es naranja como TEXTO sobre claro._
+  - Agregar a `globals.css` un token tipo `--accent-text` más oscuro (~`#c2410c`, ≈4.5:1 sobre blanco) para light, y su par en dark; exponerlo en `@theme inline` (`--color-accent-text`).
+  - Reemplazar `text-accent` por `text-accent-text` en usos de naranja como foreground sobre fondos claros: `sticker-cell.tsx:32` (contador de repes), `ScrollHint.tsx:21`, `AlbumClient.tsx:155` (stat), eyebrows en naranja.
+  - Verificar que dark sigue OK y que el badge/bg-accent no cambia.
+  - **Criterio**: contraste ≥ 4.5:1 (texto normal) en todos los usos de naranja como texto sobre claro.
+
+- [ ] **RF-330** 🆕 **Color crudo `bg-black/80` en el overlay del Dialog.** (S) — _detectado 6-jun: es la ÚNICA clase de color cruda real en todo `src/` (grep exhaustivo); `dialog.tsx:24` la trae heredada del template shadcn, viola la regla 6 no-negociable de tokens. El Dialog se usa en el rating-modal. En dark, bg-black/80 se confunde con el fondo grafito y pierde el scrim._
+  - Reemplazar `bg-black/80` por `bg-foreground/60` (token), o agregar un `--overlay` a `globals.css` (light+dark) y consumirlo.
+  - Verificar el scrim en light y dark (que se vea el oscurecido sobre el fondo grafito en dark).
+  - **Criterio**: cero clases de color crudas en `src/` (grep limpio); overlay visible en ambos modos.
+
+### Could (C)
+
+- [ ] **RF-331** 🆕 **5 componentes en `src/app` usan PascalCase, rompiendo kebab-case (§9).** (C) — _detectado 6-jun: `SettingsForm.tsx`, `AlbumClient.tsx`, `OnboardingForm.tsx`, `LoginForm.tsx` y `components/coming-soon/ScrollHint.tsx` usan PascalCase; todo `src/components/**` cumple kebab-case._
+  - Renombrar a `settings-form.tsx`, `album-client.tsx`, `onboarding-form.tsx`, `login-form.tsx`, `scroll-hint.tsx` y actualizar todos los imports.
+  - Agregar regla de lint (`unicorn/filename-case` con `kebabCase`) para que el CI lo atrape y no vuelva a divergir.
+  - **Criterio**: `pnpm lint` falla ante un archivo PascalCase nuevo; build/type-check verdes tras el rename.
+
+- [ ] **RF-332** 🆕 **`SettingsForm.tsx` excede el límite de 200-300 líneas (§9).** (C) — _detectado 6-jun: 326 líneas, por encima del techo; AlbumClient (285) y LoginForm (244) están cerca pero dentro._
+  - Extraer sub-componentes por sección (perfil / ubicación / cuenta) y/o un hook de form (que además poblaría `src/hooks`, hoy solo `.gitkeep`).
+  - Mantener tokens + i18n; no cambiar comportamiento.
+  - **Criterio**: ningún módulo > 300 líneas; tests/verde.
+
+- [ ] **RF-333** 🆕 **`POST /api/auth/verify-otp` valida a mano en vez de con Zod.** (C) — _detectado 6-jun: `route.ts:19-25` lee `request.json()` y valida email/token con checks manuales (typeof/.trim()/length<6) sin schema; no hay schema de auth/otp en `src/lib/validations/`. El resto de routes con body usan Zod._
+  - Crear `src/lib/validations/auth.schema.ts` con `VerifyOtpSchema` (email válido + token de 6 dígitos numéricos).
+  - Usar `safeParse` en la route → 400 ante input inválido, alineando con el patrón session→Zod→Service→JSON.
+  - **TDD**: tests del schema (acepta válido, rechaza email malo/token corto/no numérico) + la route devuelve 400.
+
+- [ ] **RF-334** 🆕 **`auth/logout` es la única API route sin test.** (C) — _detectado 6-jun: de las 17 routes, todas tienen `__tests__` excepto `auth/logout` (`route.ts:1-9`: signOut → redirect 303 a `/`); callback y verify-otp sí tienen test._
+  - Agregar `src/app/api/auth/logout/__tests__/route.test.ts` mockeando `createClient`: assert que se llama `auth.signOut()` y que el redirect apunta a `${origin}/` con status 303.
+  - **Criterio**: ~15 líneas; cierra la simetría del flujo de auth.
+
+- [ ] **RF-335** 🆕 **PATCH `/api/album/stickers/[stickerId]` da 500 ante body malformado.** (C) — _detectado 6-jun: `route.ts:18` hace `const body = await req.json();` sin guard, así que un JSON malformado lanza → 500 en vez del 400 que dan messages (`:32`) y onboarding (`:11-15`)._
+  - Cambiar a `const body = await req.json().catch(() => null);` y dejar que el `safeParse` devuelva 400.
+  - **TDD**: test de la route con body malformado → 400 (hoy 500).
+  - Nota: si RF-213 borra esta route, este fix se aplica al endpoint bulk nuevo en su lugar.
+
+- [ ] **RF-336** 🆕 **`--passWithNoTests` activo enmascara suites vacías.** (C) — _detectado 6-jun: `test` y `test:coverage` (`package.json:21,23`) usan `--passWithNoTests`; hoy no hay suites vacías, pero en un pipeline con auto-merge un glob roto o una suite vaciada pasaría en verde._
+  - Quitar `--passWithNoTests` de `test:coverage` (y de `test` salvo razón concreta de globs que matcheen vacío legítimamente).
+  - **Criterio**: un archivo de test sin casos `it()/test()` hace fallar el CI.
+
+- [ ] **RF-337** 🆕 **Dropdown de notificaciones sin Escape ni aria-expanded/haspopup.** (C) — _detectado 6-jun: `notification-bell.tsx:42-49` solo escucha `mousedown` afuera (sin Escape), y el botón (`:73-77`) no expone `aria-expanded`/`aria-haspopup`; un usuario de teclado/lector no sabe que abre un menú ni puede cerrarlo con Escape._
+  - Agregar `aria-expanded={isOpen}` y `aria-haspopup="menu"` al botón-campana.
+  - Handler de `keydown` Escape → `setIsOpen(false)`; idealmente devolver foco al botón al cerrar.
+  - **TDD**: test de que Escape cierra el dropdown y de que el botón expone los aria-* correctos.
+
+### Documentación (doc-drift, no es código)
+
+- [ ] **D-001** 🆕 📝 **CLAUDE.md declara Auth como stub no implementado, pero está 100% cerrado.** (M) — _detectado 6-jun: `src/lib/auth.ts:14-28` es `getSession()` real con `@supabase/ssr`; CLAUDE.md §2 (l.41), §12 (l.234,237) y §22 (l.357) siguen diciendo 'stub return null' / 'toda ruta da 401' / 'Auth como próximo gran hito'; BACKLOG RF-101..107 todos [x]._
+  - §2 (snapshot): cambiar 'Camino crítico pendiente: Auth ... stub return null' por el verdadero pendiente → **cablear el recompute de matches (RF-320)** + email (RF-406). Reflejar que Auth (magic link + OTP 6 dígitos + Google OAuth) está implementado.
+  - §12: reescribir — `getSession()` ya es real con `@supabase/ssr`; describir el flujo actual (middleware refresh, callback PKCE+token-hash, verify-otp, logout).
+  - §22 (última actualización): quitar 'Auth como próximo gran hito'.
+  - Tachar también de §21 los nits ya resueltos: back-link a `/matches` (la página existe) y bump postcss (lock resuelve 8.5.15).
+
+- [ ] **D-002** 🆕 📝 **README masivamente desactualizado y con guía de deploy peligrosa.** (S) — _detectado 6-jun, 6 sub-claims verificados: (1) 'Next.js 14' vs `next 16.2.6`; (2) 'Squash & merge a main' / 'main deploya automáticamente' vs ADR-021 develop=prod+rebase; (3) `docker compose up -d` sin docker-compose en el repo; (4) `pnpm db:seed` (real: `prisma:seed`) y `pnpm test:integration` (no existe); (5) 'pre-commit (Husky)' sin `.husky/`; (6) 'Lighthouse CI por PR' deshabilitado._
+  - Corregir stack a Next 16. Reescribir la sección de deploy: **develop = PRODUCCIÓN, merge por rebase, nunca push directo, nunca squash a main**.
+  - Corregir nombres de scripts (`prisma:seed`, `db:reset`), quitar `test:integration`.
+  - Quitar el paso de docker-compose (o agregar el archivo) y las menciones a Husky/Lighthouse-CI (o marcarlas como no implementadas).
+  - Unificar la marca a CambiaLa (ligado al flag de naming §21).
+
+- [ ] **D-003** 🆕 📝 **CONTRIBUTING describe un flujo de PR contrario al pipeline real.** (C) — _detectado 6-jun: título 'Contribuir a Figus Mundial' (marca vieja); :51 'Squash & merge a develop' vs ADR-021 (rebase); :49 'CI ... + lighthouse' (ci.yml no corre lighthouse); :50 'Code review obligatorio de otra persona' (incompatible con auto-merge del agente)._
+  - Alinear con ADR-021: merge por rebase (no squash), reflejar el flujo auto-merge, quitar 'lighthouse' del gate descrito, actualizar la marca a CambiaLa.
+  - Tachar de CLAUDE.md §21 los nits ya cerrados (back-link a `/matches`, postcss ≥ 8.5.10) — dejar solo los vigentes (naming/dominio, catálogo sintético).
+
+---
+
 ## F2 (post-MVP, NO construir hasta MVP estable)
 
 RF-117, RF-118 (cuentas), RF-212/213/214 (multi-álbum UI, import por foto/CSV), RF-314/315/316 (hint de valor, packs, mapa), RF-410 (Web Push), RF-507/508/509 (chat realtime, typing, read receipts), RF-605/606 (reportes, moderación), RF-811/812 (blog, páginas por álbum), RF-1006/1007/1008 (cola reportes, flagged, métricas), RF-1101–1106 (Plan Pro / monetización).
