@@ -9,6 +9,7 @@ const mockRepo = vi.hoisted(() => ({
   updateProfile: vi.fn(),
   updateLocation: vi.fn(),
   findByUsername: vi.fn(),
+  deleteUserCascade: vi.fn(),
 }));
 
 vi.mock('@/repositories/user.repository', () => ({
@@ -191,5 +192,26 @@ describe('userService.getPublicProfileUser', () => {
     await expect(userService.getPublicProfileUser('private')).rejects.toBeInstanceOf(
       PublicProfileNotFoundError,
     );
+  });
+});
+
+describe('userService.deleteAccount', () => {
+  it('calls deleteUserCascade after verifying user exists', async () => {
+    mockRepo.findById.mockResolvedValue({ id: 'cuid-user-1' });
+    mockRepo.deleteUserCascade.mockResolvedValue(undefined);
+
+    await userService.deleteAccount('cuid-user-1');
+
+    expect(mockRepo.findById).toHaveBeenCalledWith('cuid-user-1');
+    expect(mockRepo.deleteUserCascade).toHaveBeenCalledWith('cuid-user-1');
+  });
+
+  it('throws UserNotFoundError when user does not exist', async () => {
+    mockRepo.findById.mockResolvedValue(null);
+
+    await expect(userService.deleteAccount('nonexistent')).rejects.toBeInstanceOf(
+      UserNotFoundError,
+    );
+    expect(mockRepo.deleteUserCascade).not.toHaveBeenCalled();
   });
 });
