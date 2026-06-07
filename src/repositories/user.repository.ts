@@ -195,4 +195,19 @@ export const userRepository = {
       },
     });
   },
+
+  async deleteUserCascade(userId: string): Promise<void> {
+    // Delete in FK-safe order (Match/Rating/Message have no cascade from User)
+    await prisma.rating.deleteMany({
+      where: { OR: [{ raterId: userId }, { ratedId: userId }] },
+    });
+    // Deleting matches cascades their messages (Message.matchId onDelete: Cascade)
+    await prisma.match.deleteMany({
+      where: { OR: [{ userAId: userId }, { userBId: userId }] },
+    });
+    // Safety net for any messages sent by user not covered by match cascade
+    await prisma.message.deleteMany({ where: { fromUserId: userId } });
+    // User delete cascades UserSticker and Notification
+    await prisma.user.delete({ where: { id: userId } });
+  },
 };

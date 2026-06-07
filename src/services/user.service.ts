@@ -83,4 +83,10 @@ export const userService = {
     if (!user) throw new UserNotFoundError();
     await userRepository.updateMatchmaking(userId, data);
   },
+
+  async deleteAccount(userId: string): Promise<void> {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new UserNotFoundError();
+    await userRepository.deleteUserCascade(userId);
+  },
 };
