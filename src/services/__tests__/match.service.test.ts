@@ -9,6 +9,8 @@ const mockRepo = vi.hoisted(() => ({
   findActiveByUserWithPartners: vi.fn(),
   updateStatus: vi.fn(),
   markInactiveByLastSeen: vi.fn(),
+  findMatchmakingProfile: vi.fn(),
+  findCandidatePool: vi.fn(),
 }));
 
 const mockMessageRepo = vi.hoisted(() => ({
@@ -17,6 +19,13 @@ const mockMessageRepo = vi.hoisted(() => ({
 
 const mockNotificationService = vi.hoisted(() => ({
   createNotification: vi.fn(),
+}));
+
+const mockLogger = vi.hoisted(() => ({
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
 }));
 
 vi.mock('@/repositories/match.repository', () => ({
@@ -31,7 +40,11 @@ vi.mock('@/services/notification.service', () => ({
   notificationService: mockNotificationService,
 }));
 
-import { matchService } from '../match.service';
+vi.mock('@/lib/logger', () => ({
+  logger: mockLogger,
+}));
+
+import { matchService, MAX_POOL_SIZE } from '../match.service';
 import type { MatchResult } from '@/types/match';
 
 const NOW = new Date('2026-06-01T12:00:00Z');
@@ -496,5 +509,300 @@ describe('matchService.cleanupExpiredMatches', () => {
     mockRepo.markInactiveByLastSeen.mockResolvedValue(42);
     const count = await matchService.cleanupExpiredMatches();
     expect(count).toBe(42);
+  });
+});
+
+describe('matchService.recomputeForUser', () => {
+  // Target offerable = count >= 2 (offerUniques default false). Absent number = "needs".
+  function makeProfile(overrides: object = {}) {
+    return {
+      id: 'user-a',
+      city: 'Montevideo',
+      neighborhood: 'Pocitos',
+      matchRadius: 'department',
+      offerUniques: false,
+      participatesInMatchmaking: true,
+      lastSeenAt: NOW,
+      stickers: [] as { number: string; count: number }[],
+      ...overrides,
+    };
+  }
+  function makeCandidate(overrides: object = {}) {
+    return {
+      id: 'user-b',
+      city: 'Montevideo',
+      neighborhood: 'Pocitos',
+      offerUniques: false,
+      participatesInMatchmaking: true,
+      lastSeenAt: NOW,
+      stickers: [] as { number: string; count: number }[],
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    // saveMatchResult runs for real → echo the upsert input into a DB row.
+    mockRepo.upsert.mockImplementation(async (input) => makeDbMatch({ ...input }));
+  });
+
+  it('arms the pool, runs the engine and persists each match (full chain + notifications)', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(
+      makeProfile({ id: 'user-a', stickers: [{ number: 'URU1', count: 2 }] }),
+    );
+    mockRepo.findCandidatePool.mockResolvedValue([
+      makeCandidate({ id: 'user-b', stickers: [{ number: 'ARG2', count: 2 }] }),
+    ]);
+
+    const result = await matchService.recomputeForUser('user-a', NOW);
+
+    expect(result).toEqual({ matched: 1 });
+    expect(mockRepo.upsert).toHaveBeenCalledTimes(1);
+    // user-a < user-b → no swap; A gives URU1, gets ARG2.
+    const call = mockRepo.upsert.mock.calls[0][0];
+    expect(call.userAId).toBe('user-a');
+    expect(call.userBId).toBe('user-b');
+    expect(call.aToB).toEqual(['URU1']);
+    expect(call.bToA).toEqual(['ARG2']);
+    expect(call.score).toBe(1);
+    // new match → notification to both parties (RF-409)
+    expect(mockNotificationService.createNotification).toHaveBeenCalledTimes(2);
+  });
+
+  it('writes nothing when no candidate is complementary', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(
+      makeProfile({ stickers: [{ number: 'URU1', count: 2 }] }),
+    );
+    // candidate already has URU1 and offers nothing the target needs
+    mockRepo.findCandidatePool.mockResolvedValue([
+      makeCandidate({ stickers: [{ number: 'URU1', count: 2 }] }),
+    ]);
+
+    const result = await matchService.recomputeForUser('user-a', NOW);
+
+    expect(result).toEqual({ matched: 0 });
+    expect(mockRepo.upsert).not.toHaveBeenCalled();
+    expect(mockNotificationService.createNotification).not.toHaveBeenCalled();
+  });
+
+  it('returns {matched:0} and skips the pool when the target does not exist', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(null);
+
+    const result = await matchService.recomputeForUser('ghost', NOW);
+
+    expect(result).toEqual({ matched: 0 });
+    expect(mockRepo.findCandidatePool).not.toHaveBeenCalled();
+  });
+
+  it('returns {matched:0} and skips the pool when the target opted out of matchmaking', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(
+      makeProfile({ participatesInMatchmaking: false }),
+    );
+
+    const result = await matchService.recomputeForUser('user-a', NOW);
+
+    expect(result).toEqual({ matched: 0 });
+    expect(mockRepo.findCandidatePool).not.toHaveBeenCalled();
+  });
+
+  it('returns {matched:0} and skips the pool when radius is local but the target has no city', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(
+      makeProfile({ matchRadius: 'department', city: null }),
+    );
+
+    const result = await matchService.recomputeForUser('user-a', NOW);
+
+    expect(result).toEqual({ matched: 0 });
+    expect(mockRepo.findCandidatePool).not.toHaveBeenCalled();
+  });
+
+  it('logs a warning and bails on an unknown matchRadius value (defensive cast)', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(makeProfile({ matchRadius: 'galaxy' }));
+
+    const result = await matchService.recomputeForUser('user-a', NOW);
+
+    expect(result).toEqual({ matched: 0 });
+    expect(mockRepo.findCandidatePool).not.toHaveBeenCalled();
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      'recompute: invalid matchRadius',
+      expect.objectContaining({ radius: 'galaxy' }),
+    );
+  });
+
+  it('loads the pool without a city filter when radius is country', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(
+      makeProfile({ matchRadius: 'country', stickers: [{ number: 'URU1', count: 2 }] }),
+    );
+    mockRepo.findCandidatePool.mockResolvedValue([
+      // different city — country radius must still match
+      makeCandidate({ city: 'Salto', stickers: [{ number: 'ARG2', count: 2 }] }),
+    ]);
+
+    const result = await matchService.recomputeForUser('user-a', NOW);
+
+    expect(result).toEqual({ matched: 1 });
+    const poolCall = mockRepo.findCandidatePool.mock.calls[0];
+    expect(poolCall[0]).toBe('user-a');
+    expect(poolCall[1].city).toBeNull();
+    expect(poolCall[1].cutoffDate).toBeInstanceOf(Date);
+  });
+
+  // RF-318: location fallback. Complementary sets so a location match yields matched:1.
+  const complementaryTarget = [{ number: 'URU1', count: 2 }];
+  const complementaryCand = [{ number: 'ARG2', count: 2 }];
+
+  it('RF-318 (a): same neighborhood + radius neighborhood → match', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(
+      makeProfile({
+        matchRadius: 'neighborhood',
+        neighborhood: 'Pocitos',
+        stickers: complementaryTarget,
+      }),
+    );
+    mockRepo.findCandidatePool.mockResolvedValue([
+      makeCandidate({ neighborhood: 'Pocitos', stickers: complementaryCand }),
+    ]);
+    expect(await matchService.recomputeForUser('user-a', NOW)).toEqual({ matched: 1 });
+  });
+
+  it('RF-318 (b): different neighborhood + radius neighborhood → no match', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(
+      makeProfile({
+        matchRadius: 'neighborhood',
+        neighborhood: 'Pocitos',
+        stickers: complementaryTarget,
+      }),
+    );
+    mockRepo.findCandidatePool.mockResolvedValue([
+      makeCandidate({ neighborhood: 'Centro', stickers: complementaryCand }),
+    ]);
+    expect(await matchService.recomputeForUser('user-a', NOW)).toEqual({ matched: 0 });
+  });
+
+  it('RF-318 (c): candidate without neighborhood, same dept, radius department → match', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(
+      makeProfile({
+        matchRadius: 'department',
+        neighborhood: 'Pocitos',
+        stickers: complementaryTarget,
+      }),
+    );
+    mockRepo.findCandidatePool.mockResolvedValue([
+      makeCandidate({ neighborhood: null, stickers: complementaryCand }),
+    ]);
+    expect(await matchService.recomputeForUser('user-a', NOW)).toEqual({ matched: 1 });
+  });
+
+  it('RF-318 (d): both without neighborhood, same dept, radius department → match', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(
+      makeProfile({ matchRadius: 'department', neighborhood: null, stickers: complementaryTarget }),
+    );
+    mockRepo.findCandidatePool.mockResolvedValue([
+      makeCandidate({ neighborhood: null, stickers: complementaryCand }),
+    ]);
+    expect(await matchService.recomputeForUser('user-a', NOW)).toEqual({ matched: 1 });
+  });
+
+  it('RF-318 (e): different department → no match (radius department)', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(
+      makeProfile({ matchRadius: 'department', city: 'Montevideo', stickers: complementaryTarget }),
+    );
+    mockRepo.findCandidatePool.mockResolvedValue([
+      makeCandidate({ city: 'Canelones', stickers: complementaryCand }),
+    ]);
+    expect(await matchService.recomputeForUser('user-a', NOW)).toEqual({ matched: 0 });
+  });
+
+  it('filters inactive candidates via the engine (lastSeenAt older than 30 days)', async () => {
+    const stale = new Date(NOW.getTime() - 31 * 24 * 60 * 60 * 1000);
+    mockRepo.findMatchmakingProfile.mockResolvedValue(
+      makeProfile({ matchRadius: 'country', stickers: complementaryTarget }),
+    );
+    mockRepo.findCandidatePool.mockResolvedValue([
+      makeCandidate({ lastSeenAt: stale, stickers: complementaryCand }),
+    ]);
+
+    expect(await matchService.recomputeForUser('user-a', NOW)).toEqual({ matched: 0 });
+    expect(mockRepo.upsert).not.toHaveBeenCalled();
+  });
+
+  it('persists multiple matches ordered by score descending', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(
+      makeProfile({
+        matchRadius: 'country',
+        stickers: [
+          { number: 'URU1', count: 2 },
+          { number: 'URU2', count: 2 },
+          { number: 'URU3', count: 2 },
+        ],
+      }),
+    );
+    mockRepo.findCandidatePool.mockResolvedValue([
+      // low score: offers 1 the target needs
+      makeCandidate({ id: 'user-lo', stickers: [{ number: 'ARG1', count: 2 }] }),
+      // high score: offers 2 the target needs
+      makeCandidate({
+        id: 'user-hi',
+        stickers: [
+          { number: 'ARG1', count: 2 },
+          { number: 'ARG2', count: 2 },
+        ],
+      }),
+    ]);
+
+    const result = await matchService.recomputeForUser('user-a', NOW);
+
+    expect(result).toEqual({ matched: 2 });
+    expect(mockRepo.upsert).toHaveBeenCalledTimes(2);
+    const scores = mockRepo.upsert.mock.calls.map((c) => c[0].score);
+    expect(scores).toEqual([2, 1]);
+  });
+
+  it('rethrows and logs attempted count if a saveMatchResult fails mid-loop', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(
+      makeProfile({
+        matchRadius: 'country',
+        stickers: [
+          { number: 'URU1', count: 2 },
+          { number: 'URU2', count: 2 },
+        ],
+      }),
+    );
+    mockRepo.findCandidatePool.mockResolvedValue([
+      makeCandidate({
+        id: 'user-hi',
+        stickers: [
+          { number: 'ARG1', count: 2 },
+          { number: 'ARG2', count: 2 },
+        ],
+      }),
+      makeCandidate({ id: 'user-lo', stickers: [{ number: 'ARG1', count: 2 }] }),
+    ]);
+    mockRepo.upsert
+      .mockResolvedValueOnce(makeDbMatch())
+      .mockRejectedValueOnce(new Error('db down'));
+
+    await expect(matchService.recomputeForUser('user-a', NOW)).rejects.toThrow('db down');
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'recompute: partial match persistence failed',
+      expect.objectContaining({ attempted: 2 }),
+    );
+  });
+
+  it('truncates and warns when the pool exceeds MAX_POOL_SIZE', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(
+      makeProfile({ matchRadius: 'country', stickers: [] }),
+    );
+    const huge = Array.from({ length: MAX_POOL_SIZE + 1 }, (_, i) =>
+      makeCandidate({ id: `c${i}`, stickers: [] }),
+    );
+    mockRepo.findCandidatePool.mockResolvedValue(huge);
+
+    const result = await matchService.recomputeForUser('user-a', NOW);
+
+    expect(result).toEqual({ matched: 0 });
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      'recompute: candidate pool truncated',
+      expect.objectContaining({ poolSize: MAX_POOL_SIZE + 1, max: MAX_POOL_SIZE }),
+    );
   });
 });
