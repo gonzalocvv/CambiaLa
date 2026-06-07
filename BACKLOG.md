@@ -135,7 +135,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **RF-311** Match card: avatar/username del otro, barrio, distancia (si geo), score, "te da X / le das Y". (M)
 - [x] **RF-312** Detalle de match: dos columnas "lo que te ofrece" / "lo que le das". (M)
 - [x] **RF-313** Marcar match `completed` (cualquiera de las dos partes). (M)
-- [ ] **RF-318** 🆕 **Fallback de ubicación: sin barrio ⇒ todo el departamento.** (M) — _pedido por Gonza 6-jun. Refina RF-302; aplicar cuando se implemente RF-307._
+- [ ] **RF-318** ⏸️ **RESERVADO** (ola supervisada — no tomar por el routine) · 🆕 **Fallback de ubicación: sin barrio ⇒ todo el departamento.** (M) — _pedido por Gonza 6-jun. Refina RF-302; aplicar cuando se implemente RF-307._
   - Regla: si el usuario **no seteó barrio** (`neighborhood = null`, ej. salteó el onboarding o no es de Montevideo), matchea contra **todo su departamento**. Si seteó barrio y su config es "mismo barrio", solo se restringe cuando **ambos** lados tienen barrio; un usuario sin barrio NUNCA queda excluido del pool departamental.
   - Nadie debe quedar con 0 matches por no haber elegido barrio — es el caso típico del interior (depto sin lista de barrios) y del que saltea pasos.
   - **TDD**: casos en los tests del candidate-pool: (a) ambos con barrio igual → match; (b) ambos con barrio distinto, config barrio → no match; (c) uno sin barrio, mismo depto → match; (d) ambos sin barrio, mismo depto → match; (e) deptos distintos → no match (salvo config "todo Uruguay").
@@ -167,9 +167,9 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **RF-404** Badge campana en header con contador no leídas (refresh 60s). (M) — _Corrida 23: NotificationBell client component con polling 60s en AppNavbar_
 - [x] **RF-405** Dropdown con últimas 10, click navega y marca leída. (M) — _Corrida 23: NotificationDropdown con mark-as-read + navegación por tipo_
 - [x] **RF-409** Trigger automático de notificación al crear match nuevo (ambas partes). (M) — _Corrida 23: matchService.saveMatchResult crea new_match para ambos si es match nuevo_
-- [ ] **RF-406** Email transaccional via Resend (nuevo match, mensaje, reseña — **el de login ya sale por SMTP de Supabase, NO duplicarlo**). (M) — _**ya NO está 🔒** (2026-06-06): `RESEND_API_KEY` cargada (`.env.local` + Vercel), dominio `cambiala.uy` **verificado**, SMTP propio en Supabase probado E2E. Falta solo el **código**: dependencia `resend` + envío en `notification.service` + templates HTML (estética del mail de login, ref. `../email-template-magic-link.html`). Remitente `consultas@cambiala.uy`._
-- [ ] **RF-407** Frecuencia de email configurable (instant / daily / weekly / never). (M)
-- [ ] **RF-408** Unsubscribe en footer (`emailFrequency=never`). (M)
+- [ ] **RF-406** ⏸️ **RESERVADO** (ola supervisada — no tomar por el routine) · Email transaccional via Resend (nuevo match, mensaje, reseña — **el de login ya sale por SMTP de Supabase, NO duplicarlo**). (M) — _**ya NO está 🔒** (2026-06-06): `RESEND_API_KEY` cargada (`.env.local` + Vercel), dominio `cambiala.uy` **verificado**, SMTP propio en Supabase probado E2E. Falta solo el **código**: dependencia `resend` + envío en `notification.service` + templates HTML (estética del mail de login, ref. `../email-template-magic-link.html`). Remitente `consultas@cambiala.uy`._
+- [ ] **RF-407** ⏸️ **RESERVADO** (ola supervisada — no tomar por el routine) · Frecuencia de email configurable (instant / daily / weekly / never). (M)
+- [ ] **RF-408** ⏸️ **RESERVADO** (ola supervisada — no tomar por el routine) · Unsubscribe en footer (`emailFrequency=never`). (M)
 
 ---
 
@@ -213,7 +213,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - Reglas duras: `aria-hidden="true"` en lo decorativo, respetar **`prefers-reduced-motion`** (estado estático con las dos figuritas ya encajadas), no degradar LCP (decorativo, sin imágenes pesadas; SVG/divs).
   - **Figuritas genéricas estilizadas** (número + colores por token, ej. celeste/naranja) — NUNCA imágenes reales del álbum Panini (IP de terceros).
   - Inspiración permitida: componentes de animación de 21st.dev, adaptados a tokens. (Si está instalada una skill de UI/UX en el entorno, usarla para refinar.)
-- [ ] **RF-824** 🆕 📱 **Navbar mobile: bottom tab bar** — el nav actual desborda en mobile. (M) — _reportado por Gonza 6-jun con captura: "Mi álbum"/"Mis matches" quiebran en dos líneas y el header ocupa demasiado alto._
+- [ ] **RF-824** ⏸️ **RESERVADO** (ola supervisada — no tomar por el routine) · 🆕 📱 **Navbar mobile: bottom tab bar** — el nav actual desborda en mobile. (M) — _reportado por Gonza 6-jun con captura: "Mi álbum"/"Mis matches" quiebran en dos líneas y el header ocupa demasiado alto._
   - En viewport `< md`: header reducido a **logo + campanita de notificaciones**; navegación principal pasa a **bottom tab bar fija** (4 tabs: Mi álbum, Matches, Chats, Ajustes) con ícono + label corto, área táctil ≥ 44px, `safe-area-inset-bottom` (iPhone), estado activo con token `primary`.
   - En `≥ md` queda el navbar horizontal actual.
   - El badge de no-leídos de la campanita y el de chats sin leer deben verse en los tabs correspondientes.
@@ -225,6 +225,11 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - `Metadata.title` → incluir la frase de búsqueda real: ej. "CambiaLa — Cambiar figuritas del Mundial 2026 en Uruguay". `Metadata.description` alineada al posicionamiento (match por barrio).
   - H1/H2 de la landing deben contener naturalmente "cambiar figuritas", "Mundial 2026", "Uruguay", "barrio". Revisar OG tags.
   - Actualizar también `/como-funciona` para reflejar el matching como protagonista.
+
+- [ ] **RF-825** ⏸️ **RESERVADO** (ola supervisada — no tomar por el routine) · 🆕 🎨 **Animación v2 — más sharp/realista** (polish del hero). (S) — _feedback de Gonza post-landing: subir realismo SIN imágenes ni IP de Panini, manteniendo composite-only (solo transform/opacity)._
+  - **Álbumes → páginas de álbum reales**: fondo con tinte papel (token, no blanco puro), header de página con banda de equipo (código + franja de color), celdas como espacios impresos (marco fino + número de figurita impreso en gris claro dentro del hueco vacío). Opcional: doble página con lomo central.
+  - **Figuritas → stickers troquelados**: borde blanco grueso (4-5px), menos radius, marco interior fino, contraste más alto (tonos plenos de los tokens, no `/10`), número dorsal grande + código de equipo, dorada plena (`special`) para la especial. Al encajar debe "tapar" el espacio impreso con su mismo número.
+  - 🎨: `/design-consultation` antes de diseñar; loop de screenshots Playwright (390/1440 × light/dark) antes de cerrar.
 
 ### PWA
 
@@ -260,7 +265,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ### Must (M)
 
-- [ ] **RF-320** 🆕 🔥 **Cablear el recompute de matches en runtime — el engine existe pero NINGÚN path lo invoca.** (M) — _detectado 6-jun por auditoría: `findMatchesForUser` y `matchService.saveMatchResult` tienen 100% cobertura pero cero callers fuera de tests; nada escribe la tabla `Match` → `/matches` SIEMPRE renderiza vacío para usuarios reales. Bloqueante #1 de launch._
+- [ ] **RF-320** ⏸️ **RESERVADO** (ola supervisada — no tomar por el routine) · 🆕 🔥 **Cablear el recompute de matches en runtime — el engine existe pero NINGÚN path lo invoca.** (M) — _detectado 6-jun por auditoría: `findMatchesForUser` y `matchService.saveMatchResult` tienen 100% cobertura pero cero callers fuera de tests; nada escribe la tabla `Match` → `/matches` SIEMPRE renderiza vacío para usuarios reales. Bloqueante #1 de launch._ — _Nota review RF-213 (M7/N5): al cablear el recompute, evaluar plegar el `getExistingStickerIds` (read extra) dentro del `INSERT…SELECT` con `JOIN` contra `Sticker` → 1 sola query (validación + write)._
   - **Disparador**: tras persistir cambios del álbum del usuario (en `stickerService.updateStickerCount` y, cuando exista, en el bulk de RF-213), recalcular matches para ese usuario de forma **SÍNCRONA** (sin Inngest — Inngest queda para RF-307, optimización post-RF-320; sus keys ya están cargadas). Para no inflar el request del PATCH por figurita, disparar el recompute en el flush bulk (RF-213) o, si RF-213 aún no está, hacerlo con dedupe/debounce a nivel service.
   - **Flujo**: cargar el pool de candidatos activos del mismo depto/filtros desde el repository (NO en el dominio) → llamar `findMatchesForUser` (función pura, intacta) → por cada resultado, `matchService.saveMatchResult` (que ya hace upsert idempotente + dispara la notificación `new_match` de RF-409 si es nuevo).
   - **Capas**: el orquestador vive en Service (ej. `matchService.recomputeForUser(userId)`); el armado del pool de candidatos vive en `matchRepository`/`stickerRepository` (único acceso a Prisma). El engine sigue puro. NO meter Prisma en `src/lib/match-engine.ts`.
@@ -268,7 +273,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - **TDD (en este orden)**: (1) test del service `recomputeForUser` con repos mockeados — verifica que arma el pool, llama al engine y persiste cada match vía `saveMatchResult`; (2) test de que un usuario sin contraparte no crea filas; (3) test de que tras el flush del álbum se llama el recompute (mock); (4) test de que un match nuevo dispara la notificación a ambas partes (RF-409 ya existe, asegurar el wiring).
   - **Criterio de aceptación**: dos usuarios del mismo depto con sets complementarios cargan sus álbumes → la tabla `Match` se puebla y ambos ven el match en `/matches` SIN ningún job/cron/Inngest corriendo.
 
-- [ ] **RF-321** 🆕 **Enforced coverage — el 100% del match engine NO está garantizado por el CI.** (M) — _detectado 6-jun: `vitest.config.ts` usa `coverage: { provider: 'v8' }` sin `all`/`include`/`thresholds`, así que el reporte solo mide archivos que algún test importa (summary dice 98.85% listando ~5 archivos) y `match-engine.ts` ni siquiera aparece; una regresión del engine a 80% mantendría el CI verde → CLAUDE.md §11 es honor-system._
+- [ ] **RF-321** ⏸️ **RESERVADO** (ola supervisada — no tomar por el routine) · 🆕 **Enforced coverage — el 100% del match engine NO está garantizado por el CI.** (M) — _detectado 6-jun: `vitest.config.ts` usa `coverage: { provider: 'v8' }` sin `all`/`include`/`thresholds`, así que el reporte solo mide archivos que algún test importa (summary dice 98.85% listando ~5 archivos) y `match-engine.ts` ni siquiera aparece; una regresión del engine a 80% mantendría el CI verde → CLAUDE.md §11 es honor-system._
   - Agregar a `vitest.config.ts`: `coverage.include: ['src/**/*.{ts,tsx}']` con `exclude` de tipos/`index`/`*.d.ts`/configs, para que el reporte muestre la cobertura real del repo.
   - Agregar `coverage.thresholds` con un override per-file de **100%** sobre `src/lib/match-engine.ts` (statements/branches/functions/lines) → el CI rompe si baja.
   - Quitar `--passWithNoTests` de `test:coverage` (ver RF-336) para que un glob roto no pase en verde.
@@ -280,7 +285,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - No tocar las rutas públicas (`/`, `/como-funciona`, `/precios`, `/privacidad`, `/terminos`, `/contacto`, `/auth/*`, `/u/[username]` público).
   - **TDD**: tests del middleware — usuario sin sesión en ruta protegida → 307/302 a `/auth/login`; usuario con sesión → pasa; ruta pública sin sesión → pasa.
 
-- [ ] **RF-324** 🆕 **Rate limiting in-memory (ADR-016) — hoy no existe ninguno.** (M) — _detectado 6-jun: grep de rateLimit en `src/` solo arroja el manejo del 429 ajeno de Supabase; verify-otp (brute-force del OTP de 6 dígitos), messages (spam) y check-username (enumeración) no tienen throttle propio._
+- [ ] **RF-324** 🆕 **Rate limiting in-memory (ADR-016) — hoy no existe ninguno.** (M) — _detectado 6-jun: grep de rateLimit en `src/` solo arroja el manejo del 429 ajeno de Supabase; verify-otp (brute-force del OTP de 6 dígitos), messages (spam) y check-username (enumeración) no tienen throttle propio._ — _Nota review RF-213 (L5): la ruta bulk `PATCH /api/album/stickers` (hasta 200 ítems, 1 SELECT + 1 upsert) debe ser de las primeras en aplicar el rate limit._
   - Helper simple en `src/lib` (ventana fija por `IP + userId`/email, mapa en memoria con limpieza por TTL) — ADR-016 lo define para el MVP; documentar migración a Redis en F2.
   - Aplicar al menos en: `POST /api/auth/verify-otp` (anti brute-force OTP), `POST /api/matches/[id]/messages` (anti-spam), `GET /api/onboarding/check-username` (anti-enumeración).
   - Responder 429 con mensaje i18n cuando se excede; no filtrar si la cuenta existe (check-username).
@@ -360,6 +365,11 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - Agregar `aria-expanded={isOpen}` y `aria-haspopup="menu"` al botón-campana.
   - Handler de `keydown` Escape → `setIsOpen(false)`; idealmente devolver foco al botón al cerrar.
   - **TDD**: test de que Escape cierra el dropdown y de que el botón expone los aria-* correctos.
+
+### Follow-ups del review de RF-213 (PR #68) — ítems nuevos
+
+- [ ] **RF-338** 🆕 **Scoping de la existence-check de stickers por álbum activo.** (S) — _review RF-213 (L4): `getExistingStickerIds` no filtra por `albumId`; la FK solo garantiza que el sticker existe en ALGÚN álbum. Hoy no explotable (solo mundial-2026 seedeado), pero **PRE-F2** (antes del 2do álbum) un usuario podría escribir counts de stickers de otro álbum vía el PATCH bulk. Filtrar `where: { id: { in: ids }, albumId }` (resolver albumId por slug, como `getAlbumWithUserCounts`)._
+- [ ] **RF-339** 🆕 **Perf de render del álbum (medir con profiler primero).** (C) — _review RF-213 (L3/L13/L14): `displayStats` recorre los ~896 stickers en cada render comparando por índice (frágil) → usar flag `hasInteracted`; `StickerCell` no está memoizado y `grouped` recrea objetos por click → `React.memo` + props primitivos para que solo re-renderice la celda tocada. **Verificar impacto real con React Profiler antes de invertir.**_
 
 ### Documentación (doc-drift, no es código)
 

@@ -23,9 +23,22 @@
 - La query raw se testea a nivel de **parámetros** (mock de `$executeRaw`); **no se ejecuta contra Postgres en CI** (no hay DB). **Validar 1 vez contra Supabase real** (o vía /qa): que upsertea, que `count`/`updatedAt` se actualizan, y que `UserSticker` no rompe por columna faltante (verificado en schema: NOT NULL sin default DB = `id`+`updatedAt`, ambos provistos; no hay `createdAt`).
 - Criterio de aceptación manual: en `/album`, ráfaga de clicks → **un solo** PATCH a `/api/album/stickers` en Network.
 
+### Review de gstack aplicado (PR #68)
+
+- Se corrió el review multi-lente (6 lentes, 39 hallazgos: 0 críticos, 6 high, 7 medium, 15 low, 11 nit). Gonza trió; aplicados en `feat/album-bulk`:
+  - **Lote 1 (pérdida de datos):** NUNCA vaciar el buffer antes de confirmar; `visibilitychange:hidden` → flush awaiteable (respeta `isFlushing`); `pagehide` → keepalive sin clear, solo keys que no están en vuelo; cleanup de timers + flush del remanente en unmount; chunking ≤200; reintento ante throw de red; 4xx purga / 5xx-red conserva; un reintento con backoff (~5s); estado de error **persistente con "Reintentar"** + aviso si `ignored>0`.
+  - **Lote 2 (hardening):** `stickerId .max(32)`; orden por stickerId antes del `unnest` (anti-deadlock); `Request` (no `NextRequest`); guard de array vacío; comentario del `updatedAt` manual.
+  - **Lote 3 (tests):** AlbumClient en jsdom (ráfaga→1 fetch, clicks en vuelo, retry red/5xx, 4xx purga, error+Reintentar, unmount flushea) + `chunkChanges` + bordes service/repo/schema → **359 tests**.
+  - **Lote 4 (docs):** **§15 de CLAUDE.md** ahora permite `$executeRaw` parametrizado para bulk upserts sin equivalente tipado (nunca `*Unsafe`); marcadores `⏸️ RESERVADO` en RF-318/320/321/406/407/408/824/825; follow-ups RF-338 (scoping albumId) y RF-339 (perf render); notas en RF-320 (M7/N5) y RF-324 (L5).
+  - **Descartados:** N1, N8, N10, N11.
+
+### ⚠️ Bloqueante de merge (lo corre Gonza)
+
+- **Validación manual contra Supabase real** de la query raw `bulkUpsertCounts` (el CI no tiene DB; los tests mockean `$executeRaw`): confirmar que upsertea y que `count`/`updatedAt` se actualizan. Sin esto, NO mergear.
+
 ### Próximo paso
 
-- Tras tu review + merge: **Ola RF-320 + RF-318 + RF-321** (`feat/matching-runtime`) — recompute síncrono colgado de `bulkUpdateCounts` (revive el core).
+- Tras tu review + validación Supabase + merge: **Ola RF-320 + RF-318 + RF-321** (`feat/matching-runtime`) — recompute síncrono colgado de `bulkUpdateCounts` (revive el core).
 
 ---
 
