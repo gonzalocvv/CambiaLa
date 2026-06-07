@@ -18,7 +18,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ## Estado actual del repo (al 31/05/2026) — _informativo, no son tareas_
 
-> 🔍 **Auditoría 2026-06-01** (ver `reports/audit-2026-06-01.md`): Supabase verificado **provisionado + migrado + seedeado** (896 stickers, 1 álbum; `migrate status` al día; RLS on). Ítems de config liberados abajo. Sigue 🔒 por credenciales/dashboard: **Inngest, Resend, Sentry, PostHog, Google OAuth, email del magic link**.
+> 🔍 **Auditoría 2026-06-01** (ver `reports/audit-2026-06-01.md`): Supabase verificado **provisionado + migrado + seedeado** (896 stickers, 1 álbum; `migrate status` al día; RLS on). Ítems de config liberados abajo. **Act. 2026-06-06**: Inngest + Resend + Google OAuth **ya configurados** (ver `reports/gstack-audit-2026-06-06.md` y la línea de keys abajo); siguen 🔒 solo **Sentry y PostHog**.
 
 - [x] Next.js 16 + React 19 + TypeScript strict + Tailwind 4 (bootstrap, PR #1)
 - [x] Prisma + schema inicial (PR #8)
@@ -27,8 +27,9 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] Coming soon page en producción (`/`, develop = prod)
 - [x] Supabase project + env vars (Supabase URL/keys, DATABASE_URL) — _(config verificada OK 2026-06-01: `ANON`/`SERVICE_ROLE`/`DATABASE_URL`/`DIRECT_URL` presentes en `.env.local`; `prisma migrate status` al día)_
 - [x] **Hotfix 2026-06-01 (Corrida 31)**: `src/lib/prisma.ts` fuerza `pgbouncer=true` contra el pooler de transacción de Supabase (`:6543`) → corrige el 500 intermitente `prepared statement "sN" does not exist` en `/album` y `/matches`. Pendiente que Gonza verifique el `DATABASE_URL` de Vercel (ver HANDOFF Corrida 31).
-- [x] **Fix 2026-06-01 (Corrida 32)**: login mostraba "Algo salió mal" al pedir el magic link → era `429 over_email_send_rate_limit` (cuota del SMTP built-in de Supabase). `LoginForm` ahora muestra mensaje específico ante 429. ⚠️ **Fix de capacidad real = configurar SMTP propio (Resend) en Supabase** (ver 🔒 abajo / HANDOFF Corrida 32).
-- [ ] 🔒 Resend / Sentry / PostHog / Inngest keys — **requiere credenciales** _(auditoría 2026-06-01: VACÍAS en `.env.local` → `RESEND_API_KEY`, `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`, `NEXT_PUBLIC_POSTHOG_KEY`, `SENTRY_DSN`, `SENTRY_AUTH_TOKEN`. Placeholders presentes pero sin secreto: `SENTRY_ORG/PROJECT`, `NEXT_PUBLIC_POSTHOG_HOST`, `RESEND_FROM_EMAIL`)_
+- [x] **Fix 2026-06-01 (Corrida 32)**: login mostraba "Algo salió mal" al pedir el magic link → era `429 over_email_send_rate_limit` (cuota del SMTP built-in de Supabase). `LoginForm` ahora muestra mensaje específico ante 429. ⚠️ Fix de capacidad real = configurar SMTP propio (Resend) en Supabase → ✅ **HECHO 2026-06-06**: SMTP propio (Resend, dominio `cambiala.uy`) configurado en Supabase y probado E2E; los códigos de login salen de `consultas@cambiala.uy`.
+- [x] ✅ **Resend + Inngest keys cargadas (2026-06-06)** — `RESEND_API_KEY`, `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY` en `.env.local` + Vercel. Resend con dominio `cambiala.uy` verificado + SMTP propio en Supabase (probado E2E). Falta solo el **código** de envío (RF-406) y el de matchmaking Inngest (RF-307, post-RF-320).
+- [ ] 🔒 Sentry / PostHog keys — **requiere credenciales** _(siguen VACÍAS: `NEXT_PUBLIC_POSTHOG_KEY`, `SENTRY_DSN`, `SENTRY_AUTH_TOKEN`; placeholders sin secreto: `SENTRY_ORG/PROJECT`, `NEXT_PUBLIC_POSTHOG_HOST`)_
 - [x] shadcn/ui base instalado y configurado _(verificado OK 2026-06-01: `src/components/ui/{button,input,label,card,badge,dialog}.tsx` + `components.json`)_
 - [x] next-intl (`es`) configurado _(verificado OK 2026-06-01: `src/i18n/request.ts` + `messages/es.json`)_
 - [x] Seed script del álbum Mundial 2026 (~900 figuritas) — ⛔ **bloqueo LEVANTADO** _(verificado OK 2026-06-01: 896 stickers + 1 álbum en la DB de Supabase)_
@@ -127,9 +128,9 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **RF-302** Filtro por departamento por default (configurable a todo Uruguay / mismo barrio). (M)
 - [x] **RF-303** Filtro de usuarios activos (`lastSeenAt < 30 días`). (M)
 - [x] **RF-304** Filtro de participación (`participatesInMatchmaking=true`). (M)
-- [ ] **RF-307** 🔒 Recalcular matches via job Inngest al actualizar sticker (no en request HTTP). (M) — _(auditoría 2026-06-01: sigue 🔒 — `INNGEST_EVENT_KEY`/`INNGEST_SIGNING_KEY` vacías; requiere cuenta Inngest + keys)_
+- [ ] **RF-307** Recalcular matches via job Inngest al actualizar sticker (no en request HTTP). (M) — _keys de Inngest ya cargadas (2026-06-06) → **ya NO está 🔒**. Queda como **optimización POST-RF-320**: primero se cablea el recompute SÍNCRONO (RF-320) para revivir el core; después Inngest mueve ese recompute fuera del request HTTP. Ver RF-320._
 - [x] **RF-308** Persistencia del match en DB (`aToB`, `bToA` JSON arrays, `score`). (M)
-- [x] **RF-309** TTL de matches: `inactive` si un participante no se loguea en 30 días + job de limpieza diario. (M) — lógica pura implementada; scheduling via Inngest 🔒 _(auditoría 2026-06-01: lógica pura OK; el scheduling sigue pendiente por keys de Inngest vacías)_
+- [x] **RF-309** TTL de matches: `inactive` si un participante no se loguea en 30 días + job de limpieza diario. (M) — lógica pura implementada; scheduling via Inngest (keys ya cargadas 2026-06-06 → ya NO está 🔒; falta solo cablear el cron Inngest, junto con RF-307).
 - [x] **RF-310** Lista de mis matches activos ordenados por score desc. (M)
 - [x] **RF-311** Match card: avatar/username del otro, barrio, distancia (si geo), score, "te da X / le das Y". (M)
 - [x] **RF-312** Detalle de match: dos columnas "lo que te ofrece" / "lo que le das". (M)
@@ -166,7 +167,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **RF-404** Badge campana en header con contador no leídas (refresh 60s). (M) — _Corrida 23: NotificationBell client component con polling 60s en AppNavbar_
 - [x] **RF-405** Dropdown con últimas 10, click navega y marca leída. (M) — _Corrida 23: NotificationDropdown con mark-as-read + navegación por tipo_
 - [x] **RF-409** Trigger automático de notificación al crear match nuevo (ambas partes). (M) — _Corrida 23: matchService.saveMatchResult crea new_match para ambos si es match nuevo_
-- [ ] **RF-406** 🔒 Email transaccional via Resend (magic link, nuevo match, mensaje, reseña). (M) — _(auditoría 2026-06-01: sigue 🔒 — `RESEND_API_KEY` vacía; requiere cuenta Resend + verificación del dominio figus.uy. `RESEND_FROM_EMAIL` ya seteado)_
+- [ ] **RF-406** Email transaccional via Resend (nuevo match, mensaje, reseña — **el de login ya sale por SMTP de Supabase, NO duplicarlo**). (M) — _**ya NO está 🔒** (2026-06-06): `RESEND_API_KEY` cargada (`.env.local` + Vercel), dominio `cambiala.uy` **verificado**, SMTP propio en Supabase probado E2E. Falta solo el **código**: dependencia `resend` + envío en `notification.service` + templates HTML (estética del mail de login, ref. `../email-template-magic-link.html`). Remitente `consultas@cambiala.uy`._
 - [ ] **RF-407** Frecuencia de email configurable (instant / daily / weekly / never). (M)
 - [ ] **RF-408** Unsubscribe en footer (`emailFrequency=never`). (M)
 
@@ -260,7 +261,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 ### Must (M)
 
 - [ ] **RF-320** 🆕 🔥 **Cablear el recompute de matches en runtime — el engine existe pero NINGÚN path lo invoca.** (M) — _detectado 6-jun por auditoría: `findMatchesForUser` y `matchService.saveMatchResult` tienen 100% cobertura pero cero callers fuera de tests; nada escribe la tabla `Match` → `/matches` SIEMPRE renderiza vacío para usuarios reales. Bloqueante #1 de launch._
-  - **Disparador**: tras persistir cambios del álbum del usuario (en `stickerService.updateStickerCount` y, cuando exista, en el bulk de RF-213), recalcular matches para ese usuario de forma **SÍNCRONA** (sin Inngest — Inngest queda para RF-307 en F2). Para no inflar el request del PATCH por figurita, disparar el recompute en el flush bulk (RF-213) o, si RF-213 aún no está, hacerlo con dedupe/debounce a nivel service.
+  - **Disparador**: tras persistir cambios del álbum del usuario (en `stickerService.updateStickerCount` y, cuando exista, en el bulk de RF-213), recalcular matches para ese usuario de forma **SÍNCRONA** (sin Inngest — Inngest queda para RF-307, optimización post-RF-320; sus keys ya están cargadas). Para no inflar el request del PATCH por figurita, disparar el recompute en el flush bulk (RF-213) o, si RF-213 aún no está, hacerlo con dedupe/debounce a nivel service.
   - **Flujo**: cargar el pool de candidatos activos del mismo depto/filtros desde el repository (NO en el dominio) → llamar `findMatchesForUser` (función pura, intacta) → por cada resultado, `matchService.saveMatchResult` (que ya hace upsert idempotente + dispara la notificación `new_match` de RF-409 si es nuevo).
   - **Capas**: el orquestador vive en Service (ej. `matchService.recomputeForUser(userId)`); el armado del pool de candidatos vive en `matchRepository`/`stickerRepository` (único acceso a Prisma). El engine sigue puro. NO meter Prisma en `src/lib/match-engine.ts`.
   - **Idempotencia/TTL**: respetar RF-308 (upsert por par) y RF-309 (no recrear matches inactivos sin razón). Recompute debe ser seguro de correr N veces.

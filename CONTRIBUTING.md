@@ -1,6 +1,6 @@
-# Contribuir a Figus Mundial
+# Contribuir a CambiaLa
 
-Guía rápida para los devs del equipo. Si sos nuevo, leé esto antes del primer PR.
+Guía rápida para los devs del equipo (y para el agente autónomo). Si sos nuevo, leé esto **y `CLAUDE.md`** antes del primer PR. `CLAUDE.md` es la fuente de verdad; si algo de acá la contradice, manda `CLAUDE.md`.
 
 ## Setup inicial
 
@@ -8,54 +8,51 @@ Ver `README.md` para el setup completo de ambiente local.
 
 ## Convenciones del proyecto
 
-La documentación completa de convenciones vive en Notion (**7.6 Guía de Clean Code y Buenas Prácticas**). Resumen mínimo:
+Detalle completo en `CLAUDE.md` (§6 capas, §7 colores, §8 i18n, §9 convenciones). Resumen mínimo:
 
-- **TypeScript strict**: cero `any` implícito.
-- **Archivos** en kebab-case (`match-card.tsx`).
-- **Componentes** en PascalCase, default export.
+- **TypeScript strict**: cero `any` implícito. Schemas Zod antes de implementar endpoints.
+- **Archivos** en kebab-case (`match-card.tsx`). **Componentes** en PascalCase, default export. **Funciones** camelCase.
 - **Imports** absolutos con `@/`.
-- **Arquitectura en capas**: Presentation → Service → Repository → Domain. Sin cruces.
-- **Tests** obligatorios en match engine y servicios críticos.
+- **Arquitectura en capas**: Presentation → Service → Repository → Domain. Sin cruces (ADR-008).
+- **Colores SOLO por tokens** del design system; **cero strings de UI hardcodeados** (todo por next-intl).
+- **Tests** obligatorios en el match engine (100%) y en servicios críticos.
 
-## Flujo de trabajo
+## Flujo de trabajo (ADR-021)
 
 ### Branches
 
-- `develop` — **rama default**, donde se mergea el día a día.
-- `main` — **solo releases**. Cada deploy a producción es un merge `develop → main`.
-- `feat/[id]-descripcion` — features nuevas (ej. `feat/RF-301-match-engine`).
-- `fix/[id]-descripcion` — bugfixes.
-- `chore/descripcion` — mantenimiento (deps, config).
-- `docs/descripcion` — solo docs.
+- `develop` — **rama default y PRODUCCIÓN**. Vercel deploya prod desde `develop`. **Nunca pushear directo.**
+- `claude/<rf>-<slug>` — trabajo del agente autónomo (ej. `claude/RF-320-matching-runtime`).
+- `feat/<slug>` — features manuales. `fix/<slug>`, `chore/<slug>`, `docs/<slug>` para lo demás.
+- `main` **no se usa para deploy** (no hay flujo de release a `main`).
 
-### Commits — Conventional Commits
+### Commits — Conventional Commits, atómicos
+
+Commits chicos por paso lógico (la estrategia de merge es **rebase**, así que se preservan en `develop`).
 
 ```
 feat(album): autosave on sticker mark
 fix(matchmaking): handle zero-score correctly
-chore(deps): upgrade prisma to 5.10
-docs(notion): update RF-301 acceptance criteria
+chore(deps): upgrade prisma to 6.x
+docs(backlog): add RF-320..337 from gstack audit
 refactor(services): extract notification logic
 test(match-engine): add edge cases for empty sets
-perf(album): virtualize grid for 900 stickers
+perf(album): bulk upsert sticker counts
 ```
 
 ### Pull Requests
 
-1. Sacar issue de GitHub Projects.
-2. Crear branch desde `develop`: `git checkout -b feat/RF-XXX-descripcion`.
-3. Hacer commits atómicos siguiendo Conventional Commits.
-4. Abrir PR contra `develop` usando la plantilla.
-5. CI debe pasar (lint + type-check + tests + lighthouse).
-6. Code review obligatorio de **otra persona del equipo**.
-7. Squash & merge a `develop`.
+1. Crear branch desde `develop`.
+2. Commits atómicos (Conventional Commits).
+3. **Gate verde local** (`CLAUDE.md` §13) antes de pushear.
+4. Abrir PR contra `develop` con la plantilla (`.github/PULL_REQUEST_TEMPLATE.md`).
+5. **CI verde** requerido: `lint` + `type-check` + `format:check` + `test:coverage` + `build`. La branch protection en `develop` lo exige.
+6. **Merge por rebase** (no squash).
+7. Review:
+   - **Docs PRs** (solo `.md`/docs): auto-merge OK — entran solos con CI verde.
+   - **Code PRs**: **NO** activar auto-merge — los revisa Gonza (gstack + humano) antes de mergear.
 
-### Release a `main`
-
-1. Cuando hay un set de features listas para producción, crear PR `develop → main`.
-2. Tag de versión semver (`v0.1.0`, `v0.2.0`, etc.).
-3. Vercel deploya `main` automáticamente.
-4. Si algo se rompe en prod: rollback en Vercel + hotfix branch desde `main` que mergea a `main` y a `develop`.
+> No corre Lighthouse en el gate (el workflow existe pero está deshabilitado). No hay tests de integración con Docker.
 
 ## Code review etiquette
 
@@ -69,28 +66,26 @@ Prefijos en comentarios de PR:
 
 ## Antes de abrir un PR
 
-Checklist en `.github/PULL_REQUEST_TEMPLATE.md`. Lo importante:
+Checklist en `.github/PULL_REQUEST_TEMPLATE.md`. Lo importante (= el gate):
 
+- [ ] `pnpm format` corrido (y `pnpm format:check` verde)
 - [ ] `pnpm lint` sin warnings
 - [ ] `pnpm type-check` sin errores
-- [ ] `pnpm test` pasa
-- [ ] Sin `console.log`, `debugger`, ni TODO sin issue
-- [ ] Documentación de Notion actualizada si aplica
+- [ ] `pnpm prisma:generate`
+- [ ] `pnpm test:coverage` pasa (match engine 100%)
+- [ ] `build` con env mock (`CLAUDE.md` §13)
+- [ ] Sin `console.log`, `debugger`, ni `TODO`/`FIXME` colgados
+- [ ] Sin colores crudos ni strings de UI hardcodeados
 - [ ] Variables nuevas en `.env.example`
+- [ ] `BACKLOG.md` tildado + `HANDOFF.md` actualizado (entrada nueva arriba)
 - [ ] Self-review del propio PR
 
 ## Cómo hacer preguntas
 
-- **Específica del proyecto** (qué es un match, cómo funciona el algoritmo): consultá Notion primero, después preguntá en el canal del equipo.
+- **Específica del proyecto** (qué es un match, cómo funciona el algoritmo): consultá `CLAUDE.md` y Notion primero, después al equipo.
 - **De código** (cómo hago X en TypeScript): preguntale a Claude/Cursor primero, después al equipo.
-- **De decisiones de producto**: discusión en el canal del equipo o en la reunión semanal.
+- **De decisiones de producto**: discusión con Gonza.
 
 ## Reportar bugs
 
-Usar `.github/ISSUE_TEMPLATE/bug_report.md`. Incluir severidad (P0-P3), pasos para reproducir, contexto técnico.
-
-Si es **P0 en producción**: avisar inmediatamente en el canal del equipo + seguir el Runbook de Incidentes (sección 8.10 en Notion).
-
-## Ámbito del Acuerdo de Equipo
-
-Los miembros del equipo firmaron el documento `8.11 Acuerdo de Equipo` en Notion. Si tenés dudas sobre roles, equity, decisiones o salidas, consultá ese documento.
+Usar `.github/ISSUE_TEMPLATE/bug_report.md`. Incluir severidad, pasos para reproducir y contexto técnico. Si es **crítico en producción**: avisar de inmediato a Gonza.
