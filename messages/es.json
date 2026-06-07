@@ -186,7 +186,16 @@
     "offerUniquesLabel": "Ofrecer figuritas únicas",
     "offerUniquesSubtitle": "Permitir ofrecer figuritas que tenés de a una (sin repetidas).",
     "acceptUnbalancedLabel": "Aceptar matches desequilibrados",
-    "acceptUnbalancedSubtitle": "Aceptar cuando uno da más figuritas que el otro."
+    "acceptUnbalancedSubtitle": "Aceptar cuando uno da más figuritas que el otro.",
+    "dangerZoneTitle": "Zona de peligro",
+    "dangerZoneSubtitle": "Estas acciones no tienen vuelta atrás.",
+    "deleteAccountButton": "Borrar mi cuenta",
+    "deleteAccountModalTitle": "¿Querés borrar tu cuenta?",
+    "deleteAccountModalBody": "Se borrarán permanentemente todos tus datos: tu perfil, álbum, matches y conversaciones. Esta acción no se puede deshacer.",
+    "deleteAccountModalConfirm": "Sí, borrar definitivamente",
+    "deleteAccountModalCancel": "Cancelar",
+    "deleteAccountDeleting": "Borrando...",
+    "deleteAccountError": "No se pudo borrar la cuenta. Intentá de nuevo."
   },
   "AppNav": {
     "album": "Mi álbum",
