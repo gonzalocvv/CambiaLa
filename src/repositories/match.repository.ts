@@ -1,4 +1,4 @@
-import type { Match, Prisma } from '@prisma/client';
+import { Prisma, type Match } from '@prisma/client';
 
 import { prisma } from '@/lib/prisma';
 import type { MatchStatus, UpsertMatchInput } from '@/lib/validations/match.schema';
@@ -20,27 +20,53 @@ export type MatchWithPartnersAndMessages = Prisma.MatchGetPayload<{
   include: { userA: true; userB: true; messages: true };
 }>;
 
+// RF-320: estados terminales del match — el recompute NO debe resucitarlos.
+// Una vez que el cambio se completó o está en negociación, un recálculo posterior
+// (gatillado por cualquiera de las partes al editar su álbum) debe dejarlos quietos.
+const NON_TERMINAL_STATUSES = ['active', 'inactive'] as const;
+
 export const matchRepository = {
-  async upsert(data: UpsertMatchInput): Promise<Match> {
-    return prisma.match.upsert({
-      where: {
-        userAId_userBId: { userAId: data.userAId, userBId: data.userBId },
-      },
-      create: {
-        userAId: data.userAId,
-        userBId: data.userBId,
-        aToB: data.aToB,
-        bToA: data.bToA,
-        score: data.score,
-        status: 'active',
-      },
-      update: {
-        aToB: data.aToB,
-        bToA: data.bToA,
-        score: data.score,
-        status: 'active',
-      },
-    });
+  // RF-320 + RF-308: persiste un match con detección de novedad race-safe.
+  // Insertamos primero: si entra ⇒ match nuevo (`created: true`, dispara new_match).
+  // Si choca con el @@unique([userAId, userBId]) (P2002) ⇒ el par ya existía: lo
+  // reactivamos SOLO si está en estado no-terminal (active/inactive); 'completed'/'trading'
+  // quedan intactos. Derivar la novedad del INSERT mata el TOCTOU de notificaciones
+  // duplicadas cuando dos usuarios editan su álbum a la vez. En el camino de conflicto
+  // no devolvemos la fila (el caller no la necesita) ⇒ una query menos.
+  async upsert(data: UpsertMatchInput): Promise<{ match: Match | null; created: boolean }> {
+    try {
+      const match = await prisma.match.create({
+        data: {
+          userAId: data.userAId,
+          userBId: data.userBId,
+          aToB: data.aToB,
+          bToA: data.bToA,
+          score: data.score,
+          status: 'active',
+        },
+      });
+      return { match, created: true };
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        // updateMany permite acotar el write por estado (upsert/update no soportan
+        // WHERE condicional sobre la fila). count 0 ⇒ el match estaba en estado terminal.
+        await prisma.match.updateMany({
+          where: {
+            userAId: data.userAId,
+            userBId: data.userBId,
+            status: { in: [...NON_TERMINAL_STATUSES] },
+          },
+          data: {
+            aToB: data.aToB,
+            bToA: data.bToA,
+            score: data.score,
+            status: 'active',
+          },
+        });
+        return { match: null, created: false };
+      }
+      throw err;
+    }
   },
 
   async findById(id: string): Promise<Match | null> {
@@ -146,6 +172,8 @@ export const matchRepository = {
         matchRadius: true,
         offerUniques: true,
         participatesInMatchmaking: true,
+        isSuspended: true,
+        notifyOnMatch: true,
         lastSeenAt: true,
         stickers: OFFERABLE_STICKERS,
       },
@@ -158,6 +186,8 @@ export const matchRepository = {
       matchRadius: u.matchRadius,
       offerUniques: u.offerUniques,
       participatesInMatchmaking: u.participatesInMatchmaking,
+      isSuspended: u.isSuspended,
+      notifyOnMatch: u.notifyOnMatch,
       lastSeenAt: u.lastSeenAt,
       stickers: u.stickers.map((s) => ({ number: s.sticker.number, count: s.count })),
     };
@@ -169,7 +199,7 @@ export const matchRepository = {
   // NO filtra por barrio: el fallback de barrio (RF-318) lo resuelve el engine.
   async findCandidatePool(
     targetUserId: string,
-    { city, cutoffDate }: { city: string | null; cutoffDate: Date },
+    { city, cutoffDate, take }: { city: string | null; cutoffDate: Date; take: number },
   ): Promise<MatchmakingCandidate[]> {
     const users = await prisma.user.findMany({
       where: {
@@ -185,9 +215,15 @@ export const matchRepository = {
         neighborhood: true,
         offerUniques: true,
         participatesInMatchmaking: true,
+        notifyOnMatch: true,
         lastSeenAt: true,
         stickers: OFFERABLE_STICKERS,
       },
+      // RF-320: el LIMIT vive en la query (no en JS) para no traer todo el padrón a
+      // memoria. orderBy determinista (más activos primero) ⇒ la truncación deja de
+      // ser arbitraria: si hay que recortar, se priorizan los candidatos más recientes.
+      orderBy: { lastSeenAt: 'desc' },
+      take,
     });
     return users.map((u) => ({
       id: u.id,
@@ -195,6 +231,7 @@ export const matchRepository = {
       neighborhood: u.neighborhood,
       offerUniques: u.offerUniques,
       participatesInMatchmaking: u.participatesInMatchmaking,
+      notifyOnMatch: u.notifyOnMatch,
       lastSeenAt: u.lastSeenAt,
       stickers: u.stickers.map((s) => ({ number: s.sticker.number, count: s.count })),
     }));

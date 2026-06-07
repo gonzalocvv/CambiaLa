@@ -10,7 +10,9 @@ import type {
   UserCollectionInput,
 } from '@/types/match';
 
-const ACTIVE_DAYS_DEFAULT = 30;
+// Exported as the single source of truth for the activity window (RF-303): the
+// service imports it so the SQL cutoff and the engine filter never drift apart.
+export const ACTIVE_DAYS_DEFAULT = 30;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 // Returns the set of sticker numbers a user can offer for trading.

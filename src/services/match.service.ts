@@ -8,14 +8,16 @@ import type {
   UserCollectionInput,
 } from '@/types/match';
 import type { ActiveMatchItem, MatchStatus } from '@/lib/validations/match.schema';
-import { findMatchesForUser } from '@/lib/match-engine';
+import { ACTIVE_DAYS_DEFAULT, findMatchesForUser } from '@/lib/match-engine';
 import { logger } from '@/lib/logger';
 import { matchRepository } from '@/repositories/match.repository';
 import { messageRepository } from '@/repositories/message.repository';
 import { notificationService } from '@/services/notification.service';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const ACTIVE_DAYS = 30;
+// Ventana de actividad compartida con el engine (RF-303): una sola fuente de verdad
+// para que el cutoff de la query SQL y el filtro del engine no se desincronicen.
+const ACTIVE_DAYS = ACTIVE_DAYS_DEFAULT;
 const VALID_RADII: readonly MatchRadius[] = ['neighborhood', 'department', 'country'];
 
 // RF-320: tope defensivo del pool síncrono dentro del PATCH (placeholder, tunear tras
@@ -72,27 +74,36 @@ function decodeMatch(raw: Match): MatchRecord {
 }
 
 export const matchService = {
-  async saveMatchResult(result: MatchResult): Promise<MatchRecord> {
+  // RF-308 + RF-409: persiste un match y notifica SOLO cuando es genuinamente nuevo.
+  // La novedad la decide el repository por el INSERT (no por un read previo): así
+  // dos recomputes concurrentes no disparan notificaciones duplicadas, y reactivar un
+  // match inactivo no re-notifica. `notifyOnMatchByUser` gobierna por destinatario la
+  // preferencia de settings (id ausente ⇒ true por defecto, no suprime). Devuelve solo
+  // `created` porque el único caller (recomputeForUser) no necesita la fila.
+  async saveMatchResult(
+    result: MatchResult,
+    notifyOnMatchByUser: Record<string, boolean> = {},
+  ): Promise<{ created: boolean }> {
     const input = toUpsertInput(result);
-    const existing = await matchRepository.findByUsers(input.userAId, input.userBId);
-    const saved = await matchRepository.upsert(input);
-    if (!existing) {
+    const { match: saved, created } = await matchRepository.upsert(input);
+    if (created && saved) {
+      const recipients = [input.userAId, input.userBId].filter(
+        (id) => notifyOnMatchByUser[id] !== false,
+      );
       try {
-        await Promise.all([
-          notificationService.createNotification(input.userAId, 'new_match', {
-            matchId: saved.id,
-            score: saved.score,
-          }),
-          notificationService.createNotification(input.userBId, 'new_match', {
-            matchId: saved.id,
-            score: saved.score,
-          }),
-        ]);
+        await Promise.all(
+          recipients.map((id) =>
+            notificationService.createNotification(id, 'new_match', {
+              matchId: saved.id,
+              score: saved.score,
+            }),
+          ),
+        );
       } catch {
         // Notification failure must not fail the match save
       }
     }
-    return decodeMatch(saved);
+    return { created };
   },
 
   // RF-320 + RF-318: recalcula los matches del usuario tras un cambio de álbum y los
@@ -102,7 +113,9 @@ export const matchService = {
   // para tests deterministas: alimenta tanto el cutoff de actividad como el engine.
   async recomputeForUser(userId: string, now: Date = new Date()): Promise<{ matched: number }> {
     const target = await matchRepository.findMatchmakingProfile(userId);
-    if (!target || !target.participatesInMatchmaking) return { matched: 0 };
+    // Un target inexistente, suspendido o que optó por salir del matchmaking no genera
+    // matches (el pool ya excluye suspendidos; acá cubrimos al iniciador del recompute).
+    if (!target || target.isSuspended || !target.participatesInMatchmaking) return { matched: 0 };
 
     if (!VALID_RADII.includes(target.matchRadius as MatchRadius)) {
       logger.warn('recompute: invalid matchRadius', { userId, radius: target.matchRadius });
@@ -122,7 +135,12 @@ export const matchService = {
     }
 
     const cutoffDate = new Date(now.getTime() - ACTIVE_DAYS * MS_PER_DAY);
-    let pool = await matchRepository.findCandidatePool(userId, { city, cutoffDate });
+    // El LIMIT lo aplica la query (take). El slice de abajo queda como red de seguridad.
+    let pool = await matchRepository.findCandidatePool(userId, {
+      city,
+      cutoffDate,
+      take: MAX_POOL_SIZE,
+    });
 
     if (pool.length > MAX_POOL_SIZE) {
       logger.warn('recompute: candidate pool truncated', {
@@ -133,22 +151,30 @@ export const matchService = {
       pool = pool.slice(0, MAX_POOL_SIZE);
     }
 
+    // RF-409: preferencia new_match por destinatario (target + cada candidato del pool).
+    const notifyOnMatchByUser: Record<string, boolean> = { [target.id]: target.notifyOnMatch };
+    for (const candidate of pool) notifyOnMatchByUser[candidate.id] = candidate.notifyOnMatch;
+
     const results = findMatchesForUser(toCollectionInput(target), pool.map(toCollectionInput), {
       radius,
       activeDays: ACTIVE_DAYS,
       now,
     });
 
+    let persisted = 0;
     try {
       for (const result of results) {
-        await this.saveMatchResult(result);
+        await this.saveMatchResult(result, notifyOnMatchByUser);
+        persisted += 1;
       }
     } catch (error) {
-      // Upsert idempotente ⇒ reintentar es seguro. Reportamos cuántos se intentaban y
-      // re-lanzamos: el caller (sticker.service) lo atrapa para no romper el guardado del álbum.
+      // upsert idempotente ⇒ reintentar es seguro. Reportamos cuántos se persistieron
+      // de verdad antes del fallo y re-lanzamos: el caller (sticker.service) lo atrapa
+      // para no romper el guardado del álbum.
       logger.error('recompute: partial match persistence failed', {
         userId,
-        attempted: results.length,
+        persisted,
+        total: results.length,
         error,
       });
       throw error;

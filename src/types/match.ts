@@ -28,6 +28,8 @@ export type MatchRadius = 'neighborhood' | 'department' | 'country';
 
 // RF-320: DTO del usuario target para el recompute de matches. `matchRadius` es el
 // String crudo del schema (validado en el service antes de castear a MatchRadius).
+// `isSuspended` corta el recompute si el target está suspendido (el pool ya los excluye).
+// `notifyOnMatch` gobierna si recibe la notificación new_match (preferencia de settings).
 export type MatchmakingProfile = {
   id: string;
   city: string | null;
@@ -35,18 +37,22 @@ export type MatchmakingProfile = {
   matchRadius: string;
   offerUniques: boolean;
   participatesInMatchmaking: boolean;
+  isSuspended: boolean;
+  notifyOnMatch: boolean;
   lastSeenAt: Date;
   stickers: StickerEntry[];
 };
 
 // RF-320: DTO de un candidato del pool. No incluye `matchRadius` — el radius lo
-// decide el target (RF-302/RF-318); el del candidato no se usa.
+// decide el target (RF-302/RF-318); el del candidato no se usa. `notifyOnMatch`
+// se usa para gatear la notificación new_match del candidato cuando hay match nuevo.
 export type MatchmakingCandidate = {
   id: string;
   city: string | null;
   neighborhood: string | null;
   offerUniques: boolean;
   participatesInMatchmaking: boolean;
+  notifyOnMatch: boolean;
   lastSeenAt: Date;
   stickers: StickerEntry[];
 };
