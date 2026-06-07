@@ -417,5 +417,8 @@
     "bugDesc": "Si encontraste un problema en la plataforma, describílo con el mayor detalle posible: qué hiciste, qué esperabas y qué pasó.",
     "socialsTitle": "Redes sociales",
     "socialsDesc": "Próximamente estaremos en redes. Por ahora, el mail es el canal directo."
+  },
+  "Errors": {
+    "rateLimited": "Demasiados intentos. Esperá unos minutos e intentá de nuevo."
   }
 }
