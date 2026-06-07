@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockMatchPrisma = vi.hoisted(() => ({
+  create: vi.fn(),
   upsert: vi.fn(),
   findUnique: vi.fn(),
   findMany: vi.fn(),
@@ -17,9 +18,18 @@ vi.mock('@/lib/prisma', () => ({
   prisma: { match: mockMatchPrisma, user: mockUserPrisma },
 }));
 
+import { Prisma } from '@prisma/client';
+
 import { matchRepository } from '../match.repository';
 
 const NOW = new Date('2026-06-01T12:00:00Z');
+
+function makeP2002() {
+  return new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+    code: 'P2002',
+    clientVersion: 'test',
+  });
+}
 
 function makeDbMatch(overrides: object = {}) {
   return {
@@ -39,9 +49,9 @@ function makeDbMatch(overrides: object = {}) {
 beforeEach(() => vi.clearAllMocks());
 
 describe('matchRepository.upsert', () => {
-  it('creates a new match with status active', async () => {
+  it('inserts a new match with status active and returns created: true', async () => {
     const db = makeDbMatch();
-    mockMatchPrisma.upsert.mockResolvedValue(db);
+    mockMatchPrisma.create.mockResolvedValue(db);
 
     const result = await matchRepository.upsert({
       userAId: 'user-a',
@@ -51,21 +61,21 @@ describe('matchRepository.upsert', () => {
       score: 3,
     });
 
-    expect(mockMatchPrisma.upsert).toHaveBeenCalledOnce();
-    const call = mockMatchPrisma.upsert.mock.calls[0][0];
-    expect(call.where).toEqual({
-      userAId_userBId: { userAId: 'user-a', userBId: 'user-b' },
-    });
-    expect(call.create.status).toBe('active');
-    expect(call.create.score).toBe(3);
-    expect(result).toEqual(db);
+    expect(mockMatchPrisma.create).toHaveBeenCalledOnce();
+    const call = mockMatchPrisma.create.mock.calls[0][0];
+    expect(call.data.status).toBe('active');
+    expect(call.data.score).toBe(3);
+    expect(call.data.userAId).toBe('user-a');
+    expect(call.data.userBId).toBe('user-b');
+    expect(result).toEqual({ match: db, created: true });
+    expect(mockMatchPrisma.updateMany).not.toHaveBeenCalled();
   });
 
-  it('reactivates a match on update', async () => {
-    const db = makeDbMatch({ score: 5 });
-    mockMatchPrisma.upsert.mockResolvedValue(db);
+  it('reactivates only non-terminal matches on unique conflict and returns created: false', async () => {
+    mockMatchPrisma.create.mockRejectedValue(makeP2002());
+    mockMatchPrisma.updateMany.mockResolvedValue({ count: 1 });
 
-    await matchRepository.upsert({
+    const result = await matchRepository.upsert({
       userAId: 'user-a',
       userBId: 'user-b',
       aToB: ['URU1'],
@@ -73,9 +83,50 @@ describe('matchRepository.upsert', () => {
       score: 5,
     });
 
-    const call = mockMatchPrisma.upsert.mock.calls[0][0];
-    expect(call.update.status).toBe('active');
-    expect(call.update.score).toBe(5);
+    const call = mockMatchPrisma.updateMany.mock.calls[0][0];
+    // 'completed'/'trading' are excluded by the status filter — the engine must not
+    // resurrect a finished or in-progress trade on a later recompute.
+    expect(call.where).toEqual({
+      userAId: 'user-a',
+      userBId: 'user-b',
+      status: { in: ['active', 'inactive'] },
+    });
+    expect(call.data.status).toBe('active');
+    expect(call.data.score).toBe(5);
+    expect(result).toEqual({ match: null, created: false });
+  });
+
+  it('returns created: false when the existing match is terminal (updateMany matches nothing)', async () => {
+    mockMatchPrisma.create.mockRejectedValue(makeP2002());
+    mockMatchPrisma.updateMany.mockResolvedValue({ count: 0 });
+
+    const result = await matchRepository.upsert({
+      userAId: 'user-a',
+      userBId: 'user-b',
+      aToB: ['URU1'],
+      bToA: ['ESP4'],
+      score: 2,
+    });
+
+    expect(result).toEqual({ match: null, created: false });
+    expect(mockMatchPrisma.updateMany.mock.calls[0][0].where.status).toEqual({
+      in: ['active', 'inactive'],
+    });
+  });
+
+  it('rethrows non-P2002 errors without touching updateMany', async () => {
+    mockMatchPrisma.create.mockRejectedValue(new Error('db down'));
+
+    await expect(
+      matchRepository.upsert({
+        userAId: 'user-a',
+        userBId: 'user-b',
+        aToB: ['URU1'],
+        bToA: ['ESP4'],
+        score: 1,
+      }),
+    ).rejects.toThrow('db down');
+    expect(mockMatchPrisma.updateMany).not.toHaveBeenCalled();
   });
 });
 
@@ -446,6 +497,8 @@ describe('matchRepository.findMatchmakingProfile', () => {
       matchRadius: 'department',
       offerUniques: false,
       participatesInMatchmaking: true,
+      isSuspended: false,
+      notifyOnMatch: true,
       lastSeenAt: NOW,
       stickers: [
         { count: 2, sticker: { number: 'URU1' } },
@@ -476,6 +529,8 @@ describe('matchRepository.findMatchmakingProfile', () => {
       matchRadius: 'department',
       offerUniques: false,
       participatesInMatchmaking: true,
+      isSuspended: false,
+      notifyOnMatch: true,
       lastSeenAt: NOW,
       stickers: [
         { number: 'URU1', count: 2 },
@@ -493,6 +548,7 @@ describe('matchRepository.findCandidatePool', () => {
       neighborhood: 'Centro',
       offerUniques: false,
       participatesInMatchmaking: true,
+      notifyOnMatch: true,
       lastSeenAt: NOW,
       stickers: [{ count: 3, sticker: { number: 'BRA5' } }],
       ...overrides,
@@ -504,7 +560,11 @@ describe('matchRepository.findCandidatePool', () => {
   it('builds the where-clause: excludes self, opt-in, not suspended, active, same city', async () => {
     mockUserPrisma.findMany.mockResolvedValue([makeDbCandidate()]);
 
-    await matchRepository.findCandidatePool('user-a', { city: 'Montevideo', cutoffDate });
+    await matchRepository.findCandidatePool('user-a', {
+      city: 'Montevideo',
+      cutoffDate,
+      take: 5000,
+    });
 
     const call = mockUserPrisma.findMany.mock.calls[0][0];
     expect(call.where).toEqual({
@@ -515,12 +575,15 @@ describe('matchRepository.findCandidatePool', () => {
       city: 'Montevideo',
     });
     expect(call.select.stickers.where).toEqual({ count: { gte: 1 } });
+    // RF-320: LIMIT + deterministic ordering live in the query, not in JS.
+    expect(call.take).toBe(5000);
+    expect(call.orderBy).toEqual({ lastSeenAt: 'desc' });
   });
 
   it('omits the city filter when city is null (country radius)', async () => {
     mockUserPrisma.findMany.mockResolvedValue([]);
 
-    await matchRepository.findCandidatePool('user-a', { city: null, cutoffDate });
+    await matchRepository.findCandidatePool('user-a', { city: null, cutoffDate, take: 5000 });
 
     const call = mockUserPrisma.findMany.mock.calls[0][0];
     expect(call.where).not.toHaveProperty('city');
@@ -536,10 +599,12 @@ describe('matchRepository.findCandidatePool', () => {
     const result = await matchRepository.findCandidatePool('user-a', {
       city: 'Montevideo',
       cutoffDate,
+      take: 5000,
     });
 
     expect(result).toHaveLength(2);
     expect(result[0].stickers).toEqual([{ number: 'BRA5', count: 3 }]);
+    expect(result[0].notifyOnMatch).toBe(true);
     expect(result[1].stickers).toEqual([]);
     expect(result[1]).not.toHaveProperty('matchRadius');
   });
