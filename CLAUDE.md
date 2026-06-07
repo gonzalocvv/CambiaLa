@@ -278,7 +278,7 @@ CI: job `lint-and-type` (lint + type-check + format:check), `test` (prisma:gener
 
 - **RLS habilitado** en todas las tablas (deny-all sin políticas → seguro porque el acceso va por Prisma server-side con conexión privilegiada). Si en algún momento se usa el cliente Supabase directo a tablas, **escribir políticas RLS** (ADR-015).
 - **Nunca** imprimas/logues/commitees secretos. `.env`, `.env.local` están en `.gitignore`; solo `.env.example` se trackea.
-- **Sin SQL crudo** (`$queryRaw`/`$executeRaw`) — todo Prisma tipado. Sin `dangerouslySetInnerHTML`, `eval`, `child_process`.
+- **SQL crudo**: por defecto **NO** (`$queryRaw`/`$executeRaw`) — todo Prisma tipado. **Excepción (ADR informal, RF-213)**: para **bulk upserts sin equivalente tipado en Prisma** (ej. `INSERT … FROM unnest(...) ON CONFLICT … DO UPDATE` en UNA query, cuya alternativa son N upserts), se permite `$executeRaw` **solo con tagged template parametrizado** (los `${}` van como params), **JAMÁS `$queryRawUnsafe`/`$executeRawUnsafe`** ni interpolación de strings, y siempre dentro de un repository. Sin `dangerouslySetInnerHTML`, `eval`, `child_process`.
 - Cuando se implemente subida de avatar (RF-112), validar/allowlistear el host de la URL antes de usarla en `url(...)`.
 
 ---
