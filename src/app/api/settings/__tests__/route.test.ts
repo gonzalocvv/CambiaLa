@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockGetSession = vi.hoisted(() => vi.fn());
 const mockGetUserProfile = vi.hoisted(() => vi.fn());
 const mockUpdateProfile = vi.hoisted(() => vi.fn());
+const mockLoggerError = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/auth', () => ({ getSession: mockGetSession }));
+vi.mock('@/lib/logger', () => ({ logger: { error: mockLoggerError } }));
 vi.mock('@/services/user.service', () => ({
   userService: {
     getUserProfile: mockGetUserProfile,
@@ -237,5 +239,22 @@ describe('PUT /api/settings', () => {
         }),
       ),
     ).rejects.toThrow('db error');
+  });
+
+  it('logs unexpected errors before rethrowing', async () => {
+    mockGetSession.mockResolvedValue({ userId: 'cuid-user-1', onboardingDoneAt: new Date() });
+    mockUpdateProfile.mockRejectedValue(new Error('db boom'));
+
+    await expect(
+      PUT(
+        new Request('http://localhost/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: 'X' }),
+        }),
+      ),
+    ).rejects.toThrow('db boom');
+
+    expect(mockLoggerError).toHaveBeenCalledWith('Unhandled error', { error: 'db boom' });
   });
 });
