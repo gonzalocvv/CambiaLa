@@ -73,6 +73,9 @@ export default function SettingsForm({
   const [whatsappError, setWhatsappError] = useState('');
   const [notificationsError, setNotificationsError] = useState('');
   const [matchmakingError, setMatchmakingError] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -208,6 +211,25 @@ export default function SettingsForm({
       router.push('/');
       router.refresh();
     });
+  }
+
+  async function handleDeleteAccount() {
+    setIsDeleting(true);
+    setDeleteError('');
+    try {
+      const res = await fetch('/api/settings/account', { method: 'DELETE' });
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        setDeleteError(data.error ?? t('deleteAccountError'));
+        setIsDeleting(false);
+        return;
+      }
+      router.push('/');
+      router.refresh();
+    } catch {
+      setDeleteError(t('deleteAccountError'));
+      setIsDeleting(false);
+    }
   }
 
   const profileButtonLabel =
@@ -591,6 +613,60 @@ export default function SettingsForm({
           {isPendingLogout ? t('loggingOut') : t('logoutButton')}
         </button>
       </section>
+
+      {/* Danger zone */}
+      <section className="border-destructive/50 bg-card rounded-xl border p-6">
+        <h2 className="text-destructive mb-1 text-lg font-semibold">{t('dangerZoneTitle')}</h2>
+        <p className="text-muted-foreground mb-5 text-sm">{t('dangerZoneSubtitle')}</p>
+        <button
+          type="button"
+          onClick={() => setShowDeleteModal(true)}
+          disabled={isDeleting}
+          className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-lg border px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {t('deleteAccountButton')}
+        </button>
+        {deleteError && <p className="text-destructive mt-3 text-sm">{deleteError}</p>}
+      </section>
+
+      {/* Confirmation modal */}
+      {showDeleteModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-modal-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        >
+          <div
+            className="bg-overlay/80 fixed inset-0"
+            onClick={() => !isDeleting && setShowDeleteModal(false)}
+          />
+          <div className="bg-card border-border relative w-full max-w-sm rounded-xl border p-6 shadow-lg">
+            <h3 id="delete-modal-title" className="text-foreground mb-3 text-lg font-semibold">
+              {t('deleteAccountModalTitle')}
+            </h3>
+            <p className="text-muted-foreground mb-6 text-sm">{t('deleteAccountModalBody')}</p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                className="border-border text-foreground hover:bg-muted rounded-lg border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {t('deleteAccountModalCancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isDeleting ? t('deleteAccountDeleting') : t('deleteAccountModalConfirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
