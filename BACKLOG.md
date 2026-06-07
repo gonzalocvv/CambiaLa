@@ -301,7 +301,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - Son funciones puras de dominio (CLAUDE.md §6) — baratas, sin mocks.
   - **TDD**: para cada schema, casos límite (mínimo, máximo, fuera por 1, tipo inválido).
 
-- [ ] **RF-327** 🆕 **CI usa pnpm 9 pero el repo declara pnpm@10.34.1 — drift de versión.** (S) — _detectado 6-jun: `.github/workflows/ci.yml:17` setea `PNPM_VERSION: 9` y los 3 jobs hacen `--frozen-lockfile`, pero `package.json:10` declara `pnpm@10.34.1` y CLAUDE.md §3 dice pnpm 10; el lockfile `9.0` lo salva hoy, pero un cambio de resolución entre majors puede romper el gate con --frozen-lockfile._
+- [x] **RF-327** 🆕 **CI usa pnpm 9 pero el repo declara pnpm@10.34.1 — drift de versión.** (S) — _Corrida 45 (2026-06-07): `PNPM_VERSION: 9` → `10` en `ci.yml`. Lockfile 9.0 compatible con pnpm v10 sin cambios._ — _detectado 6-jun: `.github/workflows/ci.yml:17` setea `PNPM_VERSION: 9` y los 3 jobs hacen `--frozen-lockfile`, pero `package.json:10` declara `pnpm@10.34.1` y CLAUDE.md §3 dice pnpm 10; el lockfile `9.0` lo salva hoy, pero un cambio de resolución entre majors puede romper el gate con --frozen-lockfile._
   - Subir `PNPM_VERSION` a `10` en `ci.yml` (o quitar el override y dejar que `pnpm/action-setup` respete el campo `packageManager`).
   - Verificar que `pnpm install --frozen-lockfile` sigue verde en CI tras el cambio.
   - **Criterio**: CI, corepack local y `package.json` apuntan a la misma major de pnpm.
@@ -312,7 +312,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - Verificar que dark sigue OK y que el badge/bg-accent no cambia.
   - **Criterio**: contraste ≥ 4.5:1 (texto normal) en todos los usos de naranja como texto sobre claro.
 
-- [ ] **RF-330** 🆕 **Color crudo `bg-black/80` en el overlay del Dialog.** (S) — _detectado 6-jun: es la ÚNICA clase de color cruda real en todo `src/` (grep exhaustivo); `dialog.tsx:24` la trae heredada del template shadcn, viola la regla 6 no-negociable de tokens. El Dialog se usa en el rating-modal. En dark, bg-black/80 se confunde con el fondo grafito y pierde el scrim._
+- [x] **RF-330** 🆕 **Color crudo `bg-black/80` en el overlay del Dialog.** (S) — _Corrida 45 (2026-06-07): agregado token `--overlay: #0f172a` en `globals.css` (siempre oscuro, no flip en dark mode) + `--color-overlay` en `@theme inline`. `dialog.tsx` usa `bg-overlay/80`. Grep limpio: cero clases de color crudas en `src/`._ — _detectado 6-jun: es la ÚNICA clase de color cruda real en todo `src/` (grep exhaustivo); `dialog.tsx:24` la trae heredada del template shadcn, viola la regla 6 no-negociable de tokens. El Dialog se usa en el rating-modal. En dark, bg-black/80 se confunde con el fondo grafito y pierde el scrim._
   - Reemplazar `bg-black/80` por `bg-foreground/60` (token), o agregar un `--overlay` a `globals.css` (light+dark) y consumirlo.
   - Verificar el scrim en light y dark (que se vea el oscurecido sobre el fondo grafito en dark).
   - **Criterio**: cero clases de color crudas en `src/` (grep limpio); overlay visible en ambos modos.

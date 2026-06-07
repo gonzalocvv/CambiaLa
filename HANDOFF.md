@@ -3,6 +3,39 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Corrida 45: RF-327 + RF-330 (pnpm CI + overlay token)
+
+- **Ítems**: RF-327 (pnpm version drift en CI) + RF-330 (bg-black/80 → design token).
+- **Rama**: `claude/cool-volta-pXJFl` (desde `develop`).
+- **Estado**: ✅ completo. Gate verde. **422 tests** (46 archivos).
+
+### Qué se hizo
+
+**RF-327 — pnpm version en CI:**
+- `.github/workflows/ci.yml`: `PNPM_VERSION: 9` → `PNPM_VERSION: 10`. El lockfile usa formato `9.0` que es compatible con pnpm v10 sin cambios. Ahora CI, corepack local y `package.json` (pnpm@10.34.1) apuntan a la misma major.
+
+**RF-330 — overlay token en dialog:**
+- `src/app/globals.css`: nuevo token `--overlay: #0f172a` en `:root` (oscuro fijo, sin override en `.dark` — un scrim debe ser siempre oscuro independientemente del tema). `--color-overlay: var(--overlay)` en `@theme inline`.
+- `src/components/ui/dialog.tsx`: `bg-black/80` → `bg-overlay/80`. Scrim visible en light (navy 80%) y en dark (mismo navy 80% sobre grafito — contraste adecuado). Grep `bg-black|text-white|bg-zinc|bg-slate|bg-gray` sobre `src/` da 0 matches.
+- **Nota diseño**: se eligió `--overlay` en lugar de `bg-foreground/60` porque en dark mode `--foreground` es `#ededee` (near-white), lo que habría producido un scrim blanco — incorrecto para un modal.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-329** (Should) — `text-accent` sobre fondo claro falla WCAG AA → token `--accent-text` (~`#c2410c`). Afecta sticker-cell, ScrollHint, AlbumClient.
+2. **RF-322** (Should) — Tests de componentes client (AlbumClient, LoginForm, chat-panel).
+3. **RF-325** (Should) — Logger estructurado: adoptar o eliminar (hoy: código muerto).
+4. **RF-326** (Should) — Tests de schemas Zod (sticker, onboarding, rating, message).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+
+---
+
 ## 2026-06-07 — Corrida 44: RF-324 (rate limiting in-memory)
 
 - **Ítem**: RF-324 — Rate limiting in-memory (ADR-016) en las rutas expuestas.
