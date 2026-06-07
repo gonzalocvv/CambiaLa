@@ -33,6 +33,15 @@ export default async function SettingsPage() {
             initialNeighborhood={profile.neighborhood ?? ''}
             initialWhatsapp={profile.whatsapp ?? ''}
             initialPublicProfile={profile.publicProfile}
+            initialNotifyOnMatch={profile.notifyOnMatch}
+            initialEmailFrequency={
+              profile.emailFrequency as 'instant' | 'daily' | 'weekly' | 'never'
+            }
+            initialPushEnabled={profile.pushEnabled}
+            initialParticipatesInMatchmaking={profile.participatesInMatchmaking}
+            initialMatchRadius={profile.matchRadius as 'neighborhood' | 'department' | 'country'}
+            initialOfferUniques={profile.offerUniques}
+            initialAcceptUnbalanced={profile.acceptUnbalanced}
           />
         </div>
       </div>
