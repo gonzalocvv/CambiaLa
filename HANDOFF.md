@@ -3,6 +3,44 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-06 — Etapa 0: Auditoría gstack post-landing (solo mapeo, sin código)
+
+- **Ítem**: Etapa 0 del "Plan maestro" — auditoría gstack multi-agente del repo. **No se tocó código** (read-only).
+- **Rama**: `docs/gstack-audit-etapa0` (desde `develop`). PR de **docs** (auto-merge OK por ser solo docs).
+- **PR**: (ver abajo).
+- **Estado**: ✅ completo. Gate local verde (lint/type-check/format:check/test:coverage/build); 330 tests.
+
+### Qué se hizo
+
+- Suite gstack multi-agente sobre el repo (6 lentes: Producto/CEO, Arquitectura, Testing, Seguridad, DevEx, Diseño/A11y) con verificación adversarial de cada hallazgo crítico/alto. **36 hallazgos, 9 críticos/altos verificados, 0 refutados.**
+- Informe completo en **`reports/gstack-audit-2026-06-06.md`**.
+- **21 ítems nuevos** en `BACKLOG.md` (sección "Deuda y hallazgos — Auditoría gstack 2026-06-06"): RF-320..337 + D-001..003.
+
+### 🔥 Hallazgo crítico (acción de Gonza)
+
+- **RF-320 — el match engine NUNCA se ejecuta en runtime.** `findMatchesForUser`/`saveMatchResult` tienen 100% cobertura pero **cero callers fuera de tests**; nada escribe la tabla `Match` → `/matches` siempre vacío para usuarios reales (re-verificado a mano). **Bloqueante #1 de launch.** Fix propuesto: recompute **SÍNCRONO** tras el flush del álbum (Inngest/RF-307 queda para F2). Tratarlo antes que el resto.
+- 2do bloqueante: email transaccional (RF-406, Resend 🔒) — los avisos que promete la landing no salen.
+
+### Doc-drift detectado (D-001/2/3)
+
+- CLAUDE.md §2/§12/§22 todavía declara que Auth es stub `return null` / "próximo gran hito" → **FALSO**, está 100% cerrado (magic link + OTP + Google OAuth). (D-001)
+- README peligroso: deploy a `main` + squash vs `develop`=prod + rebase; Next 14 vs 16; scripts/docker-compose inexistentes. (D-002)
+- CONTRIBUTING contra ADR-021 + nits ya resueltos en §21. (D-003)
+
+### Lo que está bien (confirmado)
+
+- Arquitectura en capas impecable (4 límites verificados), seguridad sólida en lo crítico (cero IDOR, validación Zod server-side, secretos fuera de git, RLS), suite verde.
+
+### Próximo paso
+
+- Gonza revisa el informe + los 21 ítems → decide secuencia (**RF-320 primero**). Luego arrancar **Ola 1** (`feat/nav-destinos`, RF-120 + RF-121) en plan mode.
+
+### Bloqueos conocidos
+
+- Sin cambios: Inngest / Resend / Google OAuth (branding) / avatar siguen 🔒.
+
+---
+
 ## 2026-06-06 — Landing v2 (RF-820/821/822/823)
 
 - **Ítem**: RF-820 + RF-821 + RF-822 + RF-823 — reposicionamiento de la landing (el match es el héroe).
