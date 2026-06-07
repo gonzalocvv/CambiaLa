@@ -8,6 +8,9 @@ import { normalizeUruguayanMobile } from '@/lib/phone';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
+type EmailFrequency = 'instant' | 'daily' | 'weekly' | 'never';
+type MatchRadius = 'neighborhood' | 'department' | 'country';
+
 type Props = {
   initialName: string;
   initialBio: string;
@@ -15,6 +18,13 @@ type Props = {
   initialNeighborhood: string;
   initialWhatsapp: string;
   initialPublicProfile: boolean;
+  initialNotifyOnMatch: boolean;
+  initialEmailFrequency: EmailFrequency;
+  initialPushEnabled: boolean;
+  initialParticipatesInMatchmaking: boolean;
+  initialMatchRadius: MatchRadius;
+  initialOfferUniques: boolean;
+  initialAcceptUnbalanced: boolean;
 };
 
 export default function SettingsForm({
@@ -24,6 +34,13 @@ export default function SettingsForm({
   initialNeighborhood,
   initialWhatsapp,
   initialPublicProfile,
+  initialNotifyOnMatch,
+  initialEmailFrequency,
+  initialPushEnabled,
+  initialParticipatesInMatchmaking,
+  initialMatchRadius,
+  initialOfferUniques,
+  initialAcceptUnbalanced,
 }: Props) {
   const t = useTranslations('Settings');
   const router = useRouter();
@@ -36,11 +53,26 @@ export default function SettingsForm({
   const [city, setCity] = useState(initialCity);
   const [neighborhood, setNeighborhood] = useState(initialNeighborhood);
 
+  const [notifyOnMatch, setNotifyOnMatch] = useState(initialNotifyOnMatch);
+  const [emailFrequency, setEmailFrequency] = useState<EmailFrequency>(initialEmailFrequency);
+  const [pushEnabled, setPushEnabled] = useState(initialPushEnabled);
+
+  const [participatesInMatchmaking, setParticipatesInMatchmaking] = useState(
+    initialParticipatesInMatchmaking,
+  );
+  const [matchRadius, setMatchRadius] = useState<MatchRadius>(initialMatchRadius);
+  const [offerUniques, setOfferUniques] = useState(initialOfferUniques);
+  const [acceptUnbalanced, setAcceptUnbalanced] = useState(initialAcceptUnbalanced);
+
   const [profileSaveState, setProfileSaveState] = useState<SaveState>('idle');
   const [locationSaveState, setLocationSaveState] = useState<SaveState>('idle');
+  const [notificationsSaveState, setNotificationsSaveState] = useState<SaveState>('idle');
+  const [matchmakingSaveState, setMatchmakingSaveState] = useState<SaveState>('idle');
   const [profileError, setProfileError] = useState('');
   const [locationError, setLocationError] = useState('');
   const [whatsappError, setWhatsappError] = useState('');
+  const [notificationsError, setNotificationsError] = useState('');
+  const [matchmakingError, setMatchmakingError] = useState('');
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -115,6 +147,61 @@ export default function SettingsForm({
     }
   }
 
+  async function handleSaveNotifications(e: React.FormEvent) {
+    e.preventDefault();
+    setNotificationsSaveState('saving');
+    setNotificationsError('');
+    try {
+      const res = await fetch('/api/settings/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notifyOnMatch, emailFrequency, pushEnabled }),
+      });
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        setNotificationsError(data.error ?? t('saveError'));
+        setNotificationsSaveState('error');
+        return;
+      }
+      setNotificationsSaveState('saved');
+      router.refresh();
+      setTimeout(() => setNotificationsSaveState('idle'), 2000);
+    } catch {
+      setNotificationsSaveState('error');
+      setNotificationsError(t('saveError'));
+    }
+  }
+
+  async function handleSaveMatchmaking(e: React.FormEvent) {
+    e.preventDefault();
+    setMatchmakingSaveState('saving');
+    setMatchmakingError('');
+    try {
+      const res = await fetch('/api/settings/matchmaking', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          participatesInMatchmaking,
+          matchRadius,
+          offerUniques,
+          acceptUnbalanced,
+        }),
+      });
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        setMatchmakingError(data.error ?? t('saveError'));
+        setMatchmakingSaveState('error');
+        return;
+      }
+      setMatchmakingSaveState('saved');
+      router.refresh();
+      setTimeout(() => setMatchmakingSaveState('idle'), 2000);
+    } catch {
+      setMatchmakingSaveState('error');
+      setMatchmakingError(t('saveError'));
+    }
+  }
+
   function handleLogout() {
     startLogoutTransition(async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -134,6 +221,20 @@ export default function SettingsForm({
     locationSaveState === 'saving'
       ? t('saving')
       : locationSaveState === 'saved'
+        ? t('saved')
+        : t('saveButton');
+
+  const notificationsButtonLabel =
+    notificationsSaveState === 'saving'
+      ? t('saving')
+      : notificationsSaveState === 'saved'
+        ? t('saved')
+        : t('saveButton');
+
+  const matchmakingButtonLabel =
+    matchmakingSaveState === 'saving'
+      ? t('saving')
+      : matchmakingSaveState === 'saved'
         ? t('saved')
         : t('saveButton');
 
@@ -306,6 +407,175 @@ export default function SettingsForm({
             className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
             {locationButtonLabel}
+          </button>
+        </form>
+      </section>
+
+      {/* Notifications section */}
+      <section className="bg-card border-border rounded-xl border p-6">
+        <h2 className="text-foreground mb-1 text-lg font-semibold">{t('notificationsTitle')}</h2>
+        <p className="text-muted-foreground mb-5 text-sm">{t('notificationsSubtitle')}</p>
+
+        <form onSubmit={handleSaveNotifications} className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-foreground text-sm font-medium">{t('notifyOnMatchLabel')}</p>
+              <p className="text-muted-foreground text-xs">{t('notifyOnMatchSubtitle')}</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={notifyOnMatch}
+              onClick={() => setNotifyOnMatch((v) => !v)}
+              className={`focus:ring-primary relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none ${notifyOnMatch ? 'bg-primary' : 'bg-muted'}`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${notifyOnMatch ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
+
+          <div>
+            <label
+              htmlFor="settings-email-frequency"
+              className="text-foreground mb-1 block text-sm font-medium"
+            >
+              {t('emailFrequencyLabel')}
+            </label>
+            <select
+              id="settings-email-frequency"
+              value={emailFrequency}
+              onChange={(e) => setEmailFrequency(e.target.value as EmailFrequency)}
+              className="border-border bg-background text-foreground focus:ring-primary w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+            >
+              <option value="instant">{t('emailFrequencyInstant')}</option>
+              <option value="daily">{t('emailFrequencyDaily')}</option>
+              <option value="weekly">{t('emailFrequencyWeekly')}</option>
+              <option value="never">{t('emailFrequencyNever')}</option>
+            </select>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-foreground text-sm font-medium">{t('pushEnabledLabel')}</p>
+              <p className="text-muted-foreground text-xs">{t('pushEnabledSubtitle')}</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={pushEnabled}
+              onClick={() => setPushEnabled((v) => !v)}
+              className={`focus:ring-primary relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none ${pushEnabled ? 'bg-primary' : 'bg-muted'}`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${pushEnabled ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
+
+          {notificationsSaveState === 'error' && notificationsError && (
+            <p className="text-destructive text-sm">{notificationsError}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={notificationsSaveState === 'saving'}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {notificationsButtonLabel}
+          </button>
+        </form>
+      </section>
+
+      {/* Matchmaking section */}
+      <section className="bg-card border-border rounded-xl border p-6">
+        <h2 className="text-foreground mb-1 text-lg font-semibold">{t('matchmakingTitle')}</h2>
+        <p className="text-muted-foreground mb-5 text-sm">{t('matchmakingSubtitle')}</p>
+
+        <form onSubmit={handleSaveMatchmaking} className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-foreground text-sm font-medium">{t('participatesLabel')}</p>
+              <p className="text-muted-foreground text-xs">{t('participatesSubtitle')}</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={participatesInMatchmaking}
+              onClick={() => setParticipatesInMatchmaking((v) => !v)}
+              className={`focus:ring-primary relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none ${participatesInMatchmaking ? 'bg-primary' : 'bg-muted'}`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${participatesInMatchmaking ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
+
+          <div>
+            <label
+              htmlFor="settings-match-radius"
+              className="text-foreground mb-1 block text-sm font-medium"
+            >
+              {t('matchRadiusLabel')}
+            </label>
+            <select
+              id="settings-match-radius"
+              value={matchRadius}
+              onChange={(e) => setMatchRadius(e.target.value as MatchRadius)}
+              className="border-border bg-background text-foreground focus:ring-primary w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+            >
+              <option value="neighborhood">{t('matchRadiusNeighborhood')}</option>
+              <option value="department">{t('matchRadiusDepartment')}</option>
+              <option value="country">{t('matchRadiusCountry')}</option>
+            </select>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-foreground text-sm font-medium">{t('offerUniquesLabel')}</p>
+              <p className="text-muted-foreground text-xs">{t('offerUniquesSubtitle')}</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={offerUniques}
+              onClick={() => setOfferUniques((v) => !v)}
+              className={`focus:ring-primary relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none ${offerUniques ? 'bg-primary' : 'bg-muted'}`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${offerUniques ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-foreground text-sm font-medium">{t('acceptUnbalancedLabel')}</p>
+              <p className="text-muted-foreground text-xs">{t('acceptUnbalancedSubtitle')}</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={acceptUnbalanced}
+              onClick={() => setAcceptUnbalanced((v) => !v)}
+              className={`focus:ring-primary relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none ${acceptUnbalanced ? 'bg-primary' : 'bg-muted'}`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${acceptUnbalanced ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
+
+          {matchmakingSaveState === 'error' && matchmakingError && (
+            <p className="text-destructive text-sm">{matchmakingError}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={matchmakingSaveState === 'saving'}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {matchmakingButtonLabel}
           </button>
         </form>
       </section>
