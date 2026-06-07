@@ -3,6 +3,38 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Corrida 42: RF-328 (error.tsx / not-found.tsx / loading.tsx brandados)
+
+- **Ítem**: RF-328 — Error boundaries y loading skeletons en App Router.
+- **Rama**: `claude/rf328-error-pages` (desde `develop`).
+- **Estado**: ✅ completo. Gate verde. **394 tests** (44 archivos).
+
+### Qué se hizo
+
+- **`messages/es.json`**: namespace `ErrorPages` con 8 claves (notFoundTitle/Subtitle/Cta/CtaAlt, errorTitle/Subtitle/Retry/Cta).
+- **`src/app/not-found.tsx`** (server async): 404 branded con tokens + i18n; CTAs a `/album` y `/`. Se solicita el namespace `ErrorPages` vía `getTranslations`.
+- **`src/app/error.tsx`** (`'use client'`): boundary de error con botón "Intentar de nuevo" (`reset`) y CTA "Ir al inicio" (`/`). Usa `useTranslations('ErrorPages')`.
+- **`src/app/global-error.tsx`** (`'use client'`): último recurso fuera del root layout. `NextIntlClientProvider` no está disponible → strings hardcodeados en español (excepción documentada en el componente). Tokens de color vía Tailwind (el bundle CSS de globals.css sigue disponible).
+- **`src/app/album/loading.tsx`**, **`src/app/matches/loading.tsx`**, **`src/app/conversations/loading.tsx`**: skeletons `animate-pulse` con `aria-busy="true"`, navbar placeholder + contenido shimmer, tokens de color. Proveen Suspense fallback inmediato mientras las Server Pages hacen `await`.
+- **Tests** (TDD): `src/app/__tests__/not-found.test.tsx` (4 tests: título, CTA /album, CTA /, namespace) + `src/app/__tests__/error.test.tsx` (4 tests: título, reintentar, CTA /, namespace). Corren en el proyecto `node` con `renderToStaticMarkup` + mocks de `next-intl/server` / `next-intl` / `next/link`.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-323** (Must) — Proteger rutas privadas en el middleware (redirect a `/auth/login?next=` si sin sesión en ruta protegida). 100% autónomo.
+2. **RF-324** (Must) — Rate limiting in-memory (verify-otp, messages, check-username). ADR-016.
+3. **RF-327** (Should) — pnpm 10 en CI (hoy: PNPM_VERSION: 9 en ci.yml vs package.json pnpm@10.34.1).
+4. **RF-330** (Should) — `bg-black/80` en dialog.tsx → `bg-foreground/60` (única clase de color cruda real en src/).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+
+---
+
 ## 2026-06-07 — Corrida 41: RF-321 (Enforced coverage CI para match-engine)
 
 - **Ítem**: RF-321 — Cobertura forzada al 100% sobre `src/lib/match-engine.ts` en el CI.
