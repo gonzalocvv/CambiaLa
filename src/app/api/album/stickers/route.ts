@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 import { getSession } from '@/lib/auth';
 import { BulkUpdateStickersSchema } from '@/lib/validations/sticker.schema';
 import { stickerService } from '@/services/sticker.service';
 
 // RF-213: guardado del álbum en bulk — una ráfaga de clicks llega en un solo PATCH.
-export async function PATCH(req: NextRequest) {
+export async function PATCH(req: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

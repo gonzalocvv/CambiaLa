@@ -10,20 +10,47 @@ import type { AlbumStats, StickerWithCount } from '@/lib/validations/sticker.sch
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 type FilterMode = 'all' | 'missing' | 'have' | 'duplicates' | 'specials';
 
-// RF-213: una ráfaga de clicks se buffea y se manda en UN solo PATCH bulk.
+// RF-213: una ráfaga de clicks se buffea y se manda en PATCH bulk.
+// L12: 800ms (vs 500 del flujo viejo) agrupa ráfagas más largas en un solo request;
+// el optimistic UI ya da feedback <200ms, así que la latencia extra de confirmación no se nota.
 const FLUSH_DELAY_MS = 800;
 const SAVED_TOAST_MS = 2000;
+const ERROR_RETRY_MS = 5000; // H6/L1: un reintento automático con backoff tras un fallo reintentable
+const MAX_CHANGES_PER_REQUEST = 200; // = cap del schema; el buffer se parte en lotes (H1)
 
 type Change = { stickerId: string; count: number };
+type SendResult = { ok: boolean; status: number; ignored: number };
 
-async function sendBulk(changes: Change[], keepalive = false): Promise<boolean> {
-  const res = await fetch('/api/album/stickers', {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ changes }),
-    keepalive,
-  });
-  return res.ok;
+// Un intento de envío. Un throw de red NO rompe: devuelve status 0 (reintentable). M1.
+async function sendOnce(changes: Change[], keepalive = false): Promise<SendResult> {
+  try {
+    const res = await fetch('/api/album/stickers', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ changes }),
+      keepalive,
+    });
+    let ignored = 0;
+    if (res.ok) {
+      const data = (await res.json().catch(() => null)) as { ignored?: number } | null;
+      ignored = data?.ignored ?? 0;
+    }
+    return { ok: res.ok, status: res.status, ignored };
+  } catch {
+    return { ok: false, status: 0, ignored: 0 };
+  }
+}
+
+export function chunkChanges(entries: [string, number][]): Change[][] {
+  const out: Change[][] = [];
+  for (let i = 0; i < entries.length; i += MAX_CHANGES_PER_REQUEST) {
+    out.push(
+      entries
+        .slice(i, i + MAX_CHANGES_PER_REQUEST)
+        .map(([stickerId, count]) => ({ stickerId, count })),
+    );
+  }
+  return out;
 }
 
 function computeStats(stickers: StickerWithCount[], counts: Record<string, number>): AlbumStats {
@@ -48,6 +75,7 @@ export function AlbumClient({ stickers, initialStats }: Props) {
     Object.fromEntries(stickers.map((s) => [s.id, s.count])),
   );
   const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [ignoredCount, setIgnoredCount] = useState(0);
   const [activeFilter, setActiveFilter] = useState<FilterMode>('all');
   const [selectedTeam, setSelectedTeam] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,7 +84,10 @@ export function AlbumClient({ stickers, initialStats }: Props) {
   const bufferRef = useRef<Map<string, number>>(new Map());
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFlushingRef = useRef(false);
+  const inFlightKeysRef = useRef<Set<string>>(new Set());
+  const backoffUsedRef = useRef(false);
   const flushRef = useRef<() => void>(() => {});
 
   const scheduleFlush = useCallback(() => {
@@ -67,36 +98,64 @@ export function AlbumClient({ stickers, initialStats }: Props) {
     }, FLUSH_DELAY_MS);
   }, []);
 
+  // H6/L1: un ÚNICO reintento automático con backoff tras un fallo reintentable; después queda el error.
+  const scheduleBackoffRetry = useCallback(() => {
+    if (backoffUsedRef.current) return;
+    backoffUsedRef.current = true;
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = setTimeout(() => {
+      retryTimerRef.current = null;
+      void flushRef.current();
+    }, ERROR_RETRY_MS);
+  }, []);
+
   const flush = useCallback(async () => {
-    // Si ya hay un flush en vuelo, este no dispara otro: el que está corriendo
-    // reprograma al terminar si quedaron cambios. Evita requests superpuestos.
+    // Guard: si ya hay un flush en vuelo, este no dispara otro (evita requests superpuestos).
     if (isFlushingRef.current || bufferRef.current.size === 0) return;
 
     isFlushingRef.current = true;
     const snapshot = [...bufferRef.current.entries()];
-    const changes: Change[] = snapshot.map(([stickerId, count]) => ({ stickerId, count }));
+    inFlightKeysRef.current = new Set(snapshot.map(([k]) => k));
 
-    let ok = false;
-    try {
-      ok = (await sendBulk(changes)) || (await sendBulk(changes)); // 1 reintento
-    } catch {
-      ok = false;
-    }
+    let retryableFailure = false; // 5xx / red → conservar y reintentar
+    let deterministicFailure = false; // 4xx → purgar el snapshot (no se arregla reintentando)
+    let ignoredThisFlush = 0;
 
-    if (ok) {
-      // Borrar solo las keys del snapshot cuyo valor no cambió durante el vuelo
-      // (preserva los clicks que entraron mientras volaba el request).
-      for (const [stickerId, count] of snapshot) {
-        if (bufferRef.current.get(stickerId) === count) bufferRef.current.delete(stickerId);
+    // H1: el buffer se parte en lotes de ≤200 (el server capea en 200) y se envían en orden.
+    for (const changes of chunkChanges(snapshot)) {
+      // M1: cada intento captura su propio throw; reintenta solo si es reintentable (red/5xx).
+      let r = await sendOnce(changes);
+      if (!r.ok && (r.status === 0 || r.status >= 500)) r = await sendOnce(changes);
+
+      if (r.ok) {
+        ignoredThisFlush += r.ignored;
+        // Borrar solo las keys cuyo valor no cambió durante el vuelo (preserva clicks en vuelo).
+        for (const { stickerId, count } of changes) {
+          if (bufferRef.current.get(stickerId) === count) bufferRef.current.delete(stickerId);
+        }
+      } else if (r.status >= 400 && r.status < 500) {
+        // M2: 4xx determinístico → purgar el snapshot para no atascar el buffer.
+        for (const { stickerId, count } of changes) {
+          if (bufferRef.current.get(stickerId) === count) bufferRef.current.delete(stickerId);
+        }
+        deterministicFailure = true;
+      } else {
+        retryableFailure = true;
       }
     }
-    isFlushingRef.current = false;
 
-    if (!ok) {
-      setSaveState('error'); // no se vacía el buffer: se reintenta en el próximo flush
+    inFlightKeysRef.current = new Set();
+    isFlushingRef.current = false;
+    setIgnoredCount(ignoredThisFlush);
+
+    if (retryableFailure || deterministicFailure) {
+      setSaveState('error');
+      if (retryableFailure) scheduleBackoffRetry();
     } else if (bufferRef.current.size > 0) {
+      backoffUsedRef.current = false;
       scheduleFlush(); // entraron cambios durante el vuelo
     } else {
+      backoffUsedRef.current = false;
       setSaveState('saved');
       if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
       savedTimerRef.current = setTimeout(
@@ -104,31 +163,48 @@ export function AlbumClient({ stickers, initialStats }: Props) {
         SAVED_TOAST_MS,
       );
     }
-  }, [scheduleFlush]);
+  }, [scheduleFlush, scheduleBackoffRetry]);
 
   useEffect(() => {
     flushRef.current = () => void flush();
   }, [flush]);
 
-  // Flush best-effort al ocultar/cerrar la pestaña (no perder cambios sin guardar).
+  // Visibilidad/cierre: NUNCA vaciar el buffer antes de confirmar (H5/M4/L9/N3).
   useEffect(() => {
-    const flushOnClose = () => {
-      if (bufferRef.current.size === 0) return;
-      const changes: Change[] = [...bufferRef.current.entries()].map(([stickerId, count]) => ({
-        stickerId,
-        count,
-      }));
-      bufferRef.current.clear();
-      void sendBulk(changes, true);
-    };
     const onVisibility = () => {
-      if (document.visibilityState === 'hidden') flushOnClose();
+      // Tab oculta (cambiar de pestaña / minimizar en mobile, muy común): flush normal
+      // awaiteable, respeta el guard y solo borra lo confirmado.
+      if (document.visibilityState === 'hidden') void flush();
+    };
+    const onPageHide = () => {
+      // Cierre real: best-effort con keepalive, SIN vaciar el buffer, y solo las keys que NO
+      // están en un flush en vuelo (L2). Si la página sobrevive (bfcache), el buffer queda intacto.
+      if (bufferRef.current.size === 0) return;
+      const entries = [...bufferRef.current.entries()].filter(
+        ([k]) => !inFlightKeysRef.current.has(k),
+      );
+      for (const changes of chunkChanges(entries)) void sendOnce(changes, true);
     };
     document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('pagehide', flushOnClose);
+    window.addEventListener('pagehide', onPageHide);
     return () => {
       document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('pagehide', flushOnClose);
+      window.removeEventListener('pagehide', onPageHide);
+    };
+  }, [flush]);
+
+  // H2: al desmontar (navegación SPA, la página sigue viva) limpiar timers y mandar el remanente.
+  useEffect(() => {
+    const buffer = bufferRef.current; // Map de identidad estable durante toda la vida del componente
+    return () => {
+      if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      if (buffer.size > 0) {
+        for (const changes of chunkChanges([...buffer.entries()])) {
+          void sendOnce(changes, true);
+        }
+      }
     };
   }, []);
 
@@ -141,6 +217,17 @@ export function AlbumClient({ stickers, initialStats }: Props) {
     },
     [scheduleFlush],
   );
+
+  // M6: botón "Reintentar" del estado de error persistente.
+  const handleRetry = useCallback(() => {
+    backoffUsedRef.current = false;
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    setSaveState('saving');
+    void flushRef.current();
+  }, []);
 
   const stats = useMemo(() => computeStats(stickers, counts), [stickers, counts]);
 
@@ -185,14 +272,9 @@ export function AlbumClient({ stickers, initialStats }: Props) {
     return map;
   }, [filteredStickers, counts]);
 
+  // El error se muestra en un banner persistente con "Reintentar" (M6), no como toast.
   const saveLabel =
-    saveState === 'saving'
-      ? t('saving')
-      : saveState === 'saved'
-        ? t('saved')
-        : saveState === 'error'
-          ? t('saveError')
-          : null;
+    saveState === 'saving' ? t('saving') : saveState === 'saved' ? t('saved') : null;
 
   // Use initialStats only until first interaction to avoid SSR mismatch
   const displayStats = Object.values(counts).every((c, i) => c === stickers[i]?.count)
@@ -345,10 +427,27 @@ export function AlbumClient({ stickers, initialStats }: Props) {
         </div>
       ))}
 
-      {/* Save indicator — floating bottom-right */}
-      {saveLabel && (
-        <div className="bg-card border-border text-muted-foreground fixed right-4 bottom-4 z-50 rounded-lg border px-4 py-2 text-sm shadow-md">
-          {saveLabel}
+      {/* Save indicator — floating bottom-right. Error = persistente con Reintentar (M6). */}
+      {(saveLabel || saveState === 'error' || ignoredCount > 0) && (
+        <div className="bg-card border-border fixed right-4 bottom-4 z-50 max-w-xs rounded-lg border px-4 py-2 text-sm shadow-md">
+          {saveState === 'error' ? (
+            <div className="flex items-center gap-3">
+              <span className="text-destructive font-medium">{t('saveError')}</span>
+              <button
+                onClick={handleRetry}
+                className="bg-primary text-primary-foreground shrink-0 rounded-md px-2 py-1 text-xs font-medium"
+              >
+                {t('retry')}
+              </button>
+            </div>
+          ) : (
+            saveLabel && <span className="text-muted-foreground">{saveLabel}</span>
+          )}
+          {ignoredCount > 0 && (
+            <p className="text-muted-foreground mt-1 text-xs">
+              {t('ignoredNotice', { count: ignoredCount })}
+            </p>
+          )}
         </div>
       )}
     </div>

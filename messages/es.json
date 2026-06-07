@@ -132,7 +132,9 @@
     "searchClear": "Limpiar búsqueda",
     "teamFilterAll": "Todos los equipos",
     "emptyFilter": "No hay figuritas que coincidan con ese filtro.",
-    "resultsCount": "{count, plural, one {1 figurita} other {# figuritas}}"
+    "resultsCount": "{count, plural, one {1 figurita} other {# figuritas}}",
+    "retry": "Reintentar",
+    "ignoredNotice": "{count, plural, one {1 figurita no se guardó (no está en el catálogo)} other {# figuritas no se guardaron (no están en el catálogo)}}"
   },
   "Settings": {
     "title": "Mi configuración",

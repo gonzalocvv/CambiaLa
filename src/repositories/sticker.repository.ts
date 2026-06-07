@@ -56,10 +56,17 @@ export const stickerRepository = {
     userId: string,
     changes: { stickerId: string; count: number }[],
   ): Promise<void> {
-    const ids = changes.map(() => createId());
-    const stickerIds = changes.map((c) => c.stickerId);
-    const counts = changes.map((c) => c.count);
+    if (changes.length === 0) return; // N6: contrato robusto aunque el caller no filtre
 
+    // L8: orden determinístico por stickerId → todos los statements concurrentes toman los
+    // locks de fila en el mismo orden, evitando deadlocks (40P01) entre flushes solapados.
+    const ordered = [...changes].sort((a, b) => a.stickerId.localeCompare(b.stickerId));
+    const ids = ordered.map(() => createId());
+    const stickerIds = ordered.map((c) => c.stickerId);
+    const counts = ordered.map((c) => c.count);
+
+    // N7: updatedAt se setea a mano con now() porque @updatedAt de Prisma NO corre en raw SQL
+    // y la columna es NOT NULL sin default a nivel DB. No es redundante: no lo borres.
     await prisma.$executeRaw`
       INSERT INTO "UserSticker" ("id", "userId", "stickerId", "count", "updatedAt")
       SELECT x.id, ${userId}, x.sid, x.cnt, now()
