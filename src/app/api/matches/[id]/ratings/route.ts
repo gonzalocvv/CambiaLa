@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { CreateRatingSchema } from '@/lib/validations/rating.schema';
 import { getSession } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 import {
   AlreadyRatedError,
   RatingMatchNotFoundError,
@@ -24,6 +25,7 @@ export async function GET(_req: Request, { params }: Params) {
     if (err instanceof RatingMatchNotFoundError) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
+    logger.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });
     throw err;
   }
 }
@@ -61,6 +63,7 @@ export async function POST(req: Request, { params }: Params) {
     if (err instanceof AlreadyRatedError) {
       return NextResponse.json({ error: 'Already rated' }, { status: 409 });
     }
+    logger.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });
     throw err;
   }
 }

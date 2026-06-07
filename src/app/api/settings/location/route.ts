@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { getSession } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 import { UpdateLocationSchema } from '@/lib/validations/settings.schema';
 import { userService, UserNotFoundError } from '@/services/user.service';
 
@@ -26,6 +27,7 @@ export async function PUT(request: Request) {
     if (err instanceof UserNotFoundError) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+    logger.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });
     throw err;
   }
 }

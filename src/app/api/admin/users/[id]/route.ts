@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { getSession } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 import { SuspendUserSchema } from '@/lib/validations/admin.schema';
 import { userService, UserNotFoundError } from '@/services/user.service';
 
@@ -18,6 +19,7 @@ export async function GET(_request: Request, ctx: Ctx) {
   } catch (e) {
     if (e instanceof UserNotFoundError)
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
+    logger.error('Unhandled error', { error: e instanceof Error ? e.message : String(e) });
     throw e;
   }
 }
@@ -38,6 +40,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
   } catch (e) {
     if (e instanceof UserNotFoundError)
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
+    logger.error('Unhandled error', { error: e instanceof Error ? e.message : String(e) });
     throw e;
   }
 }

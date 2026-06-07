@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 import { userService, UsernameConflictError } from '@/services/user.service';
 import { CompleteOnboardingSchema } from '@/lib/validations/onboarding.schema';
 
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
     if (err instanceof UsernameConflictError) {
       return NextResponse.json({ error: 'USERNAME_TAKEN' }, { status: 409 });
     }
+    logger.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });
     throw err;
   }
 }

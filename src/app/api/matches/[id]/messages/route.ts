@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { getSession } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { SendMessageSchema } from '@/lib/validations/message.schema';
 import { MatchNotFoundError, MessageAccessError, messageService } from '@/services/message.service';
@@ -20,6 +21,7 @@ export async function GET(_req: Request, { params }: Params) {
     if (err instanceof MatchNotFoundError || err instanceof MessageAccessError) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
+    logger.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });
     throw err;
   }
 }
@@ -52,6 +54,7 @@ export async function POST(req: Request, { params }: Params) {
     if (err instanceof MatchNotFoundError || err instanceof MessageAccessError) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
+    logger.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });
     throw err;
   }
 }
