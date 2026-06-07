@@ -36,19 +36,21 @@ for (const vp of viewports) {
   }
 }
 
-// Frames del loop en movimiento (desktop) para revisar vuelo/cruce/reposo.
-for (const t of [2500, 4200, 6800]) {
-  const ctx = await browser.newContext({
-    viewport: { width: 1440, height: 900 },
-    colorScheme: 'light',
-    deviceScaleFactor: 2,
-  });
-  const page = await ctx.newPage();
-  await page.goto(BASE, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(t);
-  await page.screenshot({ path: `${OUT}/desktop-motion-${t}ms.png` });
-  await ctx.close();
-  console.info(`shot: desktop-motion-${t}ms`);
+// Frames del loop en movimiento (390 Y 1440) para revisar despegue/cruce/aterrizaje.
+for (const vp of viewports) {
+  for (const t of [2500, 4200, 6800]) {
+    const ctx = await browser.newContext({
+      viewport: { width: vp.width, height: vp.height },
+      colorScheme: 'light',
+      deviceScaleFactor: 2,
+    });
+    const page = await ctx.newPage();
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(t);
+    await page.screenshot({ path: `${OUT}/${vp.name}-motion-${t}ms.png` });
+    await ctx.close();
+    console.info(`shot: ${vp.name}-motion-${t}ms`);
+  }
 }
 
 await browser.close();
