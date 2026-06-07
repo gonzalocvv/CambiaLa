@@ -3,6 +3,52 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Corrida 50: RF-329 (WCAG AA — token accent-text para naranja sobre fondo claro)
+
+- **Ítem**: RF-329 — `text-accent` sobre fondo claro falla WCAG AA (2.80:1 < 3.0 grande / 4.5 normal).
+- **Rama**: `claude/rf329-accent-text-wcag`.
+- **Estado**: ✅ completo. Gate verde. **472 tests** (51 archivos).
+
+### Qué se hizo
+
+**Token nuevo en `globals.css`:**
+- `:root` (light): `--accent-text: #c2410c` (naranja oscuro, ≈4.5:1 sobre `#ffffff`, WCAG AA normal text).
+- `.dark` + `@media prefers-color-scheme: dark`: `--accent-text: #f97316` (mismo que `--accent`; en dark ya pasa 6.8:1).
+- `@theme inline`: `--color-accent-text: var(--accent-text)` → habilita la utility `text-accent-text`.
+
+**Componentes corregidos (5 archivos):**
+- `sticker-cell.tsx:32` — clase de estado "repetida": `bg-accent/10 text-accent` → `bg-accent/10 text-accent-text`.
+- `ScrollHint.tsx:21` — enlace de scroll `bg-accent/5 text-accent` → `text-accent-text`.
+- `AlbumClient.tsx:309` — stat "Repetidas" (2xl bold sobre bg-card) → `text-accent-text`.
+- `page.tsx:46` — resalte `hl` del H1 (4xl+, pero 2.80:1 falla incluso AA-large 3.0:1) → `text-accent-text`.
+- `rating-modal.tsx:71` — íconos de estrellas (2xl) → `text-accent-text`.
+
+**Sin cambios (tradeoffs aceptados):**
+- Wordmark "La" en navbar/app-navbar/login/onboarding — decisión de marca documentada en la auditoría.
+- `exchange-animation.tsx` — elemento `aria-hidden` decorativo, no sujeto a WCAG.
+- Badge `bg-accent text-accent-foreground` — ya pasaba (texto oscuro sobre fondo naranja).
+
+**RF-336 marcado `[x]`:** `--passWithNoTests` fue eliminado por RF-321 (Corrida 41); ya no estaba en `package.json`.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-322** (Should) — Tests de componentes client (AlbumClient con fake timers, LoginForm OTP, chat-panel polling).
+2. **RF-325** (Should) — Logger estructurado: adoptar `logger.error` en catches o eliminar el módulo.
+3. **RF-326** (Should) — Tests directos de schemas Zod (sticker, onboarding, rating, message).
+4. **D-001** (Must) — Update CLAUDE.md (sección auth todavía dice "stub return null").
+5. **RF-331** (Could) — Renombrar PascalCase → kebab-case en 5 archivos.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
 ## 2026-06-07 — Corrida 49: S3.2 (loading/empty/error states — todas las pantallas)
 
 - **Ítem**: S3.2 — Loading / empty / error states en todas las pantallas autenticadas.
