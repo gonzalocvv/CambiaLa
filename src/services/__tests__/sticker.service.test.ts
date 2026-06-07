@@ -150,4 +150,33 @@ describe('stickerService.bulkUpdateCounts', () => {
     ]);
     expect(result).toEqual({ applied: 2, ignored: 0 });
   });
+
+  it('dedupe intercalado: preserva orden de 1ra aparición con el último valor', async () => {
+    mockRepo.getExistingStickerIds.mockResolvedValue(new Set(['a', 'b']));
+
+    const result = await stickerService.bulkUpdateCounts(USER_ID, [
+      { stickerId: 'a', count: 1 },
+      { stickerId: 'b', count: 2 },
+      { stickerId: 'a', count: 3 },
+    ]);
+
+    expect(mockRepo.getExistingStickerIds).toHaveBeenCalledWith(['a', 'b']);
+    expect(mockRepo.bulkUpsertCounts).toHaveBeenCalledWith(USER_ID, [
+      { stickerId: 'a', count: 3 },
+      { stickerId: 'b', count: 2 },
+    ]);
+    expect(result).toEqual({ applied: 2, ignored: 0 });
+  });
+
+  it('aplica 200 cambios válidos en una sola llamada al repo', async () => {
+    const ids = Array.from({ length: 200 }, (_, i) => `s${i}`);
+    mockRepo.getExistingStickerIds.mockResolvedValue(new Set(ids));
+
+    const changes = ids.map((stickerId, i) => ({ stickerId, count: i % 100 }));
+    const result = await stickerService.bulkUpdateCounts(USER_ID, changes);
+
+    expect(mockRepo.bulkUpsertCounts).toHaveBeenCalledOnce();
+    expect(mockRepo.bulkUpsertCounts.mock.calls[0][1]).toHaveLength(200);
+    expect(result).toEqual({ applied: 200, ignored: 0 });
+  });
 });

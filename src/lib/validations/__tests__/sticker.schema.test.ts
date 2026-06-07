@@ -73,4 +73,22 @@ describe('BulkUpdateStickersSchema', () => {
   it('rejects a missing changes key', () => {
     expect(BulkUpdateStickersSchema.safeParse({}).success).toBe(false);
   });
+
+  it('rejects changes that is not an array', () => {
+    expect(BulkUpdateStickersSchema.safeParse({ changes: 'x' }).success).toBe(false);
+    expect(BulkUpdateStickersSchema.safeParse({ changes: 123 }).success).toBe(false);
+  });
+
+  it('rejects a change missing count', () => {
+    expect(BulkUpdateStickersSchema.safeParse({ changes: [{ stickerId: 's1' }] }).success).toBe(
+      false,
+    );
+  });
+
+  it('rejects a stickerId longer than 32 chars', () => {
+    expect(
+      BulkUpdateStickersSchema.safeParse({ changes: [change({ stickerId: 'x'.repeat(33) })] })
+        .success,
+    ).toBe(false);
+  });
 });
