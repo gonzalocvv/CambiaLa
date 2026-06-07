@@ -21,6 +21,7 @@
   --muted-foreground: #64748b;
   --accent: #f97316; /* naranja = acento */
   --accent-foreground: #1a1206; /* texto oscuro sobre naranja (AA) */
+  --accent-text: #c2410c; /* naranja oscuro para texto sobre fondo claro (≈4.5:1 sobre blanco, WCAG AA) */
   --special: #d97706; /* dorado para figuritas especiales (amber-600) */
   --special-foreground: #ffffff;
   --destructive: #ef4444;
@@ -48,6 +49,7 @@
   --muted-foreground: #a1a1aa;
   --accent: #f97316; /* naranja */
   --accent-foreground: #1a1206;
+  --accent-text: #f97316; /* en dark el naranja ya pasa AA (6.8:1) — mismo valor que accent */
   --special: #fbbf24; /* dorado para figuritas especiales (amber-400) */
   --special-foreground: #1a1206;
   --destructive: #991b1b;
@@ -76,6 +78,7 @@
     --muted-foreground: #a1a1aa;
     --accent: #f97316;
     --accent-foreground: #1a1206;
+    --accent-text: #f97316;
     --special: #fbbf24;
     --special-foreground: #1a1206;
     --destructive: #991b1b;
@@ -104,6 +107,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-text: var(--accent-text);
   --color-special: var(--special);
   --color-special-foreground: var(--special-foreground);
   --color-destructive: var(--destructive);
