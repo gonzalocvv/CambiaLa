@@ -4,10 +4,20 @@ const mockUserPrisma = vi.hoisted(() => ({
   findUnique: vi.fn(),
   upsert: vi.fn(),
   update: vi.fn(),
+  delete: vi.fn(),
 }));
 
+const mockRatingPrisma = vi.hoisted(() => ({ deleteMany: vi.fn() }));
+const mockMatchPrisma = vi.hoisted(() => ({ deleteMany: vi.fn() }));
+const mockMessagePrisma = vi.hoisted(() => ({ deleteMany: vi.fn() }));
+
 vi.mock('@/lib/prisma', () => ({
-  prisma: { user: mockUserPrisma },
+  prisma: {
+    user: mockUserPrisma,
+    rating: mockRatingPrisma,
+    match: mockMatchPrisma,
+    message: mockMessagePrisma,
+  },
 }));
 
 import { userRepository } from '../user.repository';
@@ -367,6 +377,37 @@ describe('userRepository.findByUsername', () => {
     mockUserPrisma.findUnique.mockResolvedValue(null);
     const result = await userRepository.findByUsername('nobody');
     expect(result).toBeNull();
+  });
+});
+
+describe('userRepository.deleteUserCascade', () => {
+  it('deletes ratings, matches, messages, then user in order', async () => {
+    mockRatingPrisma.deleteMany.mockResolvedValue({ count: 2 });
+    mockMatchPrisma.deleteMany.mockResolvedValue({ count: 1 });
+    mockMessagePrisma.deleteMany.mockResolvedValue({ count: 0 });
+    mockUserPrisma.delete.mockResolvedValue({ id: 'cuid-user-1' });
+
+    await userRepository.deleteUserCascade('cuid-user-1');
+
+    expect(mockRatingPrisma.deleteMany).toHaveBeenCalledWith({
+      where: { OR: [{ raterId: 'cuid-user-1' }, { ratedId: 'cuid-user-1' }] },
+    });
+    expect(mockMatchPrisma.deleteMany).toHaveBeenCalledWith({
+      where: { OR: [{ userAId: 'cuid-user-1' }, { userBId: 'cuid-user-1' }] },
+    });
+    expect(mockMessagePrisma.deleteMany).toHaveBeenCalledWith({
+      where: { fromUserId: 'cuid-user-1' },
+    });
+    expect(mockUserPrisma.delete).toHaveBeenCalledWith({ where: { id: 'cuid-user-1' } });
+
+    // Verify order: ratings → matches → messages → user
+    const ratingOrder = mockRatingPrisma.deleteMany.mock.invocationCallOrder[0];
+    const matchOrder = mockMatchPrisma.deleteMany.mock.invocationCallOrder[0];
+    const messageOrder = mockMessagePrisma.deleteMany.mock.invocationCallOrder[0];
+    const userOrder = mockUserPrisma.delete.mock.invocationCallOrder[0];
+    expect(ratingOrder).toBeLessThan(matchOrder);
+    expect(matchOrder).toBeLessThan(messageOrder);
+    expect(messageOrder).toBeLessThan(userOrder);
   });
 });
 
