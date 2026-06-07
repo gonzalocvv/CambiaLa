@@ -11,6 +11,12 @@
 
 ---
 
+> **⚠️ Addendum 2026-06-07 — correcciones de estado (config hecha fuera del repo, que la auditoría no vio):**
+>
+> - **Resend ya está configurado**: `RESEND_API_KEY` en `.env.local` + Vercel, dominio `cambiala.uy` **verificado**, SMTP propio en Supabase probado E2E (los códigos de login salen de `consultas@cambiala.uy`). → El hallazgo **A1** queda resuelto a nivel config: **RF-406 ya NO es bloqueante por credenciales**, falta solo el **código** de envío.
+> - **Inngest**: `INNGEST_EVENT_KEY` + `INNGEST_SIGNING_KEY` cargadas (`.env.local` + Vercel). → **RF-307 ya NO está bloqueado por keys**; queda como optimización **post-RF-320**.
+> - El resto del informe se mantiene como **foto al momento de la auditoría**. El bloqueante #1 (**C1 / RF-320** — el match engine no se ejecuta en runtime) sigue plenamente vigente.
+
 ## 1. Resumen ejecutivo
 
 El proyecto está técnicamente sano en lo estructural pero tiene **un agujero de producto crítico que ningún test atrapa**: el match engine, el feature central de CambiaLa, **nunca se ejecuta en runtime**. `findMatchesForUser` y `matchService.saveMatchResult` están implementados con cobertura 100%, pero **no tienen un solo caller fuera de sus propios tests**. El PATCH de stickers solo hace `updateStickerCount` (upsert del count); `/api/matches` y `/matches` solo **leen** matches pre-computados de la tabla `Match`. Como nada escribe esa tabla, queda vacía y **`/matches` siempre muestra el estado vacío para usuarios reales**. No hay job, cron, script ni Inngest que lo dispare (`inngest` ni siquiera es dependencia — solo un script stub `inngest:dev`). Esto es el bloqueante #1 de launch.

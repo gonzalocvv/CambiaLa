@@ -38,7 +38,9 @@ Fuentes de verdad, por orden:
 - **`reports/audit-*.md`** — auditorías de estado real (DB, env, build).
 - **Notion** — documentación completa del producto/arquitectura: `https://www.notion.so/36de548e6cdd81cda047e4a5c0f4ad91`. Si necesitás contexto profundo de un feature o decisión, consultá Notion. La página **"Estado de implementación"** resume lo realmente construido.
 
-Snapshot (jun 2026): Sprint 0 completo; Supabase migrado + seedeado (896 stickers); match engine (RF-301..306, 100% cobertura); persistencia + TTL de matches; lista/detalle de matches; notificaciones (parcial); landing. **Camino crítico pendiente: Auth** (`src/lib/auth.ts` → `getSession()` es stub `return null`; Supabase ya está listo, falta implementar con `@supabase/ssr`).
+Snapshot (act. 2026-06-07): Sprints 0/1/2/3 muy avanzados. **Auth CERRADO y probado E2E** (RF-101..107: código OTP de 6 dígitos + magic link de respaldo + Google OAuth; `src/lib/auth.ts` `getSession()` es real con `@supabase/ssr`). Supabase migrado + seedeado (896 stickers). Match engine puro RF-301..306 con 100% cobertura. Persistencia + TTL de matches; lista/detalle de matches; chat; reseñas; notificaciones in-app; landing v2 mergeada. Auditoría gstack Etapa 0 hecha (`reports/gstack-audit-2026-06-06.md`).
+
+**Camino crítico real (post-auditoría):** (1) **RF-320 — cablear el recompute de matches en runtime**: el match engine está implementado y testeado pero NINGÚN path lo invoca → la tabla `Match` nunca se escribe y `/matches` está vacío para usuarios reales. **Bloqueante #1 de launch.** (2) **RF-406 (código de email)**: Resend ya está configurado (key + dominio `cambiala.uy` verificado + SMTP propio en Supabase, E2E); falta solo el código de envío. Ver `BACKLOG.md` (sección auditoría: RF-320..337, D-001..003).
 
 ---
 
@@ -48,8 +50,8 @@ Snapshot (jun 2026): Sprint 0 completo; Supabase migrado + seedeado (896 sticker
 - **Estilos**: Tailwind CSS **v4** + shadcn/ui. Tokens de color en `src/app/globals.css` (ver §7).
 - **DB**: PostgreSQL en **Supabase**. **ORM**: Prisma 6.
 - **Auth**: Supabase Auth (magic link + Google OAuth).
-- **Jobs async**: Inngest (matchmaking, notificaciones, crons). 🔒 pendiente de keys.
-- **Email**: Resend (React Email). 🔒 pendiente de key + dominio.
+- **Jobs async**: Inngest (matchmaking, notificaciones, crons). **Keys ya cargadas** (`.env.local` + Vercel, 2026-06-06); falta solo el código (RF-307, optimización post-RF-320).
+- **Email**: Resend (React Email). **Configurado** (`RESEND_API_KEY` + dominio `cambiala.uy` verificado + SMTP propio en Supabase, probado E2E; remitente `consultas@cambiala.uy`); falta solo el código de envío (RF-406).
 - **Validación**: Zod (client y server).
 - **Estado client**: TanStack Query + useState/useReducer. Sin Redux/Zustand salvo que crezca mucho.
 - **i18n**: next-intl (locale `es`).
@@ -231,11 +233,12 @@ La paleta vive en `src/app/globals.css` como **tokens** (shadcn / Tailwind v4, l
 
 ---
 
-## 12. Auth (ADR-013) — camino crítico
+## 12. Auth (ADR-013) — CERRADO ✅
 
-- Supabase Auth: **magic link** (principal) + **Google OAuth** (complemento).
-- Hoy `src/lib/auth.ts` (`getSession()`) es un **stub `return null`** → toda ruta autenticada da 401. **Próximo gran paso**: implementarlo de verdad con `@supabase/ssr` y construir RF-101..107 (registro en primer login, sesión persistente con cookie HTTPOnly+Secure+SameSite=Lax, logout, recuperación).
-- Magic link: el email built-in de Supabase alcanza para dev (Gonza confirma settings de email/SMTP en el dashboard). Google OAuth requiere configurar el provider (client ID/secret) en el dashboard de Supabase → es config manual, no la hace el agente.
+- Supabase Auth, **implementado y probado E2E** (RF-101..107). `src/lib/auth.ts` `getSession()` es **real**: `@supabase/ssr` (`createClient` → `supabase.auth.getUser()` → `userRepository.findByEmail`, envuelto en `cache()`). Las rutas autenticadas chequean sesión y dan 401/redirect sin ella.
+- Métodos: **código OTP de 6 dígitos** (principal, `POST /api/auth/verify-otp`) + **magic link** de respaldo (callback PKCE + token-hash) + **Google OAuth** (`signInWithOAuth`, provider configurado en Google Cloud + Supabase, probado E2E). Registro automático en primer login (`userRepository.upsertByEmail`), sesión persistente vía cookie (middleware `@supabase/ssr`), logout (`POST /api/auth/logout`).
+- **Config de dashboard ya hecha** (Gonza): Email OTP Length = 6, SMTP propio (Resend) para que los códigos no topen la cuota del built-in. Google OAuth: solo queda lo cosmético (branding del consent screen).
+- **Endurecimiento pendiente** (no bloquea, detectado en la auditoría): protección de rutas en el middleware (RF-323) y rate limiting del OTP (RF-324).
 
 ---
 
@@ -285,7 +288,9 @@ CI: job `lint-and-type` (lint + type-check + format:check), `test` (prisma:gener
 `.env.example` lista todas. Estado actual:
 
 - **Supabase**: ✅ configurado (URL, anon, service role, DATABASE_URL, DIRECT_URL). Migrado y seedeado.
-- **🔒 pendientes (keys vacías → el feature es no-op hasta cargarlas):** Resend (`RESEND_API_KEY` + dominio), Inngest (`INNGEST_*`), Sentry (`SENTRY_DSN`), PostHog (`NEXT_PUBLIC_POSTHOG_KEY`).
+- **Resend**: ✅ configurado (2026-06-06) — `RESEND_API_KEY` en `.env.local` + Vercel, dominio `cambiala.uy` verificado, SMTP propio cableado en Supabase y probado E2E (los códigos de login salen de `consultas@cambiala.uy`). Falta solo el **código** de envío de transaccionales (RF-406).
+- **Inngest**: ✅ keys cargadas (2026-06-06) — `INNGEST_EVENT_KEY` + `INNGEST_SIGNING_KEY` en `.env.local` + Vercel. Falta solo el **código** (RF-307, optimización post-RF-320).
+- **🔒 pendientes (keys vacías → el feature es no-op hasta cargarlas):** Sentry (`SENTRY_DSN`), PostHog (`NEXT_PUBLIC_POSTHOG_KEY`).
 - Las claves reales las carga Gonza en `.env.local` + secrets de Vercel/CI. El agente codea asumiendo que existen; el gate usa env mock.
 
 ---
@@ -343,9 +348,9 @@ Decisiones recientes que viven acá: **paleta celeste(light)/grafito(dark)+naran
 
 ## 21. Flags / decisiones pendientes del owner
 
-- **Naming/dominio**: la app es `CambiaLa` (prod `cambia-la.vercel.app`) pero el env usa `figus.uy` (`RESEND_FROM_EMAIL`, `NEXT_PUBLIC_BASE_URL`) y la doc prefiere `cambiala.uy`/`.app`. **Hay que unificar marca + dominio** antes de configurar Resend y de lanzar.
+- **Naming/dominio**: **dominio decidido = `cambiala.uy`** (verificado en Resend; mails desde `consultas@cambiala.uy`). Marca = `CambiaLa` (prod `cambia-la.vercel.app`). Pendiente menor: actualizar referencias viejas a `figus.uy` en el env (`RESEND_FROM_EMAIL`, `NEXT_PUBLIC_BASE_URL`) y limpiar menciones residuales.
 - Reemplazar el catálogo sintético de figuritas por el checklist real de Panini antes del launch.
-- Nits abiertos (ver última auditoría): back-link a `/matches` (listado de página no existe, solo la API); bump `postcss` ≥ 8.5.10.
+- ✅ Nits ya resueltos (auditoría Etapa 0, `reports/gstack-audit-2026-06-06.md`): back-link a `/matches` (la página existe), bump `postcss` (el lock resuelve 8.5.15). La deuda nueva detectada vive en `BACKLOG.md` (sección "Auditoría gstack 2026-06-06": RF-320..337, D-001..003).
 
 ---
 
@@ -354,4 +359,4 @@ Decisiones recientes que viven acá: **paleta celeste(light)/grafito(dark)+naran
 - Antes de construir un RF, verificá que esté en `BACKLOG.md` / `2.1 Requerimientos Funcionales` de Notion. Si no está, escribilo primero.
 - Modularizá (200–300 líneas/archivo). Diffs chicos y revisables.
 - Cuando tomes una decisión importante: actualizá este `CLAUDE.md` y agregá un ADR en Notion 4.6.
-- **Última actualización**: junio 2026 — proyecto en desarrollo activo (pipeline autónomo, Sprint 0 cerrado, Auth como próximo gran hito).
+- **Última actualización**: 2026-06-07 — Auth CERRADO + Landing v2 mergeada + Auditoría gstack Etapa 0 hecha. **Próximo gran hito: RF-320** (cablear el recompute de matches en runtime — el core no se ejecuta hoy). Ver `BACKLOG.md` (sección auditoría) y `reports/gstack-audit-2026-06-06.md`.
