@@ -195,10 +195,10 @@ body {
 }
 @keyframes cl-hole-b {
   0%,
-  57% {
+  60% {
     opacity: 0;
   }
-  61%,
+  64%,
   90% {
     opacity: 1;
   }
@@ -209,10 +209,10 @@ body {
 }
 @keyframes cl-hole-a {
   0%,
-  59% {
+  62% {
     opacity: 0;
   }
-  63%,
+  66%,
   90% {
     opacity: 1;
   }
@@ -222,21 +222,32 @@ body {
   }
 }
 
-/* La repe ES la figurita que despega: vive en su celda ORIGEN (inset-0 → es la
-   figurita en reposo, sin clon) y vuela hacia el hueco del álbum opuesto. El vuelo
-   es aproximado; el aterrizaje EXACTO lo da .static-dst (handoff por opacity). */
-.fly {
-  backface-visibility: hidden;
-  will-change: transform, opacity;
+/* Copia estática en la celda ORIGEN (despegue exacto): se desvanece en el takeoff,
+   en crossfade simultáneo y co-ubicado con la voladora de escena. */
+.static-src {
+  opacity: 1;
 }
-.fly-a {
-  animation: cl-fly-a 12s linear infinite;
+.static-src-a,
+.static-src-b {
+  animation: cl-src 12s linear infinite;
 }
-.fly-b {
-  animation: cl-fly-b 12s linear infinite;
+@keyframes cl-src {
+  0%,
+  14% {
+    opacity: 1;
+  }
+  18%,
+  94% {
+    opacity: 0;
+  }
+  99%,
+  100% {
+    opacity: 1;
+  }
 }
 
-/* Copia aterrizada en el hueco destino: encaje perfecto, aparece al llegar la voladora */
+/* Copia estática en el hueco DESTINO (aterrizaje exacto): aparece en crossfade
+   cuando la voladora llega, con la misma inclinación del álbum destino. */
 .static-dst {
   opacity: 1;
 }
@@ -248,10 +259,10 @@ body {
 }
 @keyframes cl-dst-b {
   0%,
-  57% {
+  60% {
     opacity: 0;
   }
-  61%,
+  64%,
   90% {
     opacity: 1;
   }
@@ -262,10 +273,10 @@ body {
 }
 @keyframes cl-dst-a {
   0%,
-  59% {
+  62% {
     opacity: 0;
   }
-  63%,
+  66%,
   90% {
     opacity: 1;
   }
@@ -275,72 +286,97 @@ body {
   }
 }
 
-/* fly-a (URU): celda origen del álbum A → hueco del álbum B */
-@keyframes cl-fly-a {
+/* Voladoras a NIVEL ESCENA: hermanas de los álbumes, z por encima de ambos (nunca
+   ocluidas). Interpolan la inclinación del álbum origen al destino (3D real bajo la
+   `perspective` de la escena) y hacen crossfade co-ubicado con las copias estáticas. */
+.scene-fly {
+  position: absolute;
+  width: clamp(46px, 11.5%, 60px);
+  aspect-ratio: 3 / 4;
+  opacity: 0;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+.scene-fly-a {
+  top: 9%;
+  left: 11.5%;
+  z-index: 51;
+  animation: cl-sfa 12s linear infinite;
+}
+.scene-fly-b {
+  top: 67%;
+  left: 84%;
+  z-index: 50;
+  animation: cl-sfb 12s linear infinite;
+}
+/* scene-fly-a (URU): origen álbum A (tilt +38) → destino álbum B (tilt -38) */
+@keyframes cl-sfa {
   0%,
-  10% {
-    opacity: 1;
-    transform: none;
+  14% {
+    opacity: 0;
+    transform: rotateX(12deg) rotateY(38deg) scale(1);
   }
-  16% {
+  18%,
+  22% {
     opacity: 1;
-    transform: translate(70%, -34%) scale(1.06) rotate(-2deg);
+    transform: rotateX(12deg) rotateY(38deg) scale(1);
   }
   40% {
     opacity: 1;
-    transform: translate(430%, -70%) scale(1.32) rotate(0deg);
+    transform: translate(234%, -34%) translateZ(150px) rotateX(8deg) rotateY(0deg) scale(1.16);
   }
-  58% {
+  56% {
     opacity: 1;
-    transform: translate(720%, 110%) scale(1.05) rotate(2deg);
-    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-  62% {
-    opacity: 0;
-    transform: translate(745%, 122%) scale(1) rotate(2deg);
-  }
-  63%,
-  97% {
-    opacity: 0;
-    transform: none;
-  }
-  100% {
-    opacity: 1;
-    transform: none;
-  }
-}
-/* fly-b (BRA): celda origen del álbum B → hueco del álbum A */
-@keyframes cl-fly-b {
-  0%,
-  10% {
-    opacity: 1;
-    transform: none;
-  }
-  16% {
-    opacity: 1;
-    transform: translate(-70%, -30%) scale(1.06) rotate(2deg);
-  }
-  42% {
-    opacity: 1;
-    transform: translate(-470%, -120%) scale(1.28) rotate(0deg);
+    transform: translate(468%, 96%) translateZ(24px) rotateX(12deg) rotateY(-34deg) scale(1.04);
   }
   60% {
     opacity: 1;
-    transform: translate(-880%, -85%) scale(1.05) rotate(-2deg);
+    transform: translate(468%, 96%) rotateX(12deg) rotateY(-38deg) scale(1);
     animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   64% {
     opacity: 0;
-    transform: translate(-905%, -75%) scale(1) rotate(-2deg);
+    transform: translate(468%, 96%) rotateX(12deg) rotateY(-38deg) scale(1);
   }
   65%,
-  97% {
-    opacity: 0;
-    transform: none;
-  }
   100% {
+    opacity: 0;
+    transform: rotateX(12deg) rotateY(38deg) scale(1);
+  }
+}
+/* scene-fly-b (BRA): origen álbum B (tilt -38) → destino álbum A (tilt +38) */
+@keyframes cl-sfb {
+  0%,
+  14% {
+    opacity: 0;
+    transform: rotateX(12deg) rotateY(-38deg) scale(1);
+  }
+  18%,
+  22% {
     opacity: 1;
-    transform: none;
+    transform: rotateX(12deg) rotateY(-38deg) scale(1);
+  }
+  42% {
+    opacity: 1;
+    transform: translate(-307%, -44%) translateZ(120px) rotateX(8deg) rotateY(0deg) scale(1.12);
+  }
+  58% {
+    opacity: 1;
+    transform: translate(-615%, -126%) translateZ(24px) rotateX(12deg) rotateY(34deg) scale(1.04);
+  }
+  62% {
+    opacity: 1;
+    transform: translate(-615%, -126%) rotateX(12deg) rotateY(38deg) scale(1);
+    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  66% {
+    opacity: 0;
+    transform: translate(-615%, -126%) rotateX(12deg) rotateY(38deg) scale(1);
+  }
+  67%,
+  100% {
+    opacity: 0;
+    transform: rotateX(12deg) rotateY(-38deg) scale(1);
   }
 }
 
@@ -356,11 +392,11 @@ body {
 }
 @keyframes cl-badge {
   0%,
-  64% {
+  66% {
     opacity: 0;
     transform: translateX(-50%) scale(0.8);
   }
-  70%,
+  72%,
   90% {
     opacity: 1;
     transform: translateX(-50%) scale(1);
@@ -385,11 +421,11 @@ body {
 }
 @keyframes cl-card {
   0%,
-  68% {
+  70% {
     opacity: 0;
     transform: translateX(-50%) translateY(14px) scale(0.96);
   }
-  76%,
+  78%,
   90% {
     opacity: 1;
     transform: translateX(-50%) translateY(0) scale(1);
@@ -403,7 +439,8 @@ body {
 
 /* Pausar el loop cuando la escena sale del viewport */
 .exchange-scene.is-paused .album,
-.exchange-scene.is-paused .fly,
+.exchange-scene.is-paused .static-src,
+.exchange-scene.is-paused .scene-fly,
 .exchange-scene.is-paused .static-dst,
 .exchange-scene.is-paused .hole-fill,
 .exchange-scene.is-paused .match-badge,
@@ -414,7 +451,8 @@ body {
 /* Reduced motion: sin loop → todo en su estado final (encajado + match card) */
 @media (prefers-reduced-motion: reduce) {
   .album,
-  .fly,
+  .static-src,
+  .scene-fly,
   .static-dst,
   .hole-fill,
   .match-badge,

@@ -44,18 +44,18 @@ function StickerFace({
 }
 
 /**
- * Mini-álbum tilteado con grilla 3×3. Tiene:
- *  - una celda "repe" que CONTIENE la figurita que SALE: anclada inset-0 → ES la figurita en reposo
- *    (sin clon) y despega desde ahí, con encaje perfecto y CERO calibración.
- *  - una celda "hueco" con una copia ESTÁTICA de la figurita que LLEGA, anclada inset-0 → encaje
- *    perfecto del aterrizaje; aparece por opacity cuando la voladora del otro álbum llega.
+ * Mini-álbum tilteado con grilla 3×3. Dos copias ESTÁTICAS ancladas (encaje exacto
+ * a cualquier viewport, rotadas con el álbum):
+ *  - en la celda "repe" (origen): la figurita que sale; se desvanece en el takeoff.
+ *  - en el "hueco" (destino): la figurita que llega; aparece al aterrizar.
+ * El vuelo visible entre ambas lo hace una voladora a nivel escena (ver abajo).
  */
 function MiniAlbum({ side }: { side: 'a' | 'b' }) {
   const isA = side === 'a';
   // A tiene la repe URU/9 (sale) y recibe BRA/7. B al revés.
   const source = isA
-    ? { code: 'URU', number: '9', variant: 'primary' as const, fly: 'fly-a' }
-    : { code: 'BRA', number: '7', variant: 'accent' as const, fly: 'fly-b' };
+    ? { code: 'URU', number: '9', variant: 'primary' as const }
+    : { code: 'BRA', number: '7', variant: 'accent' as const };
   const landed = isA
     ? { code: 'BRA', number: '7', variant: 'accent' as const }
     : { code: 'URU', number: '9', variant: 'primary' as const };
@@ -69,9 +69,8 @@ function MiniAlbum({ side }: { side: 'a' | 'b' }) {
           if (i === repeIndex) {
             return (
               <div key={i} className="relative rounded-[4px]">
-                {/* La repe ES la voladora: despega desde su propia celda → sin clon, sin calibrar */}
-                <div className={`fly ${source.fly} absolute inset-0`}>
-                  <StickerFace code={source.code} number={source.number} variant={source.variant} />
+                <div className={`static-src static-src-${side} absolute inset-0`}>
+                  <StickerFace {...source} />
                 </div>
               </div>
             );
@@ -82,11 +81,9 @@ function MiniAlbum({ side }: { side: 'a' | 'b' }) {
                 key={i}
                 className="border-primary/50 relative rounded-[4px] border border-dashed"
               >
-                {/* Hueco "completo" pre-renderizado: aparece SOLO por opacity */}
                 <div
                   className={`hole-fill hole-fill-${side} border-primary bg-primary/20 ring-primary/40 absolute inset-0 rounded-[4px] border ring-2`}
                 />
-                {/* Copia aterrizada: anclada en el hueco → encaje perfecto, aparece al llegar */}
                 <div className={`static-dst static-dst-${side} absolute inset-0`}>
                   <StickerFace code={landed.code} number={landed.number} variant={landed.variant} />
                 </div>
@@ -109,11 +106,13 @@ function MiniAlbum({ side }: { side: 'a' | 'b' }) {
 }
 
 /**
- * RF-821 — Animación decorativa "el intercambio". La figurita "repe" vive en su
- * celda ORIGEN y ES la que despega (sin clon) → takeoff con encaje perfecto y cero
- * calibración. Vuela al álbum opuesto; el aterrizaje EXACTO lo da una copia estática
- * anclada en el hueco destino (handoff por opacity). Loop 100% CSS (solo
- * transform/opacity). `aria-hidden`, pausa offscreen, reduced-motion = estado final.
+ * RF-821 — Animación decorativa "el intercambio" (relay de 3 segmentos):
+ * copia estática en la celda origen (despegue exacto) → voladora a NIVEL ESCENA
+ * (hermana de los álbumes, z por encima de ambos → nunca ocluida; interpola la
+ * inclinación origen→destino en 3D real bajo la `perspective` de la escena) →
+ * copia estática en el hueco destino (aterrizaje exacto). Handoffs con crossfade
+ * simultáneo y co-ubicado en ambos bordes. Loop 100% CSS (transform/opacity).
+ * `aria-hidden`, pausa offscreen, reduced-motion = estado final.
  */
 export function ExchangeAnimation() {
   const t = useTranslations('Home.hero.matchMock');
@@ -138,6 +137,14 @@ export function ExchangeAnimation() {
       >
         <MiniAlbum side="a" />
         <MiniAlbum side="b" />
+
+        {/* Voladoras a nivel escena: por encima de ambos álbumes (nunca ocluidas) */}
+        <div className="scene-fly scene-fly-a">
+          <StickerFace code="URU" number="9" variant="primary" />
+        </div>
+        <div className="scene-fly scene-fly-b">
+          <StickerFace code="BRA" number="7" variant="accent" />
+        </div>
 
         <div className="match-badge bg-accent text-accent-foreground rounded-full px-4 py-1.5 text-sm font-bold shadow-lg">
           {t('matchBadge')}
