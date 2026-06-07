@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 import './globals.css';
+import { SwRegister } from '@/components/pwa/sw-register';
 
 const geistSans = Geist({
   subsets: ['latin'],
@@ -37,6 +38,11 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
     },
+    appleWebApp: {
+      capable: true,
+      title: 'CambiaLa',
+      statusBarStyle: 'default',
+    },
   };
 }
 
@@ -50,6 +56,7 @@ export default async function RootLayout({
     <html lang="es" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
+        <SwRegister />
       </body>
     </html>
   );
