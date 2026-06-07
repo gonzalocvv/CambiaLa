@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
+import { buildPersonJsonLd, toJsonLdString } from '@/lib/json-ld';
 
 import { Badge } from '@/components/ui/badge';
 import { AppNavbar } from '@/components/layout/app-navbar';
@@ -77,6 +78,22 @@ export default async function PublicProfilePage({ params }: Props) {
 
   return (
     <>
+      {/* Schema.org JSON-LD — RF-809 */}
+      {/* dangerouslySetInnerHTML es seguro aquí: toJsonLdString escapa <, >, & */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: toJsonLdString(
+            buildPersonJsonLd({
+              username,
+              name: displayName,
+              bio: user.bio,
+              city: user.city,
+              baseUrl: BASE_URL,
+            }),
+          ),
+        }}
+      />
       <AppNavbar />
       <main className="mx-auto max-w-2xl px-4 py-8">
         {/* Profile header */}
