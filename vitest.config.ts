@@ -12,6 +12,22 @@ export default defineConfig({
   test: {
     coverage: {
       provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/types/**',
+        'src/test/**',
+        'src/**/*.d.ts',
+        '**/__tests__/**',
+        '**/*.{test,spec}.{ts,tsx}',
+      ],
+      thresholds: {
+        'src/lib/match-engine.ts': {
+          statements: 100,
+          branches: 100,
+          functions: 100,
+          lines: 100,
+        },
+      },
     },
     projects: [
       {
