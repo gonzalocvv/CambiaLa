@@ -2,15 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockRepo = vi.hoisted(() => ({
   getAlbumWithUserCounts: vi.fn(),
-  upsertUserStickerCount: vi.fn(),
-  getStickerById: vi.fn(),
+  getExistingStickerIds: vi.fn(),
+  bulkUpsertCounts: vi.fn(),
 }));
 
 vi.mock('@/repositories/sticker.repository', () => ({
   stickerRepository: mockRepo,
 }));
 
-import { StickerNotFoundError, stickerService } from '../sticker.service';
+import { stickerService } from '../sticker.service';
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -95,23 +95,59 @@ describe('stickerService.getUserAlbum', () => {
   });
 });
 
-describe('stickerService.updateStickerCount', () => {
-  it('updates count when sticker exists', async () => {
-    mockRepo.getStickerById.mockResolvedValue({ id: STICKER_ID, albumId: ALBUM_ID });
-    mockRepo.upsertUserStickerCount.mockResolvedValue({ count: 2 });
+describe('stickerService.bulkUpdateCounts', () => {
+  it('dedupes repeated stickerIds keeping the last count', async () => {
+    mockRepo.getExistingStickerIds.mockResolvedValue(new Set(['s1']));
 
-    const result = await stickerService.updateStickerCount(USER_ID, STICKER_ID, 2);
+    const result = await stickerService.bulkUpdateCounts(USER_ID, [
+      { stickerId: 's1', count: 1 },
+      { stickerId: 's1', count: 5 },
+    ]);
 
-    expect(result).toEqual({ count: 2 });
-    expect(mockRepo.upsertUserStickerCount).toHaveBeenCalledWith(USER_ID, STICKER_ID, 2);
+    expect(mockRepo.getExistingStickerIds).toHaveBeenCalledWith(['s1']);
+    expect(mockRepo.bulkUpsertCounts).toHaveBeenCalledWith(USER_ID, [
+      { stickerId: 's1', count: 5 },
+    ]);
+    expect(result).toEqual({ applied: 1, ignored: 0 });
   });
 
-  it('throws StickerNotFoundError when sticker does not exist', async () => {
-    mockRepo.getStickerById.mockResolvedValue(null);
+  it('ignores stickerIds not in the catalog and reports them', async () => {
+    mockRepo.getExistingStickerIds.mockResolvedValue(new Set(['s1']));
 
-    await expect(stickerService.updateStickerCount(USER_ID, 'bad-id', 1)).rejects.toBeInstanceOf(
-      StickerNotFoundError,
-    );
-    expect(mockRepo.upsertUserStickerCount).not.toHaveBeenCalled();
+    const result = await stickerService.bulkUpdateCounts(USER_ID, [
+      { stickerId: 's1', count: 2 },
+      { stickerId: 'ghost', count: 3 },
+    ]);
+
+    expect(mockRepo.bulkUpsertCounts).toHaveBeenCalledWith(USER_ID, [
+      { stickerId: 's1', count: 2 },
+    ]);
+    expect(result).toEqual({ applied: 1, ignored: 1 });
+  });
+
+  it('does not write when all stickerIds are ignored', async () => {
+    mockRepo.getExistingStickerIds.mockResolvedValue(new Set());
+
+    const result = await stickerService.bulkUpdateCounts(USER_ID, [
+      { stickerId: 'ghost', count: 1 },
+    ]);
+
+    expect(mockRepo.bulkUpsertCounts).not.toHaveBeenCalled();
+    expect(result).toEqual({ applied: 0, ignored: 1 });
+  });
+
+  it('applies multiple valid changes (happy path) with count 0 and 99 passthrough', async () => {
+    mockRepo.getExistingStickerIds.mockResolvedValue(new Set(['s1', 's2']));
+
+    const result = await stickerService.bulkUpdateCounts(USER_ID, [
+      { stickerId: 's1', count: 0 },
+      { stickerId: 's2', count: 99 },
+    ]);
+
+    expect(mockRepo.bulkUpsertCounts).toHaveBeenCalledWith(USER_ID, [
+      { stickerId: 's1', count: 0 },
+      { stickerId: 's2', count: 99 },
+    ]);
+    expect(result).toEqual({ applied: 2, ignored: 0 });
   });
 });

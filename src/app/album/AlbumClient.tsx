@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useTranslations } from 'next-intl';
 
@@ -9,6 +9,22 @@ import type { AlbumStats, StickerWithCount } from '@/lib/validations/sticker.sch
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 type FilterMode = 'all' | 'missing' | 'have' | 'duplicates' | 'specials';
+
+// RF-213: una ráfaga de clicks se buffea y se manda en UN solo PATCH bulk.
+const FLUSH_DELAY_MS = 800;
+const SAVED_TOAST_MS = 2000;
+
+type Change = { stickerId: string; count: number };
+
+async function sendBulk(changes: Change[], keepalive = false): Promise<boolean> {
+  const res = await fetch('/api/album/stickers', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ changes }),
+    keepalive,
+  });
+  return res.ok;
+}
 
 function computeStats(stickers: StickerWithCount[], counts: Record<string, number>): AlbumStats {
   const total = stickers.length;
@@ -36,40 +52,95 @@ export function AlbumClient({ stickers, initialStats }: Props) {
   const [selectedTeam, setSelectedTeam] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const pendingRef = useRef(0);
+  // Buffer compartido (último count por figurita gana) + un solo timer global.
+  const bufferRef = useRef<Map<string, number>>(new Map());
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const isFlushingRef = useRef(false);
+  const flushRef = useRef<() => void>(() => {});
 
-  const handleUpdate = useCallback((stickerId: string, count: number) => {
-    setCounts((prev) => ({ ...prev, [stickerId]: count }));
-    setSaveState('saving');
-
-    clearTimeout(debounceTimers.current[stickerId]);
-    pendingRef.current += 1;
-
-    debounceTimers.current[stickerId] = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/album/stickers/${stickerId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ count }),
-        });
-        if (!res.ok) setSaveState('error');
-      } catch {
-        setSaveState('error');
-      } finally {
-        pendingRef.current -= 1;
-        if (pendingRef.current === 0) {
-          setSaveState((s) => (s !== 'error' ? 'saved' : 'error'));
-          if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
-          savedTimerRef.current = setTimeout(
-            () => setSaveState((s) => (s === 'saved' ? 'idle' : s)),
-            2000,
-          );
-        }
-      }
-    }, 500);
+  const scheduleFlush = useCallback(() => {
+    if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+    flushTimerRef.current = setTimeout(() => {
+      flushTimerRef.current = null;
+      void flushRef.current();
+    }, FLUSH_DELAY_MS);
   }, []);
+
+  const flush = useCallback(async () => {
+    // Si ya hay un flush en vuelo, este no dispara otro: el que está corriendo
+    // reprograma al terminar si quedaron cambios. Evita requests superpuestos.
+    if (isFlushingRef.current || bufferRef.current.size === 0) return;
+
+    isFlushingRef.current = true;
+    const snapshot = [...bufferRef.current.entries()];
+    const changes: Change[] = snapshot.map(([stickerId, count]) => ({ stickerId, count }));
+
+    let ok = false;
+    try {
+      ok = (await sendBulk(changes)) || (await sendBulk(changes)); // 1 reintento
+    } catch {
+      ok = false;
+    }
+
+    if (ok) {
+      // Borrar solo las keys del snapshot cuyo valor no cambió durante el vuelo
+      // (preserva los clicks que entraron mientras volaba el request).
+      for (const [stickerId, count] of snapshot) {
+        if (bufferRef.current.get(stickerId) === count) bufferRef.current.delete(stickerId);
+      }
+    }
+    isFlushingRef.current = false;
+
+    if (!ok) {
+      setSaveState('error'); // no se vacía el buffer: se reintenta en el próximo flush
+    } else if (bufferRef.current.size > 0) {
+      scheduleFlush(); // entraron cambios durante el vuelo
+    } else {
+      setSaveState('saved');
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+      savedTimerRef.current = setTimeout(
+        () => setSaveState((s) => (s === 'saved' ? 'idle' : s)),
+        SAVED_TOAST_MS,
+      );
+    }
+  }, [scheduleFlush]);
+
+  useEffect(() => {
+    flushRef.current = () => void flush();
+  }, [flush]);
+
+  // Flush best-effort al ocultar/cerrar la pestaña (no perder cambios sin guardar).
+  useEffect(() => {
+    const flushOnClose = () => {
+      if (bufferRef.current.size === 0) return;
+      const changes: Change[] = [...bufferRef.current.entries()].map(([stickerId, count]) => ({
+        stickerId,
+        count,
+      }));
+      bufferRef.current.clear();
+      void sendBulk(changes, true);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flushOnClose();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', flushOnClose);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', flushOnClose);
+    };
+  }, []);
+
+  const handleUpdate = useCallback(
+    (stickerId: string, count: number) => {
+      setCounts((prev) => ({ ...prev, [stickerId]: count }));
+      bufferRef.current.set(stickerId, count);
+      setSaveState('saving');
+      scheduleFlush();
+    },
+    [scheduleFlush],
+  );
 
   const stats = useMemo(() => computeStats(stickers, counts), [stickers, counts]);
 
