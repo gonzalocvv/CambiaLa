@@ -3,6 +3,42 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Corrida 44: RF-324 (rate limiting in-memory)
+
+- **Ítem**: RF-324 — Rate limiting in-memory (ADR-016) en las rutas expuestas.
+- **Rama**: `claude/cool-volta-F5BRb` (desde `develop`).
+- **Estado**: ✅ completo. Gate verde. **422 tests** (46 archivos).
+
+### Qué se hizo
+
+- **`src/lib/rate-limit.ts`** (Domain, puro): ventana fija en memoria (`Map` module-level). `checkRateLimit(key, max, windowMs)` → `{allowed, remaining}`. Cleanup periódico cada 200 llamadas (evita crecer indefinidamente). `getClientIp(headers)` — extrae el primer IP de `x-forwarded-for` o `'unknown'`. `_resetStoreForTests()` para limpiar entre tests. Documentado: por instancia serverless → migrar a Redis en F2 (ADR-016).
+- **`src/lib/__tests__/rate-limit.test.ts`** (TDD primero — 7 tests): permite N, bloquea N+1, resetea al vencer la ventana (fake timers), remaining correcto, claves independientes, getClientIp con y sin header.
+- Aplicado en 4 rutas (cada una con test de 429 añadido + mock del módulo):
+  - `POST /api/auth/verify-otp`: `otp:${ip}:${email}` — 10 intentos / 15 min (anti brute-force OTP).
+  - `POST /api/matches/[id]/messages`: `msg:${userId}` — 60 mensajes / min (anti-spam).
+  - `GET /api/onboarding/check-username`: `chkusr:${userId}` — 20 búsquedas / min (anti-enumeración).
+  - `PATCH /api/album/stickers`: `album:${userId}` — 30 flushes / min (anti-abuso bulk).
+- **`src/app/auth/login/LoginForm.tsx`**: `verifyCode` ahora muestra `errorRateLimited` ante 429 (antes mostraba `errorInvalidCode` para cualquier error no-OK).
+- **`messages/es.json`**: namespace `Errors` con `rateLimited` ("Demasiados intentos. Esperá unos minutos e intentá de nuevo.").
+- Cada ruta responde `{ error: 'rate_limited' }` con HTTP 429. No filtra si el username existe cuando hay rate limit en check-username.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-327** (Should) — pnpm 10 en CI (hoy: `PNPM_VERSION: 9` en `ci.yml` vs `package.json pnpm@10.34.1`). 1 línea de change.
+2. **RF-330** (Should) — `bg-black/80` en `dialog.tsx` → `bg-foreground/60` (única clase de color cruda en `src/`).
+3. **RF-329** (Should) — `text-accent` sobre fondo claro falla WCAG AA → token `--accent-text`.
+4. **RF-322** (Should) — Tests de componentes client (AlbumClient, LoginForm, chat-panel).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+
+---
+
 ## 2026-06-07 — Corrida 43: RF-323 (protección de rutas privadas en el middleware)
 
 - **Ítem**: RF-323 — `middleware.ts` redirige usuarios sin sesión en rutas protegidas.
