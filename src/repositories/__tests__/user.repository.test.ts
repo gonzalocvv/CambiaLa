@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUserPrisma = vi.hoisted(() => ({
   findUnique: vi.fn(),
+  findMany: vi.fn(),
+  count: vi.fn(),
   upsert: vi.fn(),
   update: vi.fn(),
   delete: vi.fn(),
@@ -44,7 +46,7 @@ describe('userRepository.findByEmail', () => {
     expect(result).toEqual(user);
     expect(mockUserPrisma.findUnique).toHaveBeenCalledWith({
       where: { email: 'test@example.com' },
-      select: { id: true, email: true, username: true, onboardingDoneAt: true },
+      select: { id: true, email: true, username: true, onboardingDoneAt: true, role: true },
     });
   });
 
@@ -377,6 +379,123 @@ describe('userRepository.findByUsername', () => {
     mockUserPrisma.findUnique.mockResolvedValue(null);
     const result = await userRepository.findByUsername('nobody');
     expect(result).toBeNull();
+  });
+});
+
+describe('userRepository.findAllForAdmin', () => {
+  it('queries with search filter and pagination', async () => {
+    const users = [
+      {
+        id: 'u1',
+        email: 'a@test.com',
+        username: 'gonza',
+        name: null,
+        city: null,
+        role: 'user',
+        isSuspended: false,
+        createdAt: new Date(),
+      },
+    ];
+    mockUserPrisma.findMany = vi.fn().mockResolvedValue(users);
+    mockUserPrisma.count = vi.fn().mockResolvedValue(1);
+
+    const result = await userRepository.findAllForAdmin({ search: 'gonza', page: 1, pageSize: 20 });
+
+    expect(result.total).toBe(1);
+    expect(result.users).toEqual(users);
+    expect(mockUserPrisma.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 0,
+        take: 20,
+        where: expect.objectContaining({ OR: expect.any(Array) }),
+        orderBy: { createdAt: 'desc' },
+      }),
+    );
+  });
+
+  it('returns all users with no search filter', async () => {
+    mockUserPrisma.findMany = vi.fn().mockResolvedValue([]);
+    mockUserPrisma.count = vi.fn().mockResolvedValue(0);
+
+    const result = await userRepository.findAllForAdmin({ page: 1, pageSize: 20 });
+
+    expect(result.total).toBe(0);
+    expect(mockUserPrisma.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: {} }));
+  });
+
+  it('applies correct skip for page 2', async () => {
+    mockUserPrisma.findMany = vi.fn().mockResolvedValue([]);
+    mockUserPrisma.count = vi.fn().mockResolvedValue(0);
+
+    await userRepository.findAllForAdmin({ page: 2, pageSize: 10 });
+
+    expect(mockUserPrisma.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 10, take: 10 }),
+    );
+  });
+});
+
+describe('userRepository.findByIdForAdmin', () => {
+  it('returns full user detail', async () => {
+    const user = {
+      id: 'u1',
+      email: 'a@test.com',
+      username: 'gonza',
+      name: null,
+      bio: null,
+      avatarUrl: null,
+      city: null,
+      neighborhood: null,
+      role: 'user',
+      isSuspended: false,
+      reputation: 0,
+      tradesCompleted: 0,
+      createdAt: new Date(),
+      lastSeenAt: new Date(),
+      onboardingDoneAt: null,
+      publicProfile: false,
+    };
+    mockUserPrisma.findUnique.mockResolvedValue(user);
+
+    const result = await userRepository.findByIdForAdmin('u1');
+    expect(result).toEqual(user);
+    expect(mockUserPrisma.findUnique).toHaveBeenCalledWith({
+      where: { id: 'u1' },
+      select: expect.objectContaining({ email: true, role: true, isSuspended: true }),
+    });
+  });
+
+  it('returns null when not found', async () => {
+    mockUserPrisma.findUnique.mockResolvedValue(null);
+    const result = await userRepository.findByIdForAdmin('nope');
+    expect(result).toBeNull();
+  });
+});
+
+describe('userRepository.updateSuspension', () => {
+  it('sets isSuspended to true', async () => {
+    const updated = { id: 'u1', isSuspended: true };
+    mockUserPrisma.update.mockResolvedValue(updated);
+
+    const result = await userRepository.updateSuspension('u1', true);
+    expect(result).toEqual(updated);
+    expect(mockUserPrisma.update).toHaveBeenCalledWith({
+      where: { id: 'u1' },
+      data: { isSuspended: true },
+      select: { id: true, isSuspended: true },
+    });
+  });
+
+  it('sets isSuspended to false (unsuspend)', async () => {
+    const updated = { id: 'u1', isSuspended: false };
+    mockUserPrisma.update.mockResolvedValue(updated);
+
+    await userRepository.updateSuspension('u1', false);
+    expect(mockUserPrisma.update).toHaveBeenCalledWith({
+      where: { id: 'u1' },
+      data: { isSuspended: false },
+      select: { id: true, isSuspended: true },
+    });
   });
 });
 
