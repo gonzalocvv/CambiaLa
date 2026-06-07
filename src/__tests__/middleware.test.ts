@@ -21,7 +21,7 @@ beforeEach(() => vi.clearAllMocks());
 
 describe('middleware — protección de rutas (RF-323)', () => {
   describe('ruta protegida sin sesión → redirige a /auth/login', () => {
-    it.each(['/album', '/matches', '/conversations', '/settings', '/onboarding'])(
+    it.each(['/album', '/matches', '/conversations', '/settings', '/onboarding', '/admin'])(
       'redirige %s',
       async (path) => {
         mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
