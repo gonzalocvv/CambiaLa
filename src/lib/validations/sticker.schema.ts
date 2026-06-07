@@ -31,7 +31,7 @@ export const BulkUpdateStickersSchema = z.object({
   changes: z
     .array(
       z.object({
-        stickerId: z.string().min(1),
+        stickerId: z.string().min(1).max(32), // L6: CUIDs son 24-25 chars; corta payloads absurdos
         count: z.number().int().min(0).max(99),
       }),
     )
