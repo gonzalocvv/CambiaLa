@@ -46,7 +46,7 @@ export const userRepository = {
   findByEmail(email: string) {
     return prisma.user.findUnique({
       where: { email },
-      select: { id: true, email: true, username: true, onboardingDoneAt: true },
+      select: { id: true, email: true, username: true, onboardingDoneAt: true, role: true },
     });
   },
 
@@ -193,6 +193,70 @@ export const userRepository = {
         offerUniques: true,
         acceptUnbalanced: true,
       },
+    });
+  },
+
+  async findAllForAdmin(opts: { search?: string; page: number; pageSize: number }) {
+    const { search, page, pageSize } = opts;
+    const where = search
+      ? {
+          OR: [
+            { email: { contains: search, mode: 'insensitive' as const } },
+            { username: { contains: search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {};
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          name: true,
+          city: true,
+          role: true,
+          isSuspended: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.user.count({ where }),
+    ]);
+    return { users, total };
+  },
+
+  findByIdForAdmin(userId: string) {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        name: true,
+        bio: true,
+        avatarUrl: true,
+        city: true,
+        neighborhood: true,
+        role: true,
+        isSuspended: true,
+        publicProfile: true,
+        reputation: true,
+        tradesCompleted: true,
+        createdAt: true,
+        lastSeenAt: true,
+        onboardingDoneAt: true,
+      },
+    });
+  },
+
+  updateSuspension(userId: string, isSuspended: boolean) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { isSuspended },
+      select: { id: true, isSuspended: true },
     });
   },
 

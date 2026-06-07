@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/server';
 export type Session = {
   userId: string;
   onboardingDoneAt: Date | null;
+  role: string;
 };
 
 // cache() deduplicates concurrent calls within the same request (React Server Components).
@@ -24,5 +25,5 @@ export const getSession = cache(async (): Promise<Session | null> => {
   const dbUser = await userRepository.findByEmail(user.email);
   if (!dbUser) return null;
 
-  return { userId: dbUser.id, onboardingDoneAt: dbUser.onboardingDoneAt };
+  return { userId: dbUser.id, onboardingDoneAt: dbUser.onboardingDoneAt, role: dbUser.role };
 });
