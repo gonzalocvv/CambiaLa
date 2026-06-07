@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { StickerCell } from '@/components/album/sticker-cell';
+import { getTeamDisplay } from '@/lib/team-names';
 import type { AlbumStats, StickerWithCount } from '@/lib/validations/sticker.schema';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -376,7 +377,7 @@ export function AlbumClient({ stickers, initialStats }: Props) {
           <option value="">{t('teamFilterAll')}</option>
           {teams.map((team) => (
             <option key={team} value={team}>
-              {team === 'FWC' ? t('teamFWC') : team}
+              {getTeamDisplay(team)}
             </option>
           ))}
         </select>
@@ -413,7 +414,7 @@ export function AlbumClient({ stickers, initialStats }: Props) {
       {[...grouped.entries()].map(([team, teamStickers]) => (
         <div key={team} className="mb-8">
           <h2 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wide uppercase">
-            {team === 'FWC' ? t('teamFWC') : team}
+            {getTeamDisplay(team)}
           </h2>
           <div className="flex flex-wrap gap-2">
             {teamStickers.map((s) => (

@@ -196,3 +196,58 @@ describe('AlbumClient — guardado en bulk', () => {
     expect(body2.changes.some((c) => c.stickerId === 'id1')).toBe(true); // S1 no se perdió
   });
 });
+
+describe('AlbumClient — team header (RF-215)', () => {
+  it('renders the full Spanish country name with flag in team section headings', () => {
+    const stickers: StickerWithCount[] = [
+      {
+        id: 'a1',
+        number: 'URU1',
+        name: 'Valverde',
+        team: 'URU',
+        rarity: 'comun',
+        isSpecial: false,
+        count: 0,
+      },
+      {
+        id: 'a2',
+        number: 'ARG1',
+        name: 'Messi',
+        team: 'ARG',
+        rarity: 'comun',
+        isSpecial: false,
+        count: 1,
+      },
+    ];
+    const stats: AlbumStats = { total: 2, have: 1, missing: 1, duplicates: 0, percentComplete: 50 };
+    renderWithIntl(<AlbumClient stickers={stickers} initialStats={stats} />);
+
+    // heading + dropdown option both show the full display — getAllByText finds both
+    expect(screen.getAllByText('🇺🇾 Uruguay · URU').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('🇦🇷 Argentina · ARG').length).toBeGreaterThanOrEqual(1);
+    // Verify the h2 heading specifically
+    const headings = screen.getAllByRole('heading', { level: 2 });
+    const headingTexts = headings.map((h) => h.textContent);
+    expect(headingTexts).toContain('🇺🇾 Uruguay · URU');
+    expect(headingTexts).toContain('🇦🇷 Argentina · ARG');
+  });
+
+  it('renders FWC team with trophy emoji and full name in heading', () => {
+    const stickers: StickerWithCount[] = [
+      {
+        id: 'f1',
+        number: 'FWC1',
+        name: 'Logo',
+        team: 'FWC',
+        rarity: 'comun',
+        isSpecial: false,
+        count: 0,
+      },
+    ];
+    const stats: AlbumStats = { total: 1, have: 0, missing: 1, duplicates: 0, percentComplete: 0 };
+    renderWithIntl(<AlbumClient stickers={stickers} initialStats={stats} />);
+
+    const headings = screen.getAllByRole('heading', { level: 2 });
+    expect(headings.map((h) => h.textContent)).toContain('🏆 Copa del Mundo · FWC');
+  });
+});
