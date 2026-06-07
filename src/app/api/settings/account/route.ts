@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient as createSupabaseAdminClient } from '@supabase/supabase-js';
 import { getSession } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 import { userService, UserNotFoundError } from '@/services/user.service';
 import { createClient } from '@/lib/supabase/server';
 
@@ -22,6 +23,7 @@ export async function DELETE() {
     if (err instanceof UserNotFoundError) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+    logger.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 
