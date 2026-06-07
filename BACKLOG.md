@@ -291,7 +291,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - **chat-panel**: con fake timers — el polling dispara fetch cada 10s; cleanup del interval en unmount.
   - **TDD**: escribir los tests, verlos fallar/pasar; usar `vi.useFakeTimers()` para debounce/poll.
 
-- [ ] **RF-325** 🆕 **El logger estructurado obligatorio no se usa en ningún lado.** (S) — _detectado 6-jun: `src/lib/logger.ts` exporta `logger` pero grep de `lib/logger` en todo `src/` da 0 imports → código muerto mandado por CLAUDE.md §9; los catch de las routes devuelven JSON sin loguear, así que en prod no hay rastro estructurado de fallos._
+- [x] **RF-325** 🆕 **El logger estructurado obligatorio no se usa en ningún lado.** (S) — _Corrida 52 (2026-06-07): Decisión A adoptada — `logger.error('Unhandled error', { error: ... })` añadido en los 9 `catch` de API routes que hacían `throw err` o `return 500` silenciosamente (admin/users/[id], matches/[id]/messages, matches/[id]/ratings, onboarding, settings, settings/account, settings/location, settings/matchmaking, settings/notifications). Test spy en `PUT /api/settings`. 490 tests verdes._
   - Decisión A (recomendada): adoptar `logger.error(...)` en los `catch` de services/routes para errores 500 inesperados (sin loguear secretos ni PII — CLAUDE.md §15). Empezar por los `catch` que hoy hacen `throw`/`return 500` mudos.
   - Decisión B: si se decide no usarlo en el MVP, borrar `src/lib/logger.ts` y relajar la regla en CLAUDE.md §9 para que no quede deuda mandada por doc.
   - **TDD**: si A, test de que un 500 inesperado en una route llama `logger.error` (spy).
