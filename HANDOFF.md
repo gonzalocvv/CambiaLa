@@ -3,6 +3,53 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Corrida 40: S3.1 (PWA — manifest + service worker + instalable)
+
+- **Ítem**: S3.1 — Web App Manifest + Service Worker + instalable como PWA.
+- **Rama**: `claude/cool-volta-JNl5F` (continúa desde corridas 37/38/39).
+- **Estado**: ✅ completo. Gate verde. **386 tests** (42 archivos).
+
+### Qué se hizo
+
+- **`src/app/manifest.ts`** (Next.js MetadataRoute.Manifest): genera `/manifest.webmanifest` automáticamente. Campos: `name="CambiaLa — Figuritas del Mundial 2026"`, `short_name="CambiaLa"`, `start_url="/album"`, `display="standalone"`, `orientation="portrait"`, `theme_color="#0284c7"` (celeste de marca), `background_color="#ffffff"`, `lang="es"`. Íconos: `/icon.png` (192×192 any + 512×512 maskable).
+- **`src/app/icon.tsx`** (192×192 PNG): wordmark "CambiaLa" en navy (`#1E3A8A`) + naranja (`#F97316`) sobre fondo navy con `borderRadius`. Generado vía `next/og` `ImageResponse` → `/icon.png`.
+- **`src/app/apple-icon.tsx`** (180×180 PNG): idéntico pero para iOS add-to-homescreen → `/apple-icon.png`.
+- **`public/sw.js`**: service worker con dos estrategias: cache-first para `/_next/static/**` (assets content-hashed → seguros de cachear indefinidamente); network-first para páginas (fresco online, fallback a caché offline); skip total de `/api/` y `/auth/`. `activate` limpia cachés de versiones anteriores; `skipWaiting` en `install`.
+- **`src/components/pwa/sw-register.tsx`** (client component): `useEffect` registra `/sw.js`; guard `navigator.serviceWorker` (falsy → skip, no lanza en entornos sin soporte).
+- **`src/app/layout.tsx`**: `<SwRegister />` en body + `appleWebApp` metadata (capable/title/statusBarStyle).
+- **`vitest.config.ts`**: `src/components/pwa/**` excluido del proyecto node, incluido en el proyecto dom.
+- **Tests** (TDD): `src/app/__tests__/manifest.test.ts` (6 assertions: campos requeridos, ícono 192×192, theme_color, lang, short_name) + `src/components/pwa/__tests__/sw-register.test.tsx` (3 tests: renderiza null, registra /sw.js, no lanza si SW no disponible).
+
+### Rutas nuevas en el build
+
+```
+○ /icon            (PNG 192×192 generado)
+○ /icon.png
+○ /apple-icon      (PNG 180×180 generado)
+○ /apple-icon.png
+○ /manifest.webmanifest
+```
+
+### Criterio de aceptación
+
+Con el build en Vercel: abrir en Chrome → DevTools → Application → Manifest → válido. Lighthouse "Installable" = verde. "Add to Home Screen" aparece en Android Chrome.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-214b** — ⛔ Bloqueado: requiere datos del álbum Panini físico 2026 que el agente no tiene.
+2. **RF-112** — Avatar upload ⚠️ pendiente decisión de almacenamiento.
+3. **Deuda Must**: **RF-321** (enforced coverage CI), **RF-323** (middleware protection), **RF-324** (rate limiting), **RF-328** (error/not-found pages). → **RF-321 es el próximo ítem autónomo viable**.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza (del álbum físico).
+- RF-320 ⏸️ RESERVADO — match engine en runtime.
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+
+---
+
 ## 2026-06-07 — Corrida 39: RF-809 (Schema.org JSON-LD)
 
 - **Ítem**: RF-809 — Schema.org JSON-LD (`Person` en perfiles públicos, `WebSite` + `Organization` en landing).
