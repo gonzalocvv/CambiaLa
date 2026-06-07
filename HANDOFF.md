@@ -3,6 +3,35 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Corrida 38: RF-215 (nombres de país en headers del álbum)
+
+- **Ítem**: RF-215 — headers de equipo muestran nombre completo en español + bandera emoji.
+- **Rama**: `claude/cool-volta-CBy3l` (desde `develop`).
+- **Estado**: ✅ completo. Gate verde. **368 tests** (39 archivos).
+
+### Qué se hizo
+
+- **`src/lib/team-names.ts`** (Domain, datos puros): `TEAM_NAMES` — Record con los 49 códigos del catálogo (ALG..VEN + FWC), cada uno con `name` (español) y `flag` (emoji unicode). `getTeamDisplay(code)` devuelve `"🇺🇾 Uruguay · URU"` o el code si no existe.
+- **`src/lib/__tests__/team-names.test.ts`** (TDD primero): (1) todos los códigos del catálogo tienen entrada en el mapping; (2) todas las entradas tienen name y flag no vacíos; (3) formato de `getTeamDisplay`; (4) fallback a código crudo.
+- **`src/app/album/AlbumClient.tsx`**: importa `getTeamDisplay`; reemplaza `{team === 'FWC' ? t('teamFWC') : team}` (dos lugares: section header + dropdown option) por `{getTeamDisplay(team)}`.
+- **`messages/es.json`**: eliminada la key `Album.teamFWC` (ahora la maneja el mapping).
+- **`src/app/album/__tests__/AlbumClient.test.tsx`**: 2 tests nuevos — render del header con nombre y bandera (URU, ARG), render del FWC con "🏆 Copa del Mundo · FWC".
+
+### Próximo paso
+
+En orden de BACKLOG (primer ítem `[ ]` de SPRINT 1 en adelante que no sea 🔒/⏸️ RESERVADO):
+1. **RF-214b** (M) — Auditar catálogo vs álbum oficial (980 vs 896 figuritas). Requiere research externo (buscar checklist Panini 2026).
+2. **RF-809** (S) — Schema.org JSON-LD (`Person` en perfiles, `WebSite`/`Organization` en landing). 100% autónomo.
+3. **S3.1** (M) — PWA: manifest + service worker.
+
+### Bloqueos conocidos
+
+- RF-320 ⏸️ RESERVADO — match engine en runtime.
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ Avatar upload — pendiente decisión.
+
+---
+
 ## 2026-06-07 — Corrida 37: RF-120 + RF-121 (destino post-login y logo navbar)
 
 - **Ítems**: RF-120 (destino post-login = `/album`) + RF-121 (logo navbar → `/album`)
