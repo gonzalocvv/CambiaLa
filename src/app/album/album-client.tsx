@@ -15,6 +15,37 @@ type FilterMode = 'all' | 'missing' | 'have' | 'duplicates' | 'specials';
 // L12: 800ms (vs 500 del flujo viejo) agrupa ráfagas más largas en un solo request;
 // el optimistic UI ya da feedback <200ms, así que la latencia extra de confirmación no se nota.
 const FLUSH_DELAY_MS = 800;
+
+// RF-340: clave de localStorage para el buffer pendiente.
+export const STORAGE_KEY = 'cambiala:album:pending-buffer';
+
+// Persiste el buffer en localStorage. No-op si localStorage no está disponible.
+export function persistBuffer(buffer: Map<string, number>): void {
+  try {
+    if (buffer.size === 0) {
+      localStorage.removeItem(STORAGE_KEY);
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(buffer)));
+    }
+  } catch {
+    // localStorage puede no estar disponible (private browsing, cuota, SSR)
+  }
+}
+
+// Carga el buffer persistido. Valida el shape para ignorar datos corruptos o de otra sesión.
+export function loadPersistedBuffer(): Map<string, number> | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const obj = JSON.parse(raw) as Record<string, unknown>;
+    const entries = Object.entries(obj)
+      .filter(([, v]) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 99)
+      .map(([k, v]) => [k, v as number] as const);
+    return entries.length > 0 ? new Map(entries) : null;
+  } catch {
+    return null;
+  }
+}
 const SAVED_TOAST_MS = 2000;
 const ERROR_RETRY_MS = 5000; // H6/L1: un reintento automático con backoff tras un fallo reintentable
 const MAX_CHANGES_PER_REQUEST = 200; // = cap del schema; el buffer se parte en lotes (H1)
@@ -134,11 +165,13 @@ export function AlbumClient({ stickers, initialStats }: Props) {
         for (const { stickerId, count } of changes) {
           if (bufferRef.current.get(stickerId) === count) bufferRef.current.delete(stickerId);
         }
+        persistBuffer(bufferRef.current);
       } else if (r.status >= 400 && r.status < 500) {
         // M2: 4xx determinístico → purgar el snapshot para no atascar el buffer.
         for (const { stickerId, count } of changes) {
           if (bufferRef.current.get(stickerId) === count) bufferRef.current.delete(stickerId);
         }
+        persistBuffer(bufferRef.current);
         deterministicFailure = true;
       } else {
         retryableFailure = true;
@@ -194,6 +227,19 @@ export function AlbumClient({ stickers, initialStats }: Props) {
     };
   }, [flush]);
 
+  // RF-340: al montar, rehidratar el buffer desde localStorage y disparar el flush si hay cambios
+  // pendientes (tab cerrado antes del debounce de 800ms). Solo toca refs y scheduleFlush —
+  // no llama a setState para cumplir con react-hooks/set-state-in-effect. Los counts del servidor
+  // se mostrarán hasta que el flush se confirme; los cambios no se pierden.
+  useEffect(() => {
+    const persisted = loadPersistedBuffer();
+    if (!persisted || persisted.size === 0) return;
+    for (const [id, count] of persisted) {
+      bufferRef.current.set(id, count);
+    }
+    scheduleFlush();
+  }, [scheduleFlush]);
+
   // H2: al desmontar (navegación SPA, la página sigue viva) limpiar timers y mandar el remanente.
   useEffect(() => {
     const buffer = bufferRef.current; // Map de identidad estable durante toda la vida del componente
@@ -213,6 +259,7 @@ export function AlbumClient({ stickers, initialStats }: Props) {
     (stickerId: string, count: number) => {
       setCounts((prev) => ({ ...prev, [stickerId]: count }));
       bufferRef.current.set(stickerId, count);
+      persistBuffer(bufferRef.current);
       setSaveState('saving');
       scheduleFlush();
     },
