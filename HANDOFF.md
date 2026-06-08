@@ -3,6 +3,54 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — RF-339: Perf de render del álbum (React.memo + hasInteracted)
+
+- **Ítem**: RF-339 — `StickerCell` memoizado + `count` como prop primitivo + `hasInteracted` flag.
+- **Rama**: `claude/rf339-album-render-perf`.
+- **Estado**: ✅ completo. Gate verde. **687 tests** (68 archivos). PR abierto con auto-merge REBASE.
+
+### Qué se hizo
+
+**`src/components/album/sticker-cell.tsx`**:
+- Envuelto con `React.memo` (renombrado a export constante).
+- `Props` ahora incluye `count: number` como campo separado (en vez de leerlo de `sticker.count`).
+- Dentro del componente, `count` viene del prop — `sticker` solo se usa para `id`, `number`, `name`, `isSpecial`.
+- Con `memo` + `sticker` reference estable + `count` primitivo + `onUpdate` estable (via useCallback), solo re-renderiza la celda tocada en una ráfaga de clicks.
+
+**`src/app/album/album-client.tsx`**:
+- `hasInteracted` flag (useState): reemplaza la comparación por índice frágil `Object.values(counts).every((c, i) => c === stickers[i]?.count)`. Más simple y correcto.
+- `handleUpdate` setea `hasInteracted(true)` en el primer click.
+- `displayStats = hasInteracted ? stats : initialStats` (sin recorrido de todos los stickers).
+- `grouped` ya no incluye `currentCount` ni el spread `{ ...s, currentCount: ... }` → tipo `Map<string, StickerWithCount[]>`, dependencia solo de `filteredStickers` (no de `counts`).
+- `StickerCell` recibe `count={counts[s.id] ?? s.count}` como prop primitivo separado.
+
+**`vitest.config.ts`**: `src/components/album/**` añadido al proyecto `dom` (y excluido del `node`).
+
+**Tests nuevos (TDD)**:
+- `src/components/album/__tests__/sticker-cell.test.tsx` (6 tests): número, count prop, click+1, ciclo 99→0, click derecho, no bajar de 0.
+- `album-client.test.tsx` +2 tests: progressbar muestra `initialStats` antes de interactuar, cambia a live stats tras primer click.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-115** (Could) — Geo opt-in con granularidad. ⚠️ Requiere nuevo campo en User → migración (dominio de Gonza).
+2. **RF-112** (M) ⚠️ — Avatar upload (pendiente decisión de diseño/servicio de storage).
+3. **RF-1005** (S) 🔒 — Link al dashboard de Sentry.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- **RF-344** ⛔ — Toggles email por tipo requieren migración de Prisma (dominio de Gonza).
+- **RF-115** ⚠️ — Geo opt-in requiere nuevo campo + migración (dominio de Gonza).
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+### Nota de corrida
+
+El PR acumulado de la sesión anterior (50 commits en `claude/gallant-sagan-8njmy5`: RF-307..RF-340) no tenía PR abierto pero sus commits YA estaban en `develop` (force-update vía proxy git). Se verificó que develop y la rama de sesión eran idénticos. Esta corrida arrancó desde esa base con un ítem nuevo limpio.
+
+---
+
 ## 2026-06-08 — RF-340: Persistir buffer del álbum en localStorage
 
 - **Ítem**: RF-340 — Persistir buffer pendiente en `localStorage` + rehidratar al montar.
