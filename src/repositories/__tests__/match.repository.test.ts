@@ -609,3 +609,61 @@ describe('matchRepository.findCandidatePool', () => {
     expect(result[1]).not.toHaveProperty('matchRadius');
   });
 });
+
+describe('matchRepository.pruneStaleForUser', () => {
+  it('marks active matches whose partner is not in freshPartnerIds as inactive', async () => {
+    // user-a has active matches with user-c (stale) and user-b (fresh)
+    mockMatchPrisma.findMany.mockResolvedValue([{ id: 'stale-match' }]);
+    mockMatchPrisma.updateMany.mockResolvedValue({ count: 1 });
+
+    const pruned = await matchRepository.pruneStaleForUser('user-a', ['user-b']);
+
+    expect(mockMatchPrisma.findMany).toHaveBeenCalledOnce();
+    const findCall = mockMatchPrisma.findMany.mock.calls[0][0];
+    expect(findCall.where.status).toBe('active');
+    // must search both sides (user can be userA or userB)
+    expect(findCall.where.OR).toHaveLength(2);
+    expect(findCall.where.OR[0]).toEqual({ userAId: 'user-a', userBId: { notIn: ['user-b'] } });
+    expect(findCall.where.OR[1]).toEqual({ userBId: 'user-a', userAId: { notIn: ['user-b'] } });
+
+    expect(mockMatchPrisma.updateMany).toHaveBeenCalledOnce();
+    const updateCall = mockMatchPrisma.updateMany.mock.calls[0][0];
+    expect(updateCall.where).toEqual({ id: { in: ['stale-match'] } });
+    expect(updateCall.data).toEqual({ status: 'inactive' });
+
+    expect(pruned).toBe(1);
+  });
+
+  it('prunes all active matches when freshPartnerIds is empty', async () => {
+    mockMatchPrisma.findMany.mockResolvedValue([{ id: 'match-x' }, { id: 'match-y' }]);
+    mockMatchPrisma.updateMany.mockResolvedValue({ count: 2 });
+
+    const pruned = await matchRepository.pruneStaleForUser('user-a', []);
+
+    const findCall = mockMatchPrisma.findMany.mock.calls[0][0];
+    // When empty, every active match for this user is stale — OR without notIn restriction
+    expect(findCall.where.status).toBe('active');
+    expect(findCall.where.OR[0]).toEqual({ userAId: 'user-a' });
+    expect(findCall.where.OR[1]).toEqual({ userBId: 'user-a' });
+    expect(pruned).toBe(2);
+  });
+
+  it('returns 0 and skips updateMany when no stale matches found', async () => {
+    mockMatchPrisma.findMany.mockResolvedValue([]);
+
+    const pruned = await matchRepository.pruneStaleForUser('user-a', ['user-b']);
+
+    expect(mockMatchPrisma.updateMany).not.toHaveBeenCalled();
+    expect(pruned).toBe(0);
+  });
+
+  it('does not touch completed or trading matches (only active ones are found)', async () => {
+    // Only finds active status matches — completed/trading are untouched by design
+    mockMatchPrisma.findMany.mockResolvedValue([]);
+
+    await matchRepository.pruneStaleForUser('user-a', []);
+
+    const findCall = mockMatchPrisma.findMany.mock.calls[0][0];
+    expect(findCall.where.status).toBe('active');
+  });
+});
