@@ -74,6 +74,7 @@ function layout({
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="color-scheme" content="light" />
+<title>CambiaLa</title>
 </head>
 <body style="margin:0;padding:0;background-color:${COLORS.bg};">
 <span style="display:none;font-size:0;line-height:0;max-height:0;max-width:0;opacity:0;overflow:hidden;color:transparent;">${escapeHtml(
