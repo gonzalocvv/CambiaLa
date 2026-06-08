@@ -1,9 +1,14 @@
 import type { Notification } from '@prisma/client';
 
 import { logger } from '@/lib/logger';
-import { buildNotificationEmail, EMAILABLE_NOTIFICATION_TYPES } from '@/lib/email/templates';
+import {
+  buildDigestEmail,
+  buildNotificationEmail,
+  EMAILABLE_NOTIFICATION_TYPES,
+} from '@/lib/email/templates';
 import { signUnsubscribeToken, verifyUnsubscribeToken } from '@/lib/email/unsubscribe';
 import type { NotificationItem } from '@/lib/validations/notification.schema';
+import { inngest } from '@/inngest/client';
 import { notificationRepository } from '@/repositories/notification.repository';
 import { userRepository } from '@/repositories/user.repository';
 import { emailService } from '@/services/email.service';
@@ -45,10 +50,22 @@ export const notificationService = {
     type: string,
     payload: Record<string, unknown>,
   ): Promise<NotificationItem> {
-    // El in-app (la campanita) se crea SIEMPRE y primero: un fallo del email nunca debe
-    // perder la notificación ni romper el flujo que la disparó.
+    // El in-app (la campanita) se crea SIEMPRE y primero.
     const notification = await notificationRepository.create({ userId, type, payload });
-    await this.maybeSendEmail(userId, type, payload);
+    // RF-307: el email se despacha async vía Inngest (fuera del hot path del request)
+    // para evitar 504 por envíos lentos. La campanita ya está guardada: un fallo de
+    // inngest.send no la pierde ni rompe el flujo que disparó la notificación.
+    if (EMAILABLE_TYPES.has(type)) {
+      await inngest
+        .send({ name: 'notification/email', data: { userId, type, payload } })
+        .catch((err: unknown) =>
+          logger.error('inngest send notification/email failed', {
+            userId,
+            type,
+            error: err instanceof Error ? err.message : String(err),
+          }),
+        );
+    }
     return toNotificationItem(notification);
   },
 
@@ -134,6 +151,35 @@ export const notificationService = {
       total,
       unreadCount,
     };
+  },
+
+  // RF-307: envía el digest de matches a todos los usuarios con la frecuencia indicada
+  // que tienen notificaciones new_match sin leer. Llamado por el cron de Inngest.
+  // Devuelve el número de correos enviados (los errores individuales se loguean y omiten).
+  async sendMatchDigest(frequency: 'daily' | 'weekly', baseUrl: string): Promise<{ sent: number }> {
+    const users = await userRepository.findUsersForMatchDigest(frequency);
+    let sent = 0;
+    for (const user of users) {
+      try {
+        const unsubscribeUrl = `${baseUrl}/api/unsubscribe?token=${encodeURIComponent(
+          signUnsubscribeToken(user.id),
+        )}`;
+        const email = buildDigestEmail({
+          recipientName: user.name ?? user.username ?? null,
+          matchCount: user.matchCount,
+          ctaUrl: `${baseUrl}/matches`,
+          unsubscribeUrl,
+        });
+        await emailService.sendEmail({ to: user.email, ...email });
+        sent++;
+      } catch (error) {
+        logger.error('digest email failed', {
+          userId: user.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+    return { sent };
   },
 
   // Returns null if notification not found or doesn't belong to user.

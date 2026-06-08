@@ -145,6 +145,37 @@ type BuildInput = {
 
 export type RenderedEmail = { subject: string; html: string; text: string };
 
+// RF-307: digest diario/semanal de matches nuevos para usuarios que prefieren
+// no recibir notificaciones instantáneas.
+export function buildDigestEmail({
+  recipientName,
+  matchCount,
+  ctaUrl,
+  unsubscribeUrl,
+}: {
+  recipientName: string | null;
+  matchCount: number;
+  ctaUrl: string;
+  unsubscribeUrl: string;
+}): RenderedEmail {
+  const name = recipientName?.trim() || null;
+  const hi = name ? `Hola ${name}` : 'Hola';
+  const matchWord = matchCount === 1 ? 'match nuevo' : 'matches nuevos';
+  const subject = `Tenés ${matchCount} ${matchWord} en CambiaLa`;
+  const parts: LayoutInput = {
+    preheader: `Hay ${matchCount} ${matchWord} esperándote para intercambiar figuritas.`,
+    heading: `${hi}, ¡tenés matches esperándote!`,
+    bodyLines: [
+      `Encontramos ${matchCount} ${matchWord} para intercambiar figuritas del Mundial.`,
+      'Entrá para ver con quién podés cambiar y coordinar el intercambio.',
+    ],
+    ctaLabel: 'Ver mis matches',
+    ctaUrl,
+    unsubscribeUrl,
+  };
+  return { subject, html: layout(parts), text: plainText(parts) };
+}
+
 // Mapea un tipo de notificación emaileable a un mail renderizado, o null si el tipo no
 // lleva email. El subject va en texto plano (sin entidades HTML). El nombre se escapa
 // dentro de layout(); acá solo se compone el saludo con el fallback.
