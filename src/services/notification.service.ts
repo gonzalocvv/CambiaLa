@@ -1,7 +1,16 @@
 import type { Notification } from '@prisma/client';
 
+import { logger } from '@/lib/logger';
+import { buildNotificationEmail, EMAILABLE_NOTIFICATION_TYPES } from '@/lib/email/templates';
+import { signUnsubscribeToken, verifyUnsubscribeToken } from '@/lib/email/unsubscribe';
 import type { NotificationItem } from '@/lib/validations/notification.schema';
 import { notificationRepository } from '@/repositories/notification.repository';
+import { userRepository } from '@/repositories/user.repository';
+import { emailService } from '@/services/email.service';
+
+// RF-406/407: tipos que disparan email. Fuente única en templates.ts (trade_completed se
+// omite a propósito: no se crea hoy y buildNotificationEmail devuelve null para él).
+const EMAILABLE_TYPES = new Set<string>(EMAILABLE_NOTIFICATION_TYPES);
 
 function toNotificationItem(n: Notification): NotificationItem {
   return {
@@ -13,14 +22,100 @@ function toNotificationItem(n: Notification): NotificationItem {
   };
 }
 
+// RF-406: arma la URL de destino del CTA por tipo, siempre con host de NEXT_PUBLIC_BASE_URL
+// (nunca del payload) y segmentos dinámicos encodeados.
+function ctaUrlFor(
+  type: string,
+  payload: Record<string, unknown>,
+  recipient: { username: string | null },
+  baseUrl: string,
+): string {
+  const matchId = typeof payload.matchId === 'string' ? payload.matchId : null;
+  if (type === 'rating_received') {
+    return recipient.username
+      ? `${baseUrl}/u/${encodeURIComponent(recipient.username)}`
+      : `${baseUrl}/matches`;
+  }
+  return matchId ? `${baseUrl}/matches/${encodeURIComponent(matchId)}` : `${baseUrl}/matches`;
+}
+
 export const notificationService = {
   async createNotification(
     userId: string,
     type: string,
     payload: Record<string, unknown>,
   ): Promise<NotificationItem> {
+    // El in-app (la campanita) se crea SIEMPRE y primero: un fallo del email nunca debe
+    // perder la notificación ni romper el flujo que la disparó.
     const notification = await notificationRepository.create({ userId, type, payload });
+    await this.maybeSendEmail(userId, type, payload);
     return toNotificationItem(notification);
+  },
+
+  // RF-406/407: side-effect de email. Gating: solo tipos emaileables; solo emailFrequency
+  // 'instant' (never = off; daily/weekly = digest pendiente de RF-307, no se manda instant).
+  // new_match además ya viene gateado por notifyOnMatch aguas arriba (saveMatchResult).
+  // NUNCA lanza (try/catch + logger solo del mensaje, jamás secretos/token).
+  async maybeSendEmail(
+    userId: string,
+    type: string,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    if (!EMAILABLE_TYPES.has(type)) return;
+    try {
+      const recipient = await userRepository.findEmailRecipient(userId);
+      if (!recipient?.email) return;
+      if (recipient.emailFrequency !== 'instant') return;
+
+      // Sin base URL los links del mail quedarían relativos (no resuelven en el cliente).
+      // Fail-safe: no mandar un mail con links rotos.
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+      if (!baseUrl) {
+        logger.warn('email skipped: NEXT_PUBLIC_BASE_URL not set', { userId, type });
+        return;
+      }
+      const unsubscribeUrl = `${baseUrl}/api/unsubscribe?token=${encodeURIComponent(
+        signUnsubscribeToken(userId),
+      )}`;
+      const ctaUrl = ctaUrlFor(type, payload, recipient, baseUrl);
+      const email = buildNotificationEmail(type, {
+        recipientName: recipient.name ?? recipient.username ?? null,
+        payload,
+        ctaUrl,
+        unsubscribeUrl,
+      });
+      if (!email) return;
+
+      await emailService.sendEmail({
+        to: recipient.email,
+        subject: email.subject,
+        html: email.html,
+        text: email.text,
+      });
+    } catch (error) {
+      logger.error('notification email failed', {
+        userId,
+        type,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  },
+
+  // RF-408: baja por token firmado, sin login. Devuelve false si el token es inválido
+  // O si el update falla (ej. token válido de un usuario ya borrado → P2025): la ruta
+  // renderiza un 400 amable en vez de tirar un 500.
+  async unsubscribeByToken(token: string): Promise<boolean> {
+    const userId = verifyUnsubscribeToken(token);
+    if (!userId) return false;
+    try {
+      await userRepository.updateNotifications(userId, { emailFrequency: 'never' });
+      return true;
+    } catch (error) {
+      logger.error('unsubscribe update failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return false;
+    }
   },
 
   async getNotificationsForUser(

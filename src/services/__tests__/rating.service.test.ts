@@ -19,6 +19,19 @@ vi.mock('@/repositories/match.repository', () => ({ matchRepository: mockMatchRe
 vi.mock('@/repositories/rating.repository', () => ({ ratingRepository: mockRatingRepository }));
 vi.mock('@/repositories/user.repository', () => ({ userRepository: mockUserRepository }));
 
+const mockNotificationService = vi.hoisted(() => ({ createNotification: vi.fn() }));
+const mockLogger = vi.hoisted(() => ({
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+}));
+
+vi.mock('@/services/notification.service', () => ({
+  notificationService: mockNotificationService,
+}));
+vi.mock('@/lib/logger', () => ({ logger: mockLogger }));
+
 import {
   AlreadyRatedError,
   RatingMatchNotFoundError,
@@ -84,6 +97,43 @@ describe('ratingService.createRating', () => {
       tradesCompleted: 1,
     });
     expect(result.ratedId).toBe('user-b');
+  });
+
+  it('notifies the rated user (rating_received) after persisting', async () => {
+    mockMatchRepository.findById.mockResolvedValue(makeMatch());
+    mockRatingRepository.findByRater.mockResolvedValue(null);
+    mockRatingRepository.create.mockResolvedValue(makeRating({ id: 'rating-9', stars: 5 }));
+    mockRatingRepository.getReputationStats.mockResolvedValue({ avg: 5, count: 1 });
+    mockUserRepository.updateReputation.mockResolvedValue({});
+
+    await ratingService.createRating('match-1', 'user-a', 5);
+
+    expect(mockNotificationService.createNotification).toHaveBeenCalledWith(
+      'user-b',
+      'rating_received',
+      {
+        matchId: 'match-1',
+        ratingId: 'rating-9',
+        stars: 5,
+      },
+    );
+  });
+
+  it('does not break rating creation when the notification fails', async () => {
+    mockMatchRepository.findById.mockResolvedValue(makeMatch());
+    mockRatingRepository.findByRater.mockResolvedValue(null);
+    mockRatingRepository.create.mockResolvedValue(makeRating());
+    mockRatingRepository.getReputationStats.mockResolvedValue({ avg: 4, count: 1 });
+    mockUserRepository.updateReputation.mockResolvedValue({});
+    mockNotificationService.createNotification.mockRejectedValue(new Error('notif down'));
+
+    const result = await ratingService.createRating('match-1', 'user-a', 4);
+
+    expect(result.ratedId).toBe('user-b');
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'rating notification failed',
+      expect.objectContaining({ error: 'notif down' }),
+    );
   });
 
   it('creates a rating for user-b rating user-a', async () => {
