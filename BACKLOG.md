@@ -327,7 +327,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - Mantener tokens + i18n; no cambiar comportamiento.
   - **Criterio**: ningún módulo > 300 líneas; tests/verde.
 
-- [ ] **RF-333** 🆕 **`POST /api/auth/verify-otp` valida a mano en vez de con Zod.** (C) — _detectado 6-jun: `route.ts:19-25` lee `request.json()` y valida email/token con checks manuales (typeof/.trim()/length<6) sin schema; no hay schema de auth/otp en `src/lib/validations/`. El resto de routes con body usan Zod._
+- [x] **RF-333** 🆕 **`POST /api/auth/verify-otp` valida a mano en vez de con Zod.** (C) — _2026-06-08, rama `claude/gallant-sagan-56W50`: `src/lib/validations/auth.schema.ts` con `VerifyOtpSchema` (email + trim/lowercase + pipe email(); token + remove-spaces + pipe regex `^\d{6}$`); route usa `safeParse` → 400 en vez de checks manuales. 11 tests de schema + 1 test de route (token no-numérico). 621 tests verdes._ — _detectado 6-jun: `route.ts:19-25` lee `request.json()` y valida email/token con checks manuales (typeof/.trim()/length<6) sin schema; no hay schema de auth/otp en `src/lib/validations/`. El resto de routes con body usan Zod._
   - Crear `src/lib/validations/auth.schema.ts` con `VerifyOtpSchema` (email válido + token de 6 dígitos numéricos).
   - Usar `safeParse` en la route → 400 ante input inválido, alineando con el patrón session→Zod→Service→JSON.
   - **TDD**: tests del schema (acepta válido, rechaza email malo/token corto/no numérico) + la route devuelve 400.
