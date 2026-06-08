@@ -1,16 +1,17 @@
 'use client';
 
-import { useCallback } from 'react';
+import { memo, useCallback } from 'react';
 
 import type { StickerWithCount } from '@/lib/validations/sticker.schema';
 
 type Props = {
   sticker: StickerWithCount;
+  count: number;
   onUpdate: (stickerId: string, count: number) => void;
 };
 
-export function StickerCell({ sticker, onUpdate }: Props) {
-  const { id, number, name, count, isSpecial } = sticker;
+export const StickerCell = memo(function StickerCell({ sticker, count, onUpdate }: Props) {
+  const { id, number, name, isSpecial } = sticker;
 
   const handleClick = useCallback(() => {
     onUpdate(id, count >= 99 ? 0 : count + 1);
@@ -49,4 +50,4 @@ export function StickerCell({ sticker, onUpdate }: Props) {
       )}
     </button>
   );
-}
+});
