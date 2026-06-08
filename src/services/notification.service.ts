@@ -6,7 +6,12 @@ import {
   buildNotificationEmail,
   EMAILABLE_NOTIFICATION_TYPES,
 } from '@/lib/email/templates';
-import { signUnsubscribeToken, verifyUnsubscribeToken } from '@/lib/email/unsubscribe';
+import {
+  signResubscribeToken,
+  signUnsubscribeToken,
+  verifyResubscribeToken,
+  verifyUnsubscribeToken,
+} from '@/lib/email/unsubscribe';
 import type { NotificationItem } from '@/lib/validations/notification.schema';
 import { inngest } from '@/inngest/client';
 import { notificationRepository } from '@/repositories/notification.repository';
@@ -118,20 +123,53 @@ export const notificationService = {
     }
   },
 
-  // RF-408: baja por token firmado, sin login. Devuelve false si el token es inválido
-  // O si el update falla (ej. token válido de un usuario ya borrado → P2025): la ruta
-  // renderiza un 400 amable en vez de tirar un 500.
-  async unsubscribeByToken(token: string): Promise<boolean> {
+  // RF-408/RF-345: baja por token firmado, sin login.
+  // Devuelve {ok: false} si el token es inválido o si el update falla.
+  // Devuelve {ok: true, prevFreq} con la frecuencia previa para ofrecer reactivación.
+  async unsubscribeByToken(token: string): Promise<{ ok: false } | { ok: true; prevFreq: string }> {
     const userId = verifyUnsubscribeToken(token);
-    if (!userId) return false;
+    if (!userId) return { ok: false };
     try {
+      const user = await userRepository.findById(userId);
+      const prevFreq = user?.emailFrequency ?? 'instant';
       await userRepository.updateNotifications(userId, { emailFrequency: 'never' });
-      return true;
+      return { ok: true, prevFreq };
     } catch (error) {
       logger.error('unsubscribe update failed', {
         error: error instanceof Error ? error.message : String(error),
       });
+      return { ok: false };
+    }
+  },
+
+  // RF-345: reactivación de mails por token firmado (post-baja, "reactivar en un click").
+  // El token de reactivación embebe la frecuencia previa (HMAC-protegida, no forjable).
+  async resubscribeByToken(token: string): Promise<boolean> {
+    const result = verifyResubscribeToken(token);
+    if (!result) return false;
+    const { userId, prevFreq } = result;
+    const validFreqs = ['instant', 'daily', 'weekly', 'never'] as const;
+    type Freq = (typeof validFreqs)[number];
+    if (!validFreqs.includes(prevFreq as Freq)) return false;
+    try {
+      await userRepository.updateNotifications(userId, {
+        emailFrequency: prevFreq as Freq,
+      });
+      return true;
+    } catch (error) {
+      logger.error('resubscribe update failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return false;
+    }
+  },
+
+  // RF-345: genera el token de reactivación (embebe userId + prevFreq, firmado con HMAC).
+  buildResubscribeToken(userId: string, prevFreq: string): string | null {
+    try {
+      return signResubscribeToken(userId, prevFreq);
+    } catch {
+      return null;
     }
   },
 
