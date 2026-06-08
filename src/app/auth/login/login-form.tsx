@@ -4,11 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createClient } from '@/lib/supabase/client';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 type Step = 'email' | 'code';
 type Status = 'idle' | 'loading' | 'error';
+type Mode = 'login' | 'signup';
+
+type Props = {
+  mode?: Mode;
+};
 
 function GoogleIcon() {
   return (
@@ -33,7 +39,7 @@ function GoogleIcon() {
   );
 }
 
-export function LoginForm() {
+export function LoginForm({ mode = 'login' }: Props) {
   const t = useTranslations('Auth.login');
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
@@ -239,6 +245,21 @@ export function LoginForm() {
           {status === 'loading' ? t('submitting') : t('submitButton')}
         </Button>
       </form>
+
+      <p className="text-muted-foreground text-center text-xs">
+        {mode === 'signup' ? (
+          <Link href="/auth/login" className="hover:text-foreground underline transition-colors">
+            {t('switchToLogin')}
+          </Link>
+        ) : (
+          <Link
+            href="/auth/login?mode=signup"
+            className="hover:text-foreground underline transition-colors"
+          >
+            {t('switchToSignup')}
+          </Link>
+        )}
+      </p>
     </div>
   );
 }
