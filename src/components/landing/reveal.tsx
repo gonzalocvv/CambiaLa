@@ -1,11 +1,8 @@
 'use client';
 
-import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { type ReactNode, useSyncExternalStore } from 'react';
 
-type Props = {
-  children: ReactNode;
-  className?: string;
-};
+import { motion, useReducedMotion, type Variants } from 'motion/react';
 
 const subscribe = () => () => {};
 
@@ -18,41 +15,84 @@ function useHydrated() {
   );
 }
 
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } },
+};
+
+const groupContainer: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.12 } },
+};
+
+const groupItem: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+};
+
+type Props = { children: ReactNode; className?: string };
+
 /**
- * Revela su contenido con un fade-up al entrar al viewport (una sola vez), con
- * CSS (transform/opacity) + IntersectionObserver — sin librería de animación.
- * El estado oculto (`.cl-reveal`) solo se aplica DESPUÉS de hidratar: en SSR y
- * sin JS el contenido se ve igual (no queda invisible) y no hay mismatch.
- * `prefers-reduced-motion` lo neutraliza por CSS.
+ * Reveal al entrar al viewport (una sola vez) con framer-motion — SOLO
+ * opacity/transform (composite). Antes de hidratar (y sin JS) el contenido se
+ * renderiza visible, así nunca queda invisible. `prefers-reduced-motion` lo
+ * neutraliza. Reemplaza al reveal por CSS+IntersectionObserver anterior.
  */
 export function Reveal({ children, className }: Props) {
   const hydrated = useHydrated();
-  const ref = useRef<HTMLDivElement>(null);
-  const [shown, setShown] = useState(false);
+  const reduced = useReducedMotion();
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setShown(true);
-          io.disconnect();
-        }
-      },
-      { threshold: 0.15 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  const cls = [hydrated && 'cl-reveal', shown && 'cl-reveal-in', className]
-    .filter(Boolean)
-    .join(' ');
+  if (!hydrated || reduced) {
+    return <div className={className}>{children}</div>;
+  }
 
   return (
-    <div ref={ref} className={cls || undefined}>
+    <motion.div
+      className={className}
+      variants={fadeUp}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, amount: 0.2 }}
+    >
       {children}
-    </div>
+    </motion.div>
+  );
+}
+
+/** Contenedor que escalona el reveal de sus `RevealItem` hijos. */
+export function RevealGroup({ children, className }: Props) {
+  const hydrated = useHydrated();
+  const reduced = useReducedMotion();
+
+  if (!hydrated || reduced) {
+    return <div className={className}>{children}</div>;
+  }
+
+  return (
+    <motion.div
+      className={className}
+      variants={groupContainer}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, amount: 0.2 }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/** Ítem hijo de `RevealGroup` (cada card aparece con stagger). */
+export function RevealItem({ children, className }: Props) {
+  const hydrated = useHydrated();
+  const reduced = useReducedMotion();
+
+  if (!hydrated || reduced) {
+    return <div className={className}>{children}</div>;
+  }
+
+  return (
+    <motion.div className={className} variants={groupItem}>
+      {children}
+    </motion.div>
   );
 }

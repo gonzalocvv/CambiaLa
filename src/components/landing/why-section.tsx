@@ -3,9 +3,17 @@
 import { Gift, MapPin, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import {
+  MinimalCard,
+  MinimalCardDescription,
+  MinimalCardTitle,
+} from '@/components/ui/minimal-card';
+
+import { RevealGroup, RevealItem } from './reveal';
+
 /**
- * RF-822 — "¿Por qué CambiaLa?": tres diferenciales en cards.
- * Mismo patrón visual que las demás secciones de la landing (rounded-2xl + tokens).
+ * RF-822 — "¿Por qué CambiaLa?": tres diferenciales en `MinimalCard` (cult-ui).
+ * Las cards entran con stagger al viewport (framer-motion, una vez).
  */
 export function WhySection() {
   const t = useTranslations('Home.why');
@@ -28,20 +36,21 @@ export function WhySection() {
           </h2>
         </div>
 
-        <div className="mt-16 grid gap-6 md:grid-cols-3 md:gap-8">
+        <RevealGroup className="mt-16 grid gap-6 md:grid-cols-3 md:gap-8">
           {cards.map(({ Icon, title, desc }) => (
-            <div
-              key={title}
-              className="border-border bg-card hover:border-primary/40 rounded-2xl border p-8 transition-all"
-            >
-              <div className="bg-primary/10 text-primary flex h-12 w-12 items-center justify-center rounded-xl">
-                <Icon className="h-6 w-6" aria-hidden="true" />
-              </div>
-              <h3 className="text-foreground mt-5 text-xl font-semibold">{title}</h3>
-              <p className="text-muted-foreground mt-3 text-base leading-relaxed">{desc}</p>
-            </div>
+            <RevealItem key={title}>
+              <MinimalCard className="hover:border-primary/40 h-full p-6 transition-colors">
+                <div className="bg-primary/10 text-primary flex h-12 w-12 items-center justify-center rounded-xl">
+                  <Icon className="h-6 w-6" aria-hidden="true" />
+                </div>
+                <MinimalCardTitle className="mt-5 text-xl">{title}</MinimalCardTitle>
+                <MinimalCardDescription className="mt-3 text-base leading-relaxed">
+                  {desc}
+                </MinimalCardDescription>
+              </MinimalCard>
+            </RevealItem>
           ))}
-        </div>
+        </RevealGroup>
       </div>
     </section>
   );

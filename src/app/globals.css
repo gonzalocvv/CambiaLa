@@ -145,8 +145,59 @@ body {
    =========================================================================== */
 
 .exchange-scene {
-  perspective: 800px;
-  perspective-origin: 50% 40%;
+  perspective: 760px;
+  perspective-origin: 50% 42%;
+  transform-style: preserve-3d;
+}
+
+/* Piso sutil que ancla los álbumes en el espacio 3D (estático, decorativo) */
+.cl-floor {
+  position: absolute;
+  bottom: 3%;
+  left: 50%;
+  z-index: 0;
+  width: 80%;
+  height: 26%;
+  transform: translateX(-50%);
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--primary) 24%, transparent),
+    transparent 70%
+  );
+  opacity: 0.55;
+  filter: blur(7px);
+}
+
+/* Figurita "carta de colección": sheen diagonal + badge de repetida */
+.cl-figu {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+.cl-figu-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.05) 32%,
+    transparent 55%
+  );
+}
+.cl-figu-repe {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 3px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* Mini-álbumes tilteados en 3D */
@@ -157,6 +208,17 @@ body {
   aspect-ratio: 3 / 4;
   border-radius: 0.75rem;
   backface-visibility: hidden;
+}
+/* Lomo del álbum (detalle de profundidad, lado interno) */
+.cl-album-spine {
+  position: absolute;
+  top: 7%;
+  bottom: 7%;
+  left: -3px;
+  width: 4px;
+  border-radius: 2px;
+  opacity: 0.7;
+  background: color-mix(in srgb, var(--primary) 30%, var(--border));
 }
 .album-a {
   top: 2%;
@@ -329,7 +391,7 @@ body {
   }
   40% {
     opacity: 1;
-    transform: translate(234%, -34%) translateZ(150px) rotateX(8deg) rotateY(0deg) scale(1.16);
+    transform: translate(234%, -34%) translateZ(210px) rotateX(6deg) rotateY(0deg) scale(1.34);
   }
   56% {
     opacity: 1;
@@ -364,7 +426,7 @@ body {
   }
   42% {
     opacity: 1;
-    transform: translate(-307%, -44%) translateZ(120px) rotateX(8deg) rotateY(0deg) scale(1.12);
+    transform: translate(-307%, -44%) translateZ(190px) rotateX(6deg) rotateY(0deg) scale(1.28);
   }
   58% {
     opacity: 1;
@@ -414,75 +476,52 @@ body {
   }
 }
 
-/* Match card: desenlace del loop */
-.match-reveal {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  z-index: 30;
-  width: min(82%, 280px);
-  transform: translateX(-50%);
-  opacity: 1;
-  animation: cl-card 12s linear infinite;
-}
-@keyframes cl-card {
-  0%,
-  70% {
-    opacity: 0;
-    transform: translateX(-50%) translateY(14px) scale(0.96);
-  }
-  78%,
-  90% {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0) scale(1);
-  }
-  95%,
-  100% {
-    opacity: 0;
-    transform: translateX(-50%) translateY(12px) scale(0.96);
-  }
-}
-
 /* Pausar el loop cuando la escena sale del viewport */
 .exchange-scene.is-paused .album,
 .exchange-scene.is-paused .static-src,
 .exchange-scene.is-paused .scene-fly,
 .exchange-scene.is-paused .static-dst,
 .exchange-scene.is-paused .hole-fill,
-.exchange-scene.is-paused .match-badge,
-.exchange-scene.is-paused .match-reveal {
+.exchange-scene.is-paused .match-badge {
   animation-play-state: paused;
 }
 
-/* Reduced motion: sin loop → todo en su estado final (encajado + match card) */
+/* Reduced motion: sin loop → todo en su estado final (encajado + badge ¡Match!) */
 @media (prefers-reduced-motion: reduce) {
   .album,
   .static-src,
   .scene-fly,
   .static-dst,
   .hole-fill,
-  .match-badge,
-  .match-reveal {
+  .match-badge {
     animation: none !important;
   }
 }
 
-/* Reveal al scroll (CSS + IntersectionObserver, sin librería) */
-.cl-reveal {
-  opacity: 0;
-  transform: translateY(16px);
-  transition:
-    opacity 0.5s ease-out,
-    transform 0.5s ease-out;
+/* ===========================================================================
+   CTA con anillo de gradiente animado (cult-ui bg-animate-button, tokenizado).
+   El anillo es un conic-gradient celeste→naranja que gira detrás de la cara
+   `bg-accent`; el padding de 2px del contenedor deja ver solo el borde.
+   SOLO transform (rotate) → composite. reduced-motion lo frena.
+   =========================================================================== */
+.cl-cta-ring {
+  position: absolute;
+  inset: -150%;
+  z-index: 0;
+  background: conic-gradient(from 0deg, var(--primary), var(--accent), var(--primary));
+  will-change: transform;
+  animation: cl-cta-spin 4s linear infinite;
 }
-.cl-reveal-in {
-  opacity: 1;
-  transform: none;
+@keyframes cl-cta-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+.cl-cta.is-paused .cl-cta-ring {
+  animation-play-state: paused;
 }
 @media (prefers-reduced-motion: reduce) {
-  .cl-reveal {
-    opacity: 1;
-    transform: none;
-    transition: none;
+  .cl-cta-ring {
+    animation: none;
   }
 }

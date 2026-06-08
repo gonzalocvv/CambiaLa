@@ -1,12 +1,19 @@
 import { ExchangeAnimation } from '@/components/landing/exchange-animation';
-import { Reveal } from '@/components/landing/reveal';
+import { Reveal, RevealGroup, RevealItem } from '@/components/landing/reveal';
 import { WhySection } from '@/components/landing/why-section';
 import { Navbar } from '@/components/layout/navbar';
 import { SiteFooter } from '@/components/layout/site-footer';
+import { BgAnimateButton } from '@/components/ui/bg-animate-button';
+import { GradientHeading } from '@/components/ui/gradient-heading';
+import {
+  MinimalCard,
+  MinimalCardDescription,
+  MinimalCardTitle,
+} from '@/components/ui/minimal-card';
+import { TextAnimate } from '@/components/ui/text-animate';
 import { buildOrganizationJsonLd, buildWebSiteJsonLd, toJsonLdString } from '@/lib/json-ld';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://cambia-la.vercel.app';
 
@@ -43,7 +50,11 @@ export default async function Home() {
 
             <h1 className="mt-6 text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">
               {t.rich('hero.title', {
-                hl: (chunks) => <span className="text-accent-text">{chunks}</span>,
+                hl: (chunks) => (
+                  <GradientHeading asChild variant="brand" size="inherit" weight="inherit">
+                    <span>{chunks}</span>
+                  </GradientHeading>
+                ),
               })}
             </h1>
 
@@ -52,12 +63,7 @@ export default async function Home() {
             </p>
 
             <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
-              <Link
-                href="/auth/login?mode=signup"
-                className="bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90 hover:shadow-accent/30 inline-flex items-center justify-center rounded-xl px-8 py-4 text-base font-semibold shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl"
-              >
-                {t('hero.cta')} →
-              </Link>
+              <BgAnimateButton href="/auth/login?mode=signup">{t('hero.cta')} →</BgAnimateButton>
               <a
                 href="#como-funciona"
                 className="border-border text-muted-foreground hover:border-primary hover:text-foreground inline-flex items-center justify-center rounded-xl border px-8 py-4 text-base font-semibold transition-all"
@@ -76,7 +82,7 @@ export default async function Home() {
 
       {/* Stats bar */}
       <section className="border-border bg-muted/40 border-y px-6 py-10">
-        <div className="mx-auto grid max-w-3xl grid-cols-3 gap-4 text-center">
+        <Reveal className="mx-auto grid max-w-3xl grid-cols-3 gap-4 text-center">
           <div className="space-y-1">
             <p className="text-primary text-2xl font-bold md:text-3xl">
               {t('stats.stickersValue')}
@@ -93,13 +99,11 @@ export default async function Home() {
             </p>
             <p className="text-muted-foreground text-xs md:text-sm">{t('stats.locationLabel')}</p>
           </div>
-        </div>
+        </Reveal>
       </section>
 
-      {/* ¿Por qué CambiaLa? — el diferencial */}
-      <Reveal>
-        <WhySection />
-      </Reveal>
+      {/* ¿Por qué CambiaLa? — el diferencial (la sección maneja su propio reveal) */}
+      <WhySection />
 
       {/* Cómo funciona */}
       <section
@@ -124,24 +128,25 @@ export default async function Home() {
             </p>
           </div>
 
-          <div className="mt-20 grid gap-6 md:grid-cols-3 md:gap-8">
+          <RevealGroup className="mt-20 grid gap-6 md:grid-cols-3 md:gap-8">
             {[
               { num: '1', title: t('howItWorks.step1Title'), desc: t('howItWorks.step1Desc') },
               { num: '2', title: t('howItWorks.step2Title'), desc: t('howItWorks.step2Desc') },
               { num: '3', title: t('howItWorks.step3Title'), desc: t('howItWorks.step3Desc') },
             ].map(({ num, title, desc }) => (
-              <div
-                key={num}
-                className="border-accent/20 bg-card hover:border-accent/60 hover:shadow-accent/10 group relative rounded-2xl border p-8 backdrop-blur transition-all hover:-translate-y-1 hover:shadow-lg"
-              >
-                <div className="bg-accent text-accent-foreground shadow-accent/30 flex h-14 w-14 items-center justify-center rounded-2xl text-2xl font-bold shadow-lg transition-transform group-hover:scale-110">
-                  {num}
-                </div>
-                <h3 className="text-foreground mt-6 text-2xl font-semibold">{title}</h3>
-                <p className="text-muted-foreground mt-3 text-base leading-relaxed">{desc}</p>
-              </div>
+              <RevealItem key={num}>
+                <MinimalCard className="hover:border-accent/50 group h-full p-8 transition-colors">
+                  <div className="bg-accent text-accent-foreground shadow-accent/30 flex h-14 w-14 items-center justify-center rounded-2xl text-2xl font-bold shadow-lg transition-transform group-hover:scale-110">
+                    {num}
+                  </div>
+                  <MinimalCardTitle className="mt-6 text-2xl">{title}</MinimalCardTitle>
+                  <MinimalCardDescription className="mt-3 text-base leading-relaxed">
+                    {desc}
+                  </MinimalCardDescription>
+                </MinimalCard>
+              </RevealItem>
             ))}
-          </div>
+          </RevealGroup>
         </div>
       </section>
 
@@ -157,7 +162,7 @@ export default async function Home() {
             </h2>
           </div>
 
-          <div className="mt-16 grid gap-6 md:grid-cols-3 md:gap-8">
+          <RevealGroup className="mt-16 grid gap-6 md:grid-cols-3 md:gap-8">
             {[
               {
                 emoji: t('useCases.case1Emoji'),
@@ -175,18 +180,19 @@ export default async function Home() {
                 desc: t('useCases.case3Desc'),
               },
             ].map(({ emoji, title, desc }) => (
-              <div
-                key={title}
-                className="border-border bg-card hover:border-primary/40 rounded-2xl border p-8 transition-all"
-              >
-                <span className="text-4xl" role="img" aria-hidden="true">
-                  {emoji}
-                </span>
-                <h3 className="text-foreground mt-4 text-xl font-semibold">{title}</h3>
-                <p className="text-muted-foreground mt-3 text-base leading-relaxed">{desc}</p>
-              </div>
+              <RevealItem key={title}>
+                <MinimalCard className="hover:border-primary/40 h-full p-8 transition-colors">
+                  <span className="text-4xl" role="img" aria-hidden="true">
+                    {emoji}
+                  </span>
+                  <MinimalCardTitle className="mt-4 text-xl">{title}</MinimalCardTitle>
+                  <MinimalCardDescription className="mt-3 text-base leading-relaxed">
+                    {desc}
+                  </MinimalCardDescription>
+                </MinimalCard>
+              </RevealItem>
             ))}
-          </div>
+          </RevealGroup>
         </div>
       </section>
 
@@ -194,15 +200,16 @@ export default async function Home() {
       <section className="border-border border-t px-6 py-28">
         <div className="mx-auto max-w-xl space-y-6 text-center">
           <h2 className="text-foreground text-4xl font-bold tracking-tight md:text-5xl">
-            {t('finalCta.title')}
+            <TextAnimate text={t('finalCta.title')} type="calmInUp" />
           </h2>
-          <p className="text-muted-foreground text-lg">{t('finalCta.subtitle')}</p>
-          <Link
-            href="/auth/login?mode=signup"
-            className="bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90 hover:shadow-accent/30 inline-flex items-center justify-center rounded-xl px-10 py-4 text-base font-semibold shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl"
-          >
-            {t('finalCta.cta')} →
-          </Link>
+          <Reveal className="space-y-6">
+            <p className="text-muted-foreground text-lg">{t('finalCta.subtitle')}</p>
+            <div className="flex justify-center">
+              <BgAnimateButton href="/auth/login?mode=signup" size="lg">
+                {t('finalCta.cta')} →
+              </BgAnimateButton>
+            </div>
+          </Reveal>
         </div>
       </section>
 
