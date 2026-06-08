@@ -3,6 +3,39 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — RF-343: Read-tracking de mensajes + re-notificación
+
+- **Ítem**: RF-343 — `markMessagesRead` + endpoint PATCH /read + ChatPanel llama al abrir.
+- **Rama**: `claude/gallant-sagan-xfAJe` (acumula RF-307..RF-343).
+- **Estado**: ✅ completo. Gate verde. **639 tests** (67 archivos).
+
+### Qué se hizo
+
+**`messageRepository.markMessagesRead(matchId, userId)`**: `prisma.message.updateMany` — pone `readAt = now()` en los mensajes de ese match que son de otros usuarios y tienen `readAt: null`. Devuelve el count de mensajes marcados.
+
+**`messageService.markRead(matchId, userId)`**: llama `assertParticipant` (mismo helper privado que usa `sendMessage`) + `markMessagesRead`. Lanza `MatchNotFoundError` / `MessageAccessError` si el match no existe o el usuario no es participante.
+
+**`PATCH /api/matches/[id]/messages/read`**: session → markRead → 200 `{ ok: true }`. 401 sin sesión, 404 si no es participante o match no existe.
+
+**`ChatPanel`**: nuevo `useEffect` con deps `[matchId]` que llama `PATCH /api/matches/${matchId}/messages/read` al montar (fire-and-forget). Al abrir la conversación, `countUnread` vuelve a 0 → el mecanismo anti-spam de `sendMessage` (`countUnread===1`) re-notifica de verdad cuando lleguen nuevos mensajes.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-347** (Should) — Modo registro en `/auth/login?mode=signup` (CTAs de landing dicen "Registrate" pero página dice "Iniciá sesión").
+2. **RF-338** (Should) — Scoping de existence-check de stickers por álbum activo (PRE-F2).
+3. **RF-342** (Should) — Pruning de matches fantasma tras recompute.
+4. **RF-344** (Should) — Toggles de email por tipo (requiere migración, dominio de Gonza).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+- RF-344 ⛔ — Toggles email por tipo requieren migración de Prisma (dominio de Gonza).
+
+---
+
 ## 2026-06-08 — RF-335 + RF-337: body malformado → 400 (ya hecho) + a11y del dropdown de notificaciones
 
 - **Ítems**: RF-335 (verificado ya hecho en bulk endpoint de RF-213) + RF-337 (Escape + aria en NotificationBell).
