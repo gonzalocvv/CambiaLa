@@ -160,6 +160,35 @@ export const matchRepository = {
     return result.count;
   },
 
+  // RF-342: después de un recompute, marca como inactive los matches active del usuario
+  // cuyo contraparte NO está en freshPartnerIds (= dejaron de complementar). No toca
+  // completed/trading — el filtro por status:'active' los preserva. Preserva el chat
+  // (no borra la fila). Sigue el mismo patrón two-step de markInactiveByLastSeen.
+  async pruneStaleForUser(userId: string, freshPartnerIds: string[]): Promise<number> {
+    const stale = await prisma.match.findMany({
+      where: {
+        status: 'active',
+        OR:
+          freshPartnerIds.length > 0
+            ? [
+                { userAId: userId, userBId: { notIn: freshPartnerIds } },
+                { userBId: userId, userAId: { notIn: freshPartnerIds } },
+              ]
+            : [{ userAId: userId }, { userBId: userId }],
+      },
+      select: { id: true },
+    });
+
+    if (stale.length === 0) return 0;
+
+    const { count } = await prisma.match.updateMany({
+      where: { id: { in: stale.map((m) => m.id) } },
+      data: { status: 'inactive' },
+    });
+
+    return count;
+  },
+
   // RF-320: carga el perfil de matchmaking del target + su set de figus ofrecibles.
   // `matchRadius` se devuelve crudo (String del schema); el service lo valida.
   async findMatchmakingProfile(userId: string): Promise<MatchmakingProfile | null> {
