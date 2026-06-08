@@ -3,6 +3,22 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — Fix CI PR #95: test fetch mock faltante en ChatPanel (intento 1/3)
+
+- **Ítem**: Fix CI de PR #95 (`claude/gallant-sagan-xfAJe`).
+- **Rama**: `claude/gallant-sagan-xfAJe`.
+- **Estado**: ✅ fix pusheado. Gate verde local (639 tests). CI re-triggerado. Auto-merge REBASE habilitado.
+
+### Qué se hizo
+
+PR #95 fallaba "Unit Tests" por `ERR_INVALID_URL` en el describe `ChatPanel — renderizado`. Causa: RF-343 agrega un `useEffect` que llama `fetch('/api/matches/.../messages/read')` al montar, pero los tests de renderizado no mockeaban `fetch`, por lo que el Node.js real falla ante URLs relativas (jsdom no tiene `window.location` con origin). Fix: `beforeEach(() => vi.stubGlobal('fetch', vi.fn(...)))` + `afterEach(() => vi.unstubAllGlobals())` en el describe de renderizado.
+
+### Próximo paso
+
+Si el CI pasa → el PR se auto-mergea → en la próxima corrida elegir el primer `[ ]` autónomo (RF-347 modo registro en login).
+
+---
+
 ## 2026-06-08 — RF-343: Read-tracking de mensajes + re-notificación
 
 - **Ítem**: RF-343 — `markMessagesRead` + endpoint PATCH /read + ChatPanel llama al abrir.
