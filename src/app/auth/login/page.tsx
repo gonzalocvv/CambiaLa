@@ -1,4 +1,4 @@
-import { LoginForm } from './LoginForm';
+import { LoginForm } from './login-form';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 

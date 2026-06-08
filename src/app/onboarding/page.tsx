@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { getSession } from '@/lib/auth';
-import OnboardingForm from './OnboardingForm';
+import OnboardingForm from './onboarding-form';
 
 export async function generateMetadata() {
   const t = await getTranslations('Onboarding');

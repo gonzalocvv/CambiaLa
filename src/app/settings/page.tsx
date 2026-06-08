@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { AppNavbar } from '@/components/layout/app-navbar';
 import { getSession } from '@/lib/auth';
 import { userService } from '@/services/user.service';
-import SettingsForm from './SettingsForm';
+import SettingsForm from './settings-form';
 
 export async function generateMetadata() {
   const t = await getTranslations('Settings');
