@@ -3,6 +3,41 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — RF-332: Extraer secciones de settings-form.tsx
+
+- **Ítem**: RF-332 — `settings-form.tsx` (672 líneas, muy por encima del techo de 300, §9).
+- **Rama**: `claude/gallant-sagan-UUn9f`.
+- **Estado**: ✅ completo. Gate verde. **609 tests** (63 archivos).
+
+### Qué se hizo
+
+`settings-form.tsx` había crecido a 672 líneas tras las adiciones de RF-905/906. Extraídas 5 secciones independientes — cada una con su propio estado, handler y JSX:
+
+- `profile-section.tsx` (~176L): nombre, bio, whatsapp, perfil público → `PUT /api/settings`
+- `location-section.tsx` (~119L): ciudad, barrio → `PUT /api/settings/location`
+- `notifications-section.tsx` (~110L): notifyOnMatch, emailFrequency, pushEnabled → `PUT /api/settings/notifications`
+- `matchmaking-section.tsx` (~129L): participatesInMatchmaking, matchRadius, offerUniques, acceptUnbalanced → `PUT /api/settings/matchmaking`
+- `account-section.tsx` (~101L): logout + zona de peligro con modal de borrado → `DELETE /api/settings/account`
+
+`settings-form.tsx` quedó como orquestador de ~55 líneas. Sin cambios de comportamiento; `settings/page.tsx` no requirió modificación.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-333** (Could) — `verify-otp` route: validación manual → Zod schema (`VerifyOtpSchema`).
+2. **RF-334** (Could) — `auth/logout` sin test propio.
+3. **RF-335** (Could) — PATCH bulk body malformado → 400 en vez de 500.
+4. **RF-337** (Could) — Dropdown de notificaciones sin Escape ni aria-expanded.
+5. **RF-343** (Must) — Read-tracking de mensajes + re-notificación (badge unread que nunca baja).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
 ## 2026-06-08 — RF-331: Renombrar PascalCase → kebab-case + regla de lint
 
 - **Ítem**: RF-331 — 5 componentes en `src/app` usaban PascalCase (§9).
