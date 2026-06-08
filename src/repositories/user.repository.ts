@@ -269,6 +269,42 @@ export const userRepository = {
     });
   },
 
+  // RF-307: usuarios con emailFrequency dado que tienen notificaciones new_match sin leer.
+  // Usado por el cron de digest diario/semanal.
+  async findUsersForMatchDigest(frequency: 'daily' | 'weekly'): Promise<
+    {
+      id: string;
+      email: string;
+      name: string | null;
+      username: string | null;
+      matchCount: number;
+    }[]
+  > {
+    const users = await prisma.user.findMany({
+      where: { emailFrequency: frequency },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        username: true,
+        _count: {
+          select: {
+            notifications: { where: { type: 'new_match', readAt: null } },
+          },
+        },
+      },
+    });
+    return users
+      .filter((u) => u._count.notifications > 0)
+      .map((u) => ({
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        username: u.username,
+        matchCount: u._count.notifications,
+      }));
+  },
+
   async deleteUserCascade(userId: string): Promise<void> {
     // Delete in FK-safe order (Match/Rating/Message have no cascade from User)
     await prisma.rating.deleteMany({
