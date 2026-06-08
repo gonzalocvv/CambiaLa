@@ -13,6 +13,7 @@ const mockMessageRepo = vi.hoisted(() => ({
 }));
 
 const mockNotificationService = vi.hoisted(() => ({ createNotification: vi.fn() }));
+const mockUserRepo = vi.hoisted(() => ({ findById: vi.fn() }));
 const mockLogger = vi.hoisted(() => ({
   debug: vi.fn(),
   info: vi.fn(),
@@ -22,6 +23,7 @@ const mockLogger = vi.hoisted(() => ({
 
 vi.mock('@/repositories/match.repository', () => ({ matchRepository: mockMatchRepo }));
 vi.mock('@/repositories/message.repository', () => ({ messageRepository: mockMessageRepo }));
+vi.mock('@/repositories/user.repository', () => ({ userRepository: mockUserRepo }));
 vi.mock('@/services/notification.service', () => ({
   notificationService: mockNotificationService,
 }));
@@ -191,17 +193,50 @@ describe('messageService.sendMessage', () => {
     mockMatchRepo.findById.mockResolvedValue(makeMatch());
     mockMessageRepo.create.mockResolvedValue(makeDbMessage());
     mockMessageRepo.countUnread.mockResolvedValue(1);
+    mockUserRepo.findById.mockResolvedValue({ id: 'user-a', name: 'Pepe', username: 'pepex' });
 
     await messageService.sendMessage('match-1', 'user-a', 'Hola');
 
     expect(mockMessageRepo.countUnread).toHaveBeenCalledWith('match-1', 'user-b');
+    expect(mockUserRepo.findById).toHaveBeenCalledWith('user-a');
     expect(mockNotificationService.createNotification).toHaveBeenCalledWith(
       'user-b',
       'new_message',
       {
         matchId: 'match-1',
         fromUserId: 'user-a',
+        fromName: 'Pepe',
       },
+    );
+  });
+
+  it('uses username as fromName fallback when name is null', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch());
+    mockMessageRepo.create.mockResolvedValue(makeDbMessage());
+    mockMessageRepo.countUnread.mockResolvedValue(1);
+    mockUserRepo.findById.mockResolvedValue({ id: 'user-a', name: null, username: 'pepex' });
+
+    await messageService.sendMessage('match-1', 'user-a', 'Hola');
+
+    expect(mockNotificationService.createNotification).toHaveBeenCalledWith(
+      'user-b',
+      'new_message',
+      expect.objectContaining({ fromName: 'pepex' }),
+    );
+  });
+
+  it('omits fromName from payload when user lookup returns null', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch());
+    mockMessageRepo.create.mockResolvedValue(makeDbMessage());
+    mockMessageRepo.countUnread.mockResolvedValue(1);
+    mockUserRepo.findById.mockResolvedValue(null);
+
+    await messageService.sendMessage('match-1', 'user-a', 'Hola');
+
+    expect(mockNotificationService.createNotification).toHaveBeenCalledWith(
+      'user-b',
+      'new_message',
+      { matchId: 'match-1', fromUserId: 'user-a' },
     );
   });
 
@@ -219,6 +254,7 @@ describe('messageService.sendMessage', () => {
     mockMatchRepo.findById.mockResolvedValue(makeMatch());
     mockMessageRepo.create.mockResolvedValue(makeDbMessage({ fromUserId: 'user-b' }));
     mockMessageRepo.countUnread.mockResolvedValue(1);
+    mockUserRepo.findById.mockResolvedValue({ id: 'user-b', name: 'Ana', username: 'anax' });
 
     await messageService.sendMessage('match-1', 'user-b', 'Hola');
 
@@ -228,6 +264,7 @@ describe('messageService.sendMessage', () => {
       {
         matchId: 'match-1',
         fromUserId: 'user-b',
+        fromName: 'Ana',
       },
     );
   });
