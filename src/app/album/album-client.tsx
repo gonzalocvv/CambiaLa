@@ -106,6 +106,7 @@ export function AlbumClient({ stickers, initialStats }: Props) {
   const [counts, setCounts] = useState<Record<string, number>>(() =>
     Object.fromEntries(stickers.map((s) => [s.id, s.count])),
   );
+  const [hasInteracted, setHasInteracted] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [ignoredCount, setIgnoredCount] = useState(0);
   const [activeFilter, setActiveFilter] = useState<FilterMode>('all');
@@ -258,6 +259,7 @@ export function AlbumClient({ stickers, initialStats }: Props) {
   const handleUpdate = useCallback(
     (stickerId: string, count: number) => {
       setCounts((prev) => ({ ...prev, [stickerId]: count }));
+      setHasInteracted(true);
       bufferRef.current.set(stickerId, count);
       persistBuffer(bufferRef.current);
       setSaveState('saving');
@@ -312,22 +314,20 @@ export function AlbumClient({ stickers, initialStats }: Props) {
   }, [stickers, counts, activeFilter, selectedTeam, searchQuery]);
 
   const grouped = useMemo(() => {
-    const map = new Map<string, (StickerWithCount & { currentCount: number })[]>();
+    const map = new Map<string, StickerWithCount[]>();
     for (const s of filteredStickers) {
       if (!map.has(s.team)) map.set(s.team, []);
-      map.get(s.team)!.push({ ...s, currentCount: counts[s.id] ?? s.count });
+      map.get(s.team)!.push(s);
     }
     return map;
-  }, [filteredStickers, counts]);
+  }, [filteredStickers]);
 
   // El error se muestra en un banner persistente con "Reintentar" (M6), no como toast.
   const saveLabel =
     saveState === 'saving' ? t('saving') : saveState === 'saved' ? t('saved') : null;
 
-  // Use initialStats only until first interaction to avoid SSR mismatch
-  const displayStats = Object.values(counts).every((c, i) => c === stickers[i]?.count)
-    ? initialStats
-    : stats;
+  // Use initialStats until first interaction to avoid SSR/hydration mismatch (RF-339).
+  const displayStats = hasInteracted ? stats : initialStats;
 
   const filterTabs: { key: FilterMode; label: string }[] = [
     { key: 'all', label: t('filterAll') },
@@ -467,7 +467,8 @@ export function AlbumClient({ stickers, initialStats }: Props) {
             {teamStickers.map((s) => (
               <StickerCell
                 key={s.id}
-                sticker={{ ...s, count: s.currentCount }}
+                sticker={s}
+                count={counts[s.id] ?? s.count}
                 onUpdate={handleUpdate}
               />
             ))}
