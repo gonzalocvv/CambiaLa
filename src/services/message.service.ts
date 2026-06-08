@@ -72,6 +72,11 @@ export const messageService = {
     return toMessageItem(message);
   },
 
+  async markRead(matchId: string, userId: string): Promise<void> {
+    await assertParticipant(matchId, userId);
+    await messageRepository.markMessagesRead(matchId, userId);
+  },
+
   async getConversationsForUser(userId: string): Promise<ConversationItem[]> {
     const matches = await matchRepository.findWithLastMessageByUser(userId);
     const unreadCounts = await Promise.all(
