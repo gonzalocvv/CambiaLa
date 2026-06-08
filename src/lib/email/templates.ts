@@ -201,19 +201,30 @@ export function buildNotificationEmail(type: string, input: BuildInput): Rendere
         ctaLabel: 'Ver el match',
       };
       break;
-    case 'new_message':
-      subject = 'Te escribieron por un cambio en CambiaLa';
+    case 'new_message': {
+      // RF-346: si el payload incluye fromName, personalizar asunto y cuerpo.
+      const rawFromName =
+        typeof input.payload.fromName === 'string' ? input.payload.fromName.trim() : null;
+      const fromName = rawFromName || null;
+      subject = fromName
+        ? `${rawFromName} te escribió en CambiaLa`
+        : 'Te escribieron por un cambio en CambiaLa';
       parts = {
         ...base,
-        preheader: 'Tenés un mensaje nuevo por un intercambio.',
-        heading: `${hi}, tenés un mensaje`,
+        preheader: fromName
+          ? `${fromName} te escribió por un intercambio.`
+          : 'Tenés un mensaje nuevo por un intercambio.',
+        heading: fromName ? `${hi}, ${fromName} te escribió` : `${hi}, tenés un mensaje`,
         bodyLines: [
-          'Alguien te escribió por un intercambio de figuritas.',
+          fromName
+            ? `${fromName} te escribió por un intercambio de figuritas.`
+            : 'Alguien te escribió por un intercambio de figuritas.',
           'Entrá para responder y coordinar el cambio.',
         ],
         ctaLabel: 'Responder',
       };
       break;
+    }
     case 'rating_received': {
       subject = 'Te dejaron una reseña en CambiaLa';
       const stars = typeof input.payload.stars === 'number' ? input.payload.stars : null;

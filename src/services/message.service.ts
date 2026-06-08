@@ -5,6 +5,7 @@ import type { MatchStatus } from '@/lib/validations/match.schema';
 import { logger } from '@/lib/logger';
 import { matchRepository } from '@/repositories/match.repository';
 import { messageRepository } from '@/repositories/message.repository';
+import { userRepository } from '@/repositories/user.repository';
 import { notificationService } from '@/services/notification.service';
 
 export class MessageAccessError extends Error {
@@ -58,9 +59,13 @@ export const messageService = {
     try {
       const unread = await messageRepository.countUnread(matchId, recipientId);
       if (unread === 1) {
+        // RF-346: personalizar el mail con el nombre del remitente (ver BACKLOG RF-346).
+        const fromUser = await userRepository.findById(fromUserId);
+        const fromName = fromUser?.name ?? fromUser?.username ?? null;
         await notificationService.createNotification(recipientId, 'new_message', {
           matchId,
           fromUserId,
+          ...(fromName ? { fromName } : {}),
         });
       }
     } catch (error) {
