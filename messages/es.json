@@ -110,7 +110,11 @@
       "errorInvalidEmail": "El email no parece válido.",
       "errorInvalidCode": "El código no es correcto o venció. Pedí uno nuevo.",
       "backToHome": "← Volver al inicio",
-      "callbackError": "Hubo un problema al iniciar sesión. Intentá de nuevo."
+      "callbackError": "Hubo un problema al iniciar sesión. Intentá de nuevo.",
+      "titleSignup": "Creá tu cuenta",
+      "subtitleSignup": "Sin contraseña. Te mandamos un código por mail.",
+      "switchToLogin": "¿Ya tenés cuenta? Iniciá sesión",
+      "switchToSignup": "¿Primera vez? Creá tu cuenta"
     }
   },
   "Album": {
