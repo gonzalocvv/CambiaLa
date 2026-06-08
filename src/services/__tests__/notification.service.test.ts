@@ -13,6 +13,7 @@ const mockUserRepo = vi.hoisted(() => ({
   findEmailRecipient: vi.fn(),
   updateNotifications: vi.fn(),
   findUsersForMatchDigest: vi.fn(),
+  findById: vi.fn().mockResolvedValue({ emailFrequency: 'instant' }),
 }));
 
 const mockEmailService = vi.hoisted(() => ({
@@ -39,7 +40,7 @@ vi.mock('@/services/email.service', () => ({ emailService: mockEmailService }));
 vi.mock('@/inngest/client', () => ({ inngest: mockInngest }));
 vi.mock('@/lib/logger', () => ({ logger: mockLogger }));
 
-import { signUnsubscribeToken } from '@/lib/email/unsubscribe';
+import { signResubscribeToken, signUnsubscribeToken } from '@/lib/email/unsubscribe';
 
 import { notificationService } from '../notification.service';
 
@@ -262,31 +263,60 @@ describe('notificationService.sendMatchDigest', () => {
 });
 
 describe('notificationService.unsubscribeByToken', () => {
-  it('sets emailFrequency=never for a valid token', async () => {
+  it('sets emailFrequency=never and returns prevFreq for a valid token', async () => {
+    mockUserRepo.findById.mockResolvedValue({ emailFrequency: 'weekly' });
     const token = signUnsubscribeToken('user-z');
-    const ok = await notificationService.unsubscribeByToken(token);
-    expect(ok).toBe(true);
+    const result = await notificationService.unsubscribeByToken(token);
+    expect(result).toEqual({ ok: true, prevFreq: 'weekly' });
     expect(mockUserRepo.updateNotifications).toHaveBeenCalledWith('user-z', {
       emailFrequency: 'never',
     });
   });
 
-  it('returns false and mutates nothing for an invalid token', async () => {
-    const ok = await notificationService.unsubscribeByToken('user-z.deadbeef');
+  it('returns {ok:false} and mutates nothing for an invalid token', async () => {
+    const result = await notificationService.unsubscribeByToken('user-z.deadbeef');
+    expect(result).toEqual({ ok: false });
+    expect(mockUserRepo.updateNotifications).not.toHaveBeenCalled();
+  });
+
+  it('returns {ok:false} (graceful, no throw) when the update fails — e.g. deleted user', async () => {
+    const token = signUnsubscribeToken('ghost');
+    mockUserRepo.updateNotifications.mockRejectedValueOnce(new Error('Record not found'));
+
+    const result = await notificationService.unsubscribeByToken(token);
+
+    expect(result).toEqual({ ok: false });
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'unsubscribe update failed',
+      expect.objectContaining({ error: 'Record not found' }),
+    );
+  });
+});
+
+describe('notificationService.resubscribeByToken', () => {
+  it('restores the previous emailFrequency for a valid resubscribe token', async () => {
+    const token = signResubscribeToken('user-z', 'daily');
+    const ok = await notificationService.resubscribeByToken(token);
+    expect(ok).toBe(true);
+    expect(mockUserRepo.updateNotifications).toHaveBeenCalledWith('user-z', {
+      emailFrequency: 'daily',
+    });
+  });
+
+  it('returns false for an invalid resubscribe token', async () => {
+    const ok = await notificationService.resubscribeByToken('bad.token');
     expect(ok).toBe(false);
     expect(mockUserRepo.updateNotifications).not.toHaveBeenCalled();
   });
 
-  it('returns false (graceful, no throw) when the update fails — e.g. deleted user', async () => {
-    const token = signUnsubscribeToken('ghost');
-    mockUserRepo.updateNotifications.mockRejectedValue(new Error('Record not found'));
-
-    const ok = await notificationService.unsubscribeByToken(token);
-
+  it('returns false (graceful) when the update fails', async () => {
+    const token = signResubscribeToken('ghost', 'weekly');
+    mockUserRepo.updateNotifications.mockRejectedValueOnce(new Error('User gone'));
+    const ok = await notificationService.resubscribeByToken(token);
     expect(ok).toBe(false);
     expect(mockLogger.error).toHaveBeenCalledWith(
-      'unsubscribe update failed',
-      expect.objectContaining({ error: 'Record not found' }),
+      'resubscribe update failed',
+      expect.objectContaining({ error: 'User gone' }),
     );
   });
 });
