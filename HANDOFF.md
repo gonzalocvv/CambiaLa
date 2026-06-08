@@ -3,6 +3,28 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Ola B: RF-406 + RF-407 + RF-408 (emails transaccionales)
+
+- **Ítems**: RF-406 (email transaccional Resend), RF-407 (frecuencia instant/daily/weekly/never), RF-408 (unsubscribe firmado).
+- **Rama**: `feat/emails` (desde `develop`, post-merge Ola A). **PR de código → SIN auto-merge** (review gstack + Gonza).
+- **Estado**: ✅ completo en la rama. Gate completo verde. **556 tests** (57 archivos). Falta el **E2E manual** (lo corre Gonza: generar un match real y ver llegar el mail).
+- **Proceso**: plan mode → fan-out de review pre-código (eng + security + email-design + red-team, 4 agentes) → críticos/altos aplicados → TDD → fan-out de review del diff.
+
+### Arquitectura (capas respetadas)
+- **`src/lib/email/templates.ts`** (dominio puro): layout estética mail de login (tablas inline, entidades, `lang`/charset/viewport/`role=presentation`/preheader, parte **text/plain**, `escapeHtml` en TODO valor dinámico). Paleta hardcodeada = **excepción documentada a §7** (los clientes de mail no consumen tokens CSS). Copy es-UY hardcodeado = **excepción documentada a §8** (módulo dominio sin runtime next-intl, igual que el template de login en Supabase).
+- **`src/lib/email/unsubscribe.ts`** (dominio): HMAC-SHA256 sign/verify, timing-safe con guard de longitud, secret leído lazy (build sin `UNSUBSCRIBE_SECRET` no rompe).
+- **`src/services/email.service.ts`** (Service, único que toca Resend): `sendEmail` no-op sin API key, timeout 8s, lanza ante error (el caller atrapa).
+- **`notification.service.ts`**: `createNotification` crea la campanita SIEMPRE y primero; `maybeSendEmail` es side-effect en try/catch+logger (solo loguea `error.message`, nunca secretos/token). Gating: solo tipos emaileables; solo `emailFrequency==='instant'`. `unsubscribeByToken` → `emailFrequency='never'`.
+- **Triggers**: `rating_received` en `ratingService.createRating`; `new_message` en `messageService.sendMessage` (`assertParticipant` ahora devuelve el match; aviso solo si `countUnread===1`). Ambos en try/catch (no rompen el flujo). `new_match` ya existía (ahora también emailea).
+- **`src/app/api/unsubscribe/route.ts`**: GET muestra confirmación (NO muta → a prueba de prefetch de clientes de mail), POST ejecuta la baja. `Referrer-Policy: no-referrer`.
+- **env**: `.env.example` + `ci.yml` build + CLAUDE.md §13 con `UNSUBSCRIBE_SECRET`; `RESEND_FROM_EMAIL` → `consultas@cambiala.uy`; base url prod → `cambia-la.vercel.app`. **Gonza: setear `UNSUBSCRIBE_SECRET` en Vercel/CI runtime** (`openssl rand -hex 32`).
+
+### Decisión de alcance (aprobada por Gonza en sesión)
+`new_message` y `rating_received` NO se creaban como notificación (solo `new_match`). Se cablearon los 3 (con anti-spam de mensaje). El review pre-código encontró que **el anti-spam por `countUnread===1` es honesto pero limitado**: como nada marca mensajes como leídos hoy, manda ~un mail por conversación por dirección. Documentado y diferido a **RF-343** (read-tracking).
+
+### Follow-ups creados (NO este PR)
+RF-343 (read-tracking + re-notify de mensajes), RF-344 (toggles de email por tipo, requiere migración), RF-345 (expiry + re-suscripción del token), RF-346 (nombre del remitente en el mail de mensaje). Digests daily/weekly siguen pendientes de **RF-307** (Inngest), que también mueve el envío fuera del hot path del PATCH del álbum.
+
 ## 2026-06-07 — Drift-sweep de docs (rama `docs/drift-sweep`)
 
 Auditoría anti doc-drift de todos los `.md`, verificando cada claim contra el CÓDIGO/estado real (no contra otro doc). Solo docs, cero código. Gate completo verde (519 tests en develop; nada de código tocado).
