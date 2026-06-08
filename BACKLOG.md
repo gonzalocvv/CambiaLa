@@ -332,7 +332,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - Usar `safeParse` en la route → 400 ante input inválido, alineando con el patrón session→Zod→Service→JSON.
   - **TDD**: tests del schema (acepta válido, rechaza email malo/token corto/no numérico) + la route devuelve 400.
 
-- [ ] **RF-334** 🆕 **`auth/logout` es la única API route sin test.** (C) — _detectado 6-jun: de las 17 routes, todas tienen `__tests__` excepto `auth/logout` (`route.ts:1-9`: signOut → redirect 303 a `/`); callback y verify-otp sí tienen test._
+- [x] **RF-334** 🆕 **`auth/logout` es la única API route sin test.** (C) — _2026-06-08, rama `claude/gallant-sagan-D6Eka`: `src/app/api/auth/logout/__tests__/route.test.ts` — 2 tests: `signOut()` llamado + redirect `${origin}/` status 303. 623 tests verdes._
   - Agregar `src/app/api/auth/logout/__tests__/route.test.ts` mockeando `createClient`: assert que se llama `auth.signOut()` y que el redirect apunta a `${origin}/` con status 303.
   - **Criterio**: ~15 líneas; cierra la simetría del flujo de auth.
 
