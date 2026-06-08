@@ -4,7 +4,7 @@
 > Plataforma web **C2C** para que coleccionistas uruguayos intercambien figuritas del álbum Panini Mundial 2026.
 > Cargá tu álbum y te avisamos cuando alguien de tu barrio tiene las que te faltan — y quiere las que te sobran.
 
-**Producción**: https://cambia-la.vercel.app · **Dominio**: `cambiala.uy`
+**Producción**: https://cambiala.uy (deploy en Vercel; `cambia-la.vercel.app` es alias técnico)
 
 > ℹ️ La fuente de verdad de **cómo se construye este repo** es [`CLAUDE.md`](./CLAUDE.md) (arquitectura en capas, design tokens, i18n, el gate). Qué construir y en qué orden está en [`BACKLOG.md`](./BACKLOG.md); la bitácora, en [`HANDOFF.md`](./HANDOFF.md).
 
@@ -133,7 +133,7 @@ pnpm test:coverage    # coverage report
 
 ## Despliegue
 
-- **Producción**: cada merge a `develop` deploya a Vercel (`cambia-la.vercel.app`).
+- **Producción**: cada merge a `develop` deploya a Vercel y sale en `https://cambiala.uy` (`cambia-la.vercel.app` = alias técnico).
 - **Preview**: cada PR genera una URL preview de Vercel.
 - **Rollback**: Vercel dashboard → Deployments → "Promote to Production" en una versión estable anterior.
 

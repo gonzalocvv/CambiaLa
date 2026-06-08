@@ -3,6 +3,17 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Drift-sweep de docs (rama `docs/drift-sweep`)
+
+Auditoría anti doc-drift de todos los `.md`, verificando cada claim contra el CÓDIGO/estado real (no contra otro doc). Solo docs, cero código. Gate completo verde (519 tests en develop; nada de código tocado).
+
+- **Dominio (política del owner)**: producción = `https://cambiala.uy`; `cambia-la.vercel.app` es alias técnico, no la URL de producción. Corregido en CLAUDE.md §4 + §21, README.md (L7 + Despliegue), y el ejemplo de URL en `bug_report.md` (`figus.uy` → `cambiala.uy`).
+- **Features entregadas que figuraban como pendientes** (verificado en código): RF-320 matching runtime (cableado en `bulkUpdateCounts`, Ola A mergeada) en CLAUDE.md §2 + §22; RF-323 (protección de rutas en `middleware.ts`) y RF-324 (rate limit OTP en `verify-otp`) en CLAUDE.md §12.
+- **D-001/D-002/D-003 tildados**: las correcciones (CLAUDE.md auth CERRADO, README reescrito, CONTRIBUTING marca/flujo) ya estaban en develop pero los checkboxes habían quedado sin tildar. Verificado y tildado.
+- **reports/**: nota de "snapshot histórico" al tope de `audit-2026-06-01.md` y `gstack-audit-2026-06-06.md` (no se reescribió el cuerpo — son bitácora).
+- **FUERA de scope (lo entrega PR #86, emails, todavía OPEN)**: RF-406/407/408 + RESERVADO, entrada Ola B en HANDOFF, CLAUDE.md §13 (UNSUBSCRIBE_SECRET), `.env.example`. En develop esos RFs siguen abiertos y los docs lo dicen bien. No se tocó el conteo "558" (es de la rama del #86).
+- **Nota de verificación**: la política de dominio (cambiala.uy = producción) es directiva del owner; no es verificable contra el código (DNS/Vercel no viven en el repo).
+
 ## 2026-06-07 — Review gstack de Ola A (PR #85): 4 fixes de correctness + 2 trivials
 
 Review pre-landing de `feat/matching-runtime`. El engine pasó a ser el write-path más caliente (antes `saveMatchResult`/`upsert` eran código muerto), lo que volvió alcanzables varias aristas. Gonza aprobó aplicar los 4 fixes + 2 trivials en este PR; el pruning de fantasmas va como follow-up (RF-342).

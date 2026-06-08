@@ -362,19 +362,19 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ### Documentación (doc-drift, no es código)
 
-- [ ] **D-001** 🆕 📝 **CLAUDE.md declara Auth como stub no implementado, pero está 100% cerrado.** (M) — _detectado 6-jun: `src/lib/auth.ts:14-28` es `getSession()` real con `@supabase/ssr`; CLAUDE.md §2 (l.41), §12 (l.234,237) y §22 (l.357) siguen diciendo 'stub return null' / 'toda ruta da 401' / 'Auth como próximo gran hito'; BACKLOG RF-101..107 todos [x]._
+- [x] **D-001** 🆕 📝 **CLAUDE.md declara Auth como stub no implementado, pero está 100% cerrado.** (M) — _detectado 6-jun: `src/lib/auth.ts:14-28` es `getSession()` real con `@supabase/ssr`; CLAUDE.md §2 (l.41), §12 (l.234,237) y §22 (l.357) siguen diciendo 'stub return null' / 'toda ruta da 401' / 'Auth como próximo gran hito'; BACKLOG RF-101..107 todos [x]._ — _✅ resuelto (verificado en drift-sweep 2026-06-07): CLAUDE.md ya dice "Auth CERRADO" en §2/§12/§22, sin "stub"/"401"; checkbox quedó sin tildar._
   - §2 (snapshot): cambiar 'Camino crítico pendiente: Auth ... stub return null' por el verdadero pendiente → **cablear el recompute de matches (RF-320)** + email (RF-406). Reflejar que Auth (magic link + OTP 6 dígitos + Google OAuth) está implementado.
   - §12: reescribir — `getSession()` ya es real con `@supabase/ssr`; describir el flujo actual (middleware refresh, callback PKCE+token-hash, verify-otp, logout).
   - §22 (última actualización): quitar 'Auth como próximo gran hito'.
   - Tachar también de §21 los nits ya resueltos: back-link a `/matches` (la página existe) y bump postcss (lock resuelve 8.5.15).
 
-- [ ] **D-002** 🆕 📝 **README masivamente desactualizado y con guía de deploy peligrosa.** (S) — _detectado 6-jun, 6 sub-claims verificados: (1) 'Next.js 14' vs `next 16.2.6`; (2) 'Squash & merge a main' / 'main deploya automáticamente' vs ADR-021 develop=prod+rebase; (3) `docker compose up -d` sin docker-compose en el repo; (4) `pnpm db:seed` (real: `prisma:seed`) y `pnpm test:integration` (no existe); (5) 'pre-commit (Husky)' sin `.husky/`; (6) 'Lighthouse CI por PR' deshabilitado._
+- [x] **D-002** 🆕 📝 **README masivamente desactualizado y con guía de deploy peligrosa.** (S) — _detectado 6-jun, 6 sub-claims verificados: (1) 'Next.js 14' vs `next 16.2.6`; (2) 'Squash & merge a main' / 'main deploya automáticamente' vs ADR-021 develop=prod+rebase; (3) `docker compose up -d` sin docker-compose en el repo; (4) `pnpm db:seed` (real: `prisma:seed`) y `pnpm test:integration` (no existe); (5) 'pre-commit (Husky)' sin `.husky/`; (6) 'Lighthouse CI por PR' deshabilitado._ — _✅ resuelto (verificado en drift-sweep 2026-06-07): README reescrito (Next 16, develop=prod+rebase, sin docker/Husky/test:integration, `prisma:seed`, lighthouse marcado deshabilitado); checkbox quedó sin tildar._
   - Corregir stack a Next 16. Reescribir la sección de deploy: **develop = PRODUCCIÓN, merge por rebase, nunca push directo, nunca squash a main**.
   - Corregir nombres de scripts (`prisma:seed`, `db:reset`), quitar `test:integration`.
   - Quitar el paso de docker-compose (o agregar el archivo) y las menciones a Husky/Lighthouse-CI (o marcarlas como no implementadas).
   - Unificar la marca a CambiaLa (ligado al flag de naming §21).
 
-- [ ] **D-003** 🆕 📝 **CONTRIBUTING describe un flujo de PR contrario al pipeline real.** (C) — _detectado 6-jun: título 'Contribuir a Figus Mundial' (marca vieja); :51 'Squash & merge a develop' vs ADR-021 (rebase); :49 'CI ... + lighthouse' (ci.yml no corre lighthouse); :50 'Code review obligatorio de otra persona' (incompatible con auto-merge del agente)._
+- [x] **D-003** 🆕 📝 **CONTRIBUTING describe un flujo de PR contrario al pipeline real.** (C) — _detectado 6-jun: título 'Contribuir a Figus Mundial' (marca vieja); :51 'Squash & merge a develop' vs ADR-021 (rebase); :49 'CI ... + lighthouse' (ci.yml no corre lighthouse); :50 'Code review obligatorio de otra persona' (incompatible con auto-merge del agente)._ — _✅ resuelto (verificado en drift-sweep 2026-06-07): CONTRIBUTING dice "Contribuir a CambiaLa", merge por rebase, lighthouse deshabilitado, code PRs sin auto-merge; checkbox quedó sin tildar._
   - Alinear con ADR-021: merge por rebase (no squash), reflejar el flujo auto-merge, quitar 'lighthouse' del gate descrito, actualizar la marca a CambiaLa.
   - Tachar de CLAUDE.md §21 los nits ya cerrados (back-link a `/matches`, postcss ≥ 8.5.10) — dejar solo los vigentes (naming/dominio, catálogo sintético).
 
