@@ -3,6 +3,47 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — RF-340: Persistir buffer del álbum en localStorage
+
+- **Ítem**: RF-340 — Persistir buffer pendiente en `localStorage` + rehidratar al montar.
+- **Rama**: `claude/gallant-sagan-x0uf7d`.
+- **Estado**: ✅ completo. Gate verde. **679 tests** (67 archivos). PR pendiente de push.
+
+### Qué se hizo
+
+**`src/app/album/album-client.tsx`** — 3 nuevas exportaciones + 2 puntos de llamada + 1 effect:
+
+- `STORAGE_KEY = 'cambiala:album:pending-buffer'` — clave de localStorage.
+- `persistBuffer(buffer)` — serializa el Map a JSON en localStorage; si buffer vacío llama `removeItem`. No-op con try/catch (SSR, private browsing, cuota).
+- `loadPersistedBuffer()` — lee y valida el shape JSON (enteros 0–99); retorna `null` ante datos corruptos o SSR.
+- `handleUpdate`: llama `persistBuffer(bufferRef.current)` después de cada `bufferRef.current.set`.
+- `flush`: llama `persistBuffer(bufferRef.current)` después de borrar las keys confirmadas (ok y 4xx). En 5xx/red el buffer no cambia → localStorage conserva los datos.
+- `useEffect([scheduleFlush])` (nuevo, mount-only): lee localStorage, popula `bufferRef.current` (acceso a ref en effect: permitido), llama `scheduleFlush()` si hay datos. **No llama a setState** (respeta `react-hooks/set-state-in-effect`). Los counts del servidor se muestran hasta que el flush se confirma (~800ms).
+
+**Trade-off documentado**: en el escenario de rehidratación (tab cerrado antes del flush), el usuario ve brevemente los counts del servidor hasta que el flush confirma. Los cambios NO se pierden, que es el objetivo del RF.
+
+**`src/app/album/__tests__/album-client.test.tsx`** — nuevo describe `AlbumClient — persistencia localStorage (RF-340)` con 3 tests:
+1. `persiste el buffer en localStorage tras cada click`
+2. `rehidrata el buffer de localStorage al montar y dispara el flush`
+3. `limpia localStorage tras un flush exitoso`
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-339** (Could) — Perf de render del álbum (React.memo en StickerCell, flag `hasInteracted`). ⚠️ Requiere medir con React Profiler antes — el routine puede aplicar las optimizaciones conocidas pero no puede verificar el impacto real en el profiler.
+2. **RF-115** (Could) — Geo opt-in con granularidad (requiere migración de Prisma — dominio de Gonza).
+3. **RF-112** (M) ⚠️ — Avatar upload (pendiente decisión de diseño/servicio de storage).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- **RF-344** ⛔ — Toggles email por tipo requieren migración de Prisma (dominio de Gonza).
+- **RF-115** ⚠️ — Geo opt-in requiere nuevo campo en User → migración (Gonza).
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
 ## 2026-06-08 — RF-346: Personalizar mail de new_message con nombre del remitente
 
 - **Ítem**: RF-346 — Mail de `new_message` genérico → personalizado con `fromName`.
