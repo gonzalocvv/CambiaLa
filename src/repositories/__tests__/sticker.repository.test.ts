@@ -81,22 +81,36 @@ describe('stickerRepository.getAlbumWithUserCounts', () => {
 });
 
 describe('stickerRepository.getExistingStickerIds', () => {
-  it('returns a Set of the ids that exist in the catalog', async () => {
+  it('scopes the query to the mundial-2026 album', async () => {
     mockStickerFindMany.mockResolvedValue([{ id: 'a' }, { id: 'b' }]);
 
     const result = await stickerRepository.getExistingStickerIds(['a', 'b', 'c']);
 
     expect(mockStickerFindMany).toHaveBeenCalledOnce();
-    expect(mockStickerFindMany.mock.calls[0][0].where).toEqual({ id: { in: ['a', 'b', 'c'] } });
+    expect(mockStickerFindMany.mock.calls[0][0].where).toEqual({
+      id: { in: ['a', 'b', 'c'] },
+      album: { slug: 'mundial-2026' },
+    });
     expect(result).toEqual(new Set(['a', 'b']));
   });
 
-  it('returns an empty Set when none exist', async () => {
+  it('returns an empty Set when none exist in the album', async () => {
     mockStickerFindMany.mockResolvedValue([]);
 
     const result = await stickerRepository.getExistingStickerIds(['x']);
 
     expect(result.size).toBe(0);
+  });
+
+  it('returns empty Set when sticker ids belong to a different album (mock returns empty)', async () => {
+    // Simulates: sticker 'foreign-1' exists in another album but NOT in mundial-2026
+    mockStickerFindMany.mockResolvedValue([]);
+
+    const result = await stickerRepository.getExistingStickerIds(['foreign-1']);
+
+    expect(result.size).toBe(0);
+    // The where clause must include the album scope — verified in the first test
+    expect(mockStickerFindMany.mock.calls[0][0].where.album).toEqual({ slug: 'mundial-2026' });
   });
 });
 
