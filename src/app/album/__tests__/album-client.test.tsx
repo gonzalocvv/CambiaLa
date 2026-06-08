@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AlbumStats, StickerWithCount } from '@/lib/validations/sticker.schema';
 import { renderWithIntl } from '@/test/render-intl';
 
-import { AlbumClient, chunkChanges } from '../AlbumClient';
+import { AlbumClient, chunkChanges } from '../album-client';
 
 type Change = { stickerId: string; count: number };
 

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { renderWithIntl } from '@/test/render-intl';
 
-import { LoginForm } from '../LoginForm';
+import { LoginForm } from '../login-form';
 
 // Hoisted so the vi.mock factory can close over these fns.
 const { mockSignInWithOtp, mockSignInWithOAuth } = vi.hoisted(() => ({
