@@ -3,6 +3,37 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — RF-334: test de POST /api/auth/logout
+
+- **Ítem**: RF-334 — `auth/logout` era la única API route sin test.
+- **Rama**: `claude/gallant-sagan-D6Eka`.
+- **Estado**: ✅ completo. Gate verde. **623 tests** (65 archivos).
+
+### Qué se hizo
+
+**`src/app/api/auth/logout/__tests__/route.test.ts`** (2 tests, TDD):
+- Mock de `@/lib/supabase/server` vía `vi.hoisted`.
+- Test 1: `POST /api/auth/logout` llama `auth.signOut()` exactamente una vez.
+- Test 2: la respuesta tiene `status 303` y `location: ${origin}/`.
+
+Cierra la simetría del flujo de auth (callback y verify-otp ya tenían tests).
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-335** (Could) — PATCH `/api/album/stickers` body malformado → 400 en vez de 500.
+2. **RF-337** (Could) — Dropdown de notificaciones sin Escape ni aria-expanded/haspopup.
+3. **RF-343** (Must) — Read-tracking de mensajes + re-notificación (badge unread que nunca baja).
+4. **RF-347** (Should) — Modo registro en `/auth/login?mode=signup`.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
 ## 2026-06-08 — RF-333: verify-otp — validación manual → Zod schema
 
 - **Ítem**: RF-333 — `POST /api/auth/verify-otp` usaba checks manuales en vez de Zod.
