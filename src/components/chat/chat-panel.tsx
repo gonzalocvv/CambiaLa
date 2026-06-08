@@ -28,6 +28,11 @@ export function ChatPanel({ matchId, currentUserId, initialMessages }: Props) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // RF-343: mark all unread messages as read when the conversation opens
+  useEffect(() => {
+    void fetch(`/api/matches/${matchId}/messages/read`, { method: 'PATCH' });
+  }, [matchId]);
+
   // RF-505: poll every 10s for new messages
   useEffect(() => {
     async function fetchMessages() {
