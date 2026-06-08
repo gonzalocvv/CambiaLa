@@ -42,7 +42,7 @@ export const stickerRepository = {
 
   async getExistingStickerIds(ids: string[]): Promise<Set<string>> {
     const rows = await prisma.sticker.findMany({
-      where: { id: { in: ids } },
+      where: { id: { in: ids }, album: { slug: MUNDIAL_2026_SLUG } },
       select: { id: true },
     });
     return new Set(rows.map((r) => r.id));
