@@ -123,7 +123,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 - [x] **RF-304** Filtro de participación (`participatesInMatchmaking=true`). (M)
 - [x] **RF-307** 🔼 ~~PRIORIDAD ELEVADA~~ ✅ · Mover recompute + envío de email a job Inngest (fuera del request HTTP). (M) — _2026-06-08, rama `claude/gallant-sagan-Gdrxn`: `stickerService.bulkUpdateCounts` encola `match/recompute`; `notificationService.createNotification` encola `notification/email`; cron `digest-matches` (9am UTC, weekly solo lunes). Inngest fns: match-recompute, notification-email, digest-matches. `sendMatchDigest` + `maybySendEmail` en notificationService. `findUsersForMatchDigest` en userRepository. `/api/inngest` route. 609 tests verdes, gate completo._
 - [x] **RF-308** Persistencia del match en DB (`aToB`, `bToA` JSON arrays, `score`). (M)
-- [x] **RF-309** TTL de matches: `inactive` si un participante no se loguea en 30 días + job de limpieza diario. (M) — lógica pura implementada; scheduling via Inngest (keys ya cargadas 2026-06-06 → ya NO está 🔒; falta solo cablear el cron Inngest, junto con RF-307).
+- [x] **RF-309** TTL de matches: `inactive` si un participante no se loguea en 30 días + job de limpieza diario. (M) — _2026-06-08, rama `claude/gallant-sagan-sde1gg`: `cleanupMatchesFn` (Inngest, cron `0 3 * * *`) llama `matchService.cleanupExpiredMatches(30)`. Registrado en `/api/inngest/route.ts`. 4 tests TDD en `cleanup-matches.test.ts`. 691 tests verdes._
 - [x] **RF-310** Lista de mis matches activos ordenados por score desc. (M)
 - [x] **RF-311** Match card: avatar/username del otro, barrio, distancia (si geo), score, "te da X / le das Y". (M)
 - [x] **RF-312** Detalle de match: dos columnas "lo que te ofrece" / "lo que le das". (M)
