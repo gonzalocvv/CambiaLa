@@ -11,6 +11,7 @@ const mockRepo = vi.hoisted(() => ({
   markInactiveByLastSeen: vi.fn(),
   findMatchmakingProfile: vi.fn(),
   findCandidatePool: vi.fn(),
+  pruneStaleForUser: vi.fn(),
 }));
 
 const mockMessageRepo = vi.hoisted(() => ({
@@ -81,6 +82,7 @@ beforeEach(() => {
   mockRepo.findByUsers.mockResolvedValue(null);
   mockNotificationService.createNotification.mockResolvedValue({ id: 'notif-1' });
   mockMessageRepo.countUnread.mockResolvedValue(0);
+  mockRepo.pruneStaleForUser.mockResolvedValue(0);
 });
 
 describe('matchService.saveMatchResult', () => {
@@ -867,5 +869,60 @@ describe('matchService.recomputeForUser', () => {
       'recompute: candidate pool truncated',
       expect.objectContaining({ poolSize: MAX_POOL_SIZE + 1, max: MAX_POOL_SIZE }),
     );
+  });
+
+  // RF-342: pruning de matches fantasma
+  it('RF-342: prunes stale active matches after recompute with partner ids from results', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(
+      makeProfile({ stickers: [{ number: 'URU1', count: 2 }] }),
+    );
+    mockRepo.findCandidatePool.mockResolvedValue([
+      makeCandidate({ id: 'user-b', stickers: [{ number: 'ARG2', count: 2 }] }),
+    ]);
+
+    await matchService.recomputeForUser('user-a', NOW);
+
+    expect(mockRepo.pruneStaleForUser).toHaveBeenCalledOnce();
+    expect(mockRepo.pruneStaleForUser).toHaveBeenCalledWith('user-a', ['user-b']);
+  });
+
+  it('RF-342: calls pruneStaleForUser with empty array when no matches found', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(
+      makeProfile({ stickers: [{ number: 'URU1', count: 2 }] }),
+    );
+    // candidate has same sticker — no complementary match
+    mockRepo.findCandidatePool.mockResolvedValue([
+      makeCandidate({ id: 'user-b', stickers: [{ number: 'URU1', count: 2 }] }),
+    ]);
+
+    await matchService.recomputeForUser('user-a', NOW);
+
+    expect(mockRepo.pruneStaleForUser).toHaveBeenCalledWith('user-a', []);
+  });
+
+  it('RF-342: pruning failure is non-fatal (logs and does not rethrow)', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(
+      makeProfile({ stickers: [{ number: 'URU1', count: 2 }] }),
+    );
+    mockRepo.findCandidatePool.mockResolvedValue([
+      makeCandidate({ id: 'user-b', stickers: [{ number: 'ARG2', count: 2 }] }),
+    ]);
+    mockRepo.pruneStaleForUser.mockRejectedValue(new Error('prune db error'));
+
+    const result = await matchService.recomputeForUser('user-a', NOW);
+
+    expect(result).toEqual({ matched: 1 });
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'recompute: stale pruning failed',
+      expect.objectContaining({ userId: 'user-a', error: expect.any(Error) }),
+    );
+  });
+
+  it('RF-342: does not call pruneStaleForUser when recompute bails early (suspended user)', async () => {
+    mockRepo.findMatchmakingProfile.mockResolvedValue(makeProfile({ isSuspended: true }));
+
+    await matchService.recomputeForUser('user-a', NOW);
+
+    expect(mockRepo.pruneStaleForUser).not.toHaveBeenCalled();
   });
 });
