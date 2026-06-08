@@ -322,7 +322,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - Agregar regla de lint (`unicorn/filename-case` con `kebabCase`) para que el CI lo atrape y no vuelva a divergir.
   - **Criterio**: `pnpm lint` falla ante un archivo PascalCase nuevo; build/type-check verdes tras el rename.
 
-- [ ] **RF-332** 🆕 **`SettingsForm.tsx` excede el límite de 200-300 líneas (§9).** (C) — _detectado 6-jun: 326 líneas, por encima del techo; AlbumClient (285) y LoginForm (244) están cerca pero dentro._
+- [x] **RF-332** 🆕 **`SettingsForm.tsx` excede el límite de 200-300 líneas (§9).** (C) — _detectado 6-jun: 326 líneas, por encima del techo; AlbumClient (285) y LoginForm (244) están cerca pero dentro._ — _2026-06-08 (rama `claude/gallant-sagan-UUn9f`): extraídas 5 secciones (`profile-section.tsx` ~176L, `location-section.tsx` ~119L, `notifications-section.tsx` ~110L, `matchmaking-section.tsx` ~129L, `account-section.tsx` ~101L); `settings-form.tsx` → orquestador de ~55L. 609 tests verdes._
   - Extraer sub-componentes por sección (perfil / ubicación / cuenta) y/o un hook de form (que además poblaría `src/hooks`, hoy solo `.gitkeep`).
   - Mantener tokens + i18n; no cambiar comportamiento.
   - **Criterio**: ningún módulo > 300 líneas; tests/verde.
