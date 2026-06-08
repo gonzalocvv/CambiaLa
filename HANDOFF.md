@@ -3,6 +3,45 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — RF-326: Tests directos de schemas Zod
+
+- **Ítem**: RF-326 — Tests unitarios de schemas Zod (onboarding, rating, message).
+- **Rama**: `claude/gallant-sagan-6racC`.
+- **Estado**: ✅ completo. Gate verde. **595 tests** (60 archivos).
+
+### Qué se hizo
+
+Tests de bordes límite para 3 schemas que carecían de test propio (el schema de sticker ya tenía tests completos desde RF-213):
+
+**`src/lib/validations/__tests__/onboarding.schema.test.ts`** (11 tests):
+- `UsernameSchema`: acepta válido, min 3, max 20; rechaza 2 chars, 21 chars, guión, espacio, acento, string vacío, no-string.
+- `CompleteOnboardingSchema`: acepta ciudad normal sin barrio, acepta Montevideo con barrio; rechaza Montevideo sin barrio, ciudad inválida, username inválido (corto, caracteres especiales).
+
+**`src/lib/validations/__tests__/rating.schema.test.ts`** (10 tests):
+- `CreateRatingSchema`: acepta stars 1-5 (enteros); acepta comment hasta 200 chars; rechaza 0, 6, 3.5, string, missing; rechaza comment de 201 chars.
+
+**`src/lib/validations/__tests__/message.schema.test.ts`** (8 tests):
+- `SendMessageSchema`: acepta body válido, 1 char (min), 1000 chars (max); rechaza vacío, 1001 chars, non-string, missing, null.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-331** (Could) — Renombrar PascalCase → kebab-case en 5 archivos (`SettingsForm.tsx`, `AlbumClient.tsx`, `OnboardingForm.tsx`, `LoginForm.tsx`, `ScrollHint.tsx`) + regla de lint.
+2. **RF-332** (Could) — Partir `SettingsForm.tsx` (326 líneas, supera el techo de 300).
+3. **RF-333** (Could) — `verify-otp` route: validación manual → Zod schema (`VerifyOtpSchema`).
+4. **RF-334** (Could) — `auth/logout` sin test propio.
+5. **RF-343** (Must) — Read-tracking de mensajes + re-notificación.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+### Nota sobre el estado de la rama
+
+La rama `claude/gallant-sagan-6racC` contiene TODO el trabajo acumulado desde RF-213 (álbum bulk) hasta este commit (RF-326). Nunca fue pusheada ni tiene PR abierto. El próximo push crea el PR con auto-merge hacia `develop`.
+
 ## 2026-06-07 — Rebase de Ola B sobre develop + review del PR #86 (fixes aplicados)
 
 `feat/emails` (PR #86) se rebasó sobre `origin/develop` (post-merge del drift-sweep, PR #87). Conflicto de HANDOFF resuelto (quedan las dos entradas; Ola B arriba). `.env.example`: URL de prod `cambia-la.vercel.app` → `cambiala.uy` (consistencia con los docs mergeados). Después, **review multi-agente del PR #86** (4 dimensiones — seguridad/correctness/arquitectura/calidad — con verificación adversarial): **6 hallazgos confirmados, 5 descartados** (no explotables o ya diferidos). Veredicto: sólido y mergeable; ningún bloqueante de seguridad ni data-loss.
