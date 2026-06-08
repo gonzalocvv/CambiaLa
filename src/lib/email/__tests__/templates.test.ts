@@ -65,4 +65,32 @@ describe('buildNotificationEmail', () => {
     const none = buildNotificationEmail('rating_received', { ...base, payload: {} });
     expect(none!.text).toContain('una reseña');
   });
+
+  // RF-346: new_message personalized with sender name
+  it('personalizes new_message subject + body when fromName is in payload', () => {
+    const email = buildNotificationEmail('new_message', {
+      ...base,
+      payload: { fromName: 'Juan' },
+    });
+    expect(email!.subject).toBe('Juan te escribió en CambiaLa');
+    expect(email!.html).toContain('Juan te escribió');
+    expect(email!.text).toContain('Juan te escribió');
+  });
+
+  it('falls back to generic new_message copy when fromName is absent', () => {
+    const email = buildNotificationEmail('new_message', { ...base, payload: {} });
+    expect(email!.subject).toBe('Te escribieron por un cambio en CambiaLa');
+    expect(email!.text).toContain('Alguien te escribió');
+  });
+
+  it('escapes a malicious fromName in new_message (no XSS)', () => {
+    const email = buildNotificationEmail('new_message', {
+      ...base,
+      payload: { fromName: '<img src=x onerror=alert(1)>' },
+    });
+    expect(email!.html).not.toContain('<img src=x');
+    expect(email!.html).toContain('&lt;img src=x');
+    // subject is plain text — must not contain HTML entities
+    expect(email!.subject).not.toContain('&lt;');
+  });
 });
