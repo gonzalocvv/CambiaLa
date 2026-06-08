@@ -3,6 +3,43 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — RF-307: Jobs Inngest async (match-recompute, notification-email, digest)
+
+- **Ítem**: RF-307 — Mover recompute + email fuera del hot path HTTP via Inngest.
+- **Rama**: `claude/gallant-sagan-Gdrxn`.
+- **Estado**: ✅ completo. Gate verde. **609 tests** (63 archivos).
+
+### Qué se hizo
+
+**Infraestructura Inngest:**
+- `src/inngest/client.ts` — singleton `Inngest({ id: 'cambiala' })`
+- `src/app/api/inngest/route.ts` — `serve()` handler (GET/POST/PUT) con las 3 funciones
+- `package.json` — `inngest@4.5.0` añadido
+
+**Tres funciones Inngest (con tests):**
+- `match-recompute` — escucha `match/recompute`, llama `matchService.recomputeForUser(userId)`
+- `notification-email` — escucha `notification/email`, llama `notificationService.maybySendEmail`
+- `digest-matches` — cron `0 9 * * *`; daily todos los días + weekly solo lunes
+
+**Hot path desacoplado:**
+- `stickerService.bulkUpdateCounts` ya NO llama `matchService.recomputeForUser` directo; encola `match/recompute` en Inngest (failure → log, no revierte el guardado del álbum)
+- `notificationService.createNotification` ya NO llama `maybySendEmail` directo; encola `notification/email` (failure → log, no revierte la notificación in-app)
+
+**Nuevos métodos de servicio:**
+- `notificationService.maybySendEmail(userId, type, payload)` — gating de `emailFrequency`, construye template, llama `emailService.sendEmail`; falla → log, no lanza
+- `notificationService.sendMatchDigest(frequency, baseUrl)` — envía digest a usuarios con `emailFrequency=frequency` que tengan `new_match` sin leer
+- `buildDigestEmail(...)` añadido en `src/lib/email/templates.ts`
+- `userRepository.findUsersForMatchDigest(frequency)` — encuentra usuarios con preferencia + unread matches
+
+### Próximo paso
+- **RF-406** — email transaccional de verificación OTP (Resend ya configurado, solo falta el código)
+- **RF-309** — cablear el cron de TTL de matches en Inngest (el cron ya puede ir junto con `digest-matches` o como función separada)
+
+### Bloqueos
+Ninguno técnico. Inngest keys ya están en `.env.local` + Vercel.
+
+---
+
 ## 2026-06-08 — RF-326: Tests directos de schemas Zod
 
 - **Ítem**: RF-326 — Tests unitarios de schemas Zod (onboarding, rating, message).
