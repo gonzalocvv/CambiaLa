@@ -1,7 +1,7 @@
 import type { AlbumStats, GetAlbumResponse } from '@/lib/validations/sticker.schema';
 import { logger } from '@/lib/logger';
+import { inngest } from '@/inngest/client';
 import { stickerRepository } from '@/repositories/sticker.repository';
-import { matchService } from '@/services/match.service';
 
 function computeStats(stickers: { count: number }[]): AlbumStats {
   const total = stickers.length;
@@ -41,14 +41,15 @@ export const stickerService = {
 
     if (valid.length > 0) {
       await stickerRepository.bulkUpsertCounts(userId, valid);
-      // RF-320: recompute síncrono de matches tras escribir el álbum. Va en try/catch
-      // porque el álbum YA se guardó: un recompute lento/fallido no debe romper el PATCH
-      // ni perder el guardado (mismo principio que el catch de notificaciones en match.service).
-      try {
-        await matchService.recomputeForUser(userId);
-      } catch (error) {
-        logger.error('match recompute failed', { error });
-      }
+      // RF-307: el recompute de matches se encola en Inngest (async, fuera del request)
+      // para evitar timeouts 504. El álbum YA se guardó; un fallo del encolado se loguea
+      // pero no revierte el guardado ni rompe el response del PATCH.
+      await inngest.send({ name: 'match/recompute', data: { userId } }).catch((err: unknown) =>
+        logger.error('inngest send match/recompute failed', {
+          userId,
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
     }
 
     return { applied: valid.length, ignored };

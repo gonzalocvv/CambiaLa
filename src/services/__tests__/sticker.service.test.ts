@@ -6,8 +6,10 @@ const mockRepo = vi.hoisted(() => ({
   bulkUpsertCounts: vi.fn(),
 }));
 
-const mockMatchService = vi.hoisted(() => ({
-  recomputeForUser: vi.fn().mockResolvedValue({ matched: 0 }),
+// RF-307: sticker.service ahora encola el evento en Inngest en vez de llamar
+// directamente a matchService. Mockeamos el cliente para verificar el encolado.
+const mockInngest = vi.hoisted(() => ({
+  send: vi.fn().mockResolvedValue(undefined),
 }));
 
 const mockLogger = vi.hoisted(() => ({
@@ -21,9 +23,8 @@ vi.mock('@/repositories/sticker.repository', () => ({
   stickerRepository: mockRepo,
 }));
 
-// Sin estos mocks, importar sticker.service arrastra match.service → Prisma real y rompe.
-vi.mock('@/services/match.service', () => ({
-  matchService: mockMatchService,
+vi.mock('@/inngest/client', () => ({
+  inngest: mockInngest,
 }));
 
 vi.mock('@/lib/logger', () => ({
@@ -34,7 +35,7 @@ import { stickerService } from '../sticker.service';
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockMatchService.recomputeForUser.mockResolvedValue({ matched: 0 });
+  mockInngest.send.mockResolvedValue(undefined);
 });
 
 const USER_ID = 'user-1';
@@ -203,17 +204,21 @@ describe('stickerService.bulkUpdateCounts', () => {
     expect(result).toEqual({ applied: 200, ignored: 0 });
   });
 
-  // RF-320: recompute síncrono de matches tras el guardado del álbum.
-  it('triggers a match recompute after a successful flush (applied > 0)', async () => {
+  // RF-307: el recompute se encola en Inngest (evento 'match/recompute') en vez de ejecutarse
+  // síncronamente en el request. Verificamos que inngest.send se llama con los parámetros correctos.
+  it('enqueues a match/recompute Inngest event after a successful flush (applied > 0)', async () => {
     mockRepo.getExistingStickerIds.mockResolvedValue(new Set(['s1']));
 
     await stickerService.bulkUpdateCounts(USER_ID, [{ stickerId: 's1', count: 2 }]);
 
-    expect(mockMatchService.recomputeForUser).toHaveBeenCalledOnce();
-    expect(mockMatchService.recomputeForUser).toHaveBeenCalledWith(USER_ID);
+    expect(mockInngest.send).toHaveBeenCalledOnce();
+    expect(mockInngest.send).toHaveBeenCalledWith({
+      name: 'match/recompute',
+      data: { userId: USER_ID },
+    });
   });
 
-  it('does NOT recompute matches when nothing was applied (all ids ignored)', async () => {
+  it('does NOT enqueue recompute event when nothing was applied (all ids ignored)', async () => {
     mockRepo.getExistingStickerIds.mockResolvedValue(new Set());
 
     const result = await stickerService.bulkUpdateCounts(USER_ID, [
@@ -221,21 +226,21 @@ describe('stickerService.bulkUpdateCounts', () => {
     ]);
 
     expect(result).toEqual({ applied: 0, ignored: 1 });
-    expect(mockMatchService.recomputeForUser).not.toHaveBeenCalled();
+    expect(mockInngest.send).not.toHaveBeenCalled();
   });
 
-  it('logs and swallows recompute errors without failing the album save', async () => {
+  it('logs and swallows inngest.send failure without failing the album save', async () => {
     mockRepo.getExistingStickerIds.mockResolvedValue(new Set(['s1']));
-    mockMatchService.recomputeForUser.mockRejectedValue(new Error('engine boom'));
+    mockInngest.send.mockRejectedValue(new Error('inngest down'));
 
     const result = await stickerService.bulkUpdateCounts(USER_ID, [{ stickerId: 's1', count: 1 }]);
 
-    // album write still succeeded; recompute failure is logged, not thrown
+    // album write still succeeded; enqueue failure is logged, not thrown
     expect(result).toEqual({ applied: 1, ignored: 0 });
     expect(mockRepo.bulkUpsertCounts).toHaveBeenCalledOnce();
     expect(mockLogger.error).toHaveBeenCalledWith(
-      'match recompute failed',
-      expect.objectContaining({ error: expect.any(Error) }),
+      'inngest send match/recompute failed',
+      expect.objectContaining({ userId: USER_ID, error: 'inngest down' }),
     );
   });
 });
