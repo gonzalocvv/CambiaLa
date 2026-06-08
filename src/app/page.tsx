@@ -53,7 +53,7 @@ export default async function Home() {
 
             <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
               <Link
-                href="/auth/login"
+                href="/auth/login?mode=signup"
                 className="bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90 hover:shadow-accent/30 inline-flex items-center justify-center rounded-xl px-8 py-4 text-base font-semibold shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl"
               >
                 {t('hero.cta')} →
@@ -198,7 +198,7 @@ export default async function Home() {
           </h2>
           <p className="text-muted-foreground text-lg">{t('finalCta.subtitle')}</p>
           <Link
-            href="/auth/login"
+            href="/auth/login?mode=signup"
             className="bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90 hover:shadow-accent/30 inline-flex items-center justify-center rounded-xl px-10 py-4 text-base font-semibold shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl"
           >
             {t('finalCta.cta')} →
