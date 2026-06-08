@@ -52,6 +52,26 @@ describe('ChatPanel — renderizado', () => {
   });
 });
 
+describe('ChatPanel — read-tracking (RF-343)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('llama PATCH /read al montar para marcar mensajes como leídos', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+    vi.stubGlobal('fetch', fetchMock);
+    setup();
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/matches/match-a/messages/read',
+        expect.objectContaining({ method: 'PATCH' }),
+      );
+    });
+  });
+});
+
 describe('ChatPanel — polling (RF-505)', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => {
@@ -68,8 +88,8 @@ describe('ChatPanel — polling (RF-505)', () => {
     vi.stubGlobal('fetch', fetchMock);
     setup();
 
-    // Al montar NO hay fetch (es setInterval, no setTimeout inmediato).
-    expect(fetchMock).not.toHaveBeenCalled();
+    // Al montar: PATCH /read se llama (mark as read); el poll empieza tras el primer intervalo.
+    fetchMock.mockClear();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10_000);
@@ -83,7 +103,7 @@ describe('ChatPanel — polling (RF-505)', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('el interval se limpia al desmontar (no hay fetches después del unmount)', async () => {
+  it('el interval se limpia al desmontar (no hay polls después del unmount)', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ messages: [] }),
@@ -94,6 +114,8 @@ describe('ChatPanel — polling (RF-505)', () => {
     act(() => {
       unmount();
     });
+    // limpiar la llamada a PATCH /read que ocurre en mount
+    fetchMock.mockClear();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30_000);
