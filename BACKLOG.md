@@ -317,7 +317,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ### Could (C)
 
-- [ ] **RF-331** 🆕 **5 componentes en `src/app` usan PascalCase, rompiendo kebab-case (§9).** (C) — _detectado 6-jun: `SettingsForm.tsx`, `AlbumClient.tsx`, `OnboardingForm.tsx`, `LoginForm.tsx` y `components/coming-soon/ScrollHint.tsx` usan PascalCase; todo `src/components/**` cumple kebab-case._
+- [x] **RF-331** 🆕 **5 componentes en `src/app` usan PascalCase, rompiendo kebab-case (§9).** (C) — _detectado 6-jun: `SettingsForm.tsx`, `AlbumClient.tsx`, `OnboardingForm.tsx`, `LoginForm.tsx` y `components/coming-soon/ScrollHint.tsx` usan PascalCase; todo `src/components/**` cumple kebab-case._ — _2026-06-08, rama `claude/gallant-sagan-VHKoN`: renombrados 5 source files + 2 test files a kebab-case; imports actualizados; regla `local/kebab-case-filename` inline en `eslint.config.mjs` (sin dependencia nueva). `pnpm lint` ahora falla ante cualquier archivo PascalCase nuevo en `src/`._
   - Renombrar a `settings-form.tsx`, `album-client.tsx`, `onboarding-form.tsx`, `login-form.tsx`, `scroll-hint.tsx` y actualizar todos los imports.
   - Agregar regla de lint (`unicorn/filename-case` con `kebabCase`) para que el CI lo atrape y no vuelva a divergir.
   - **Criterio**: `pnpm lint` falla ante un archivo PascalCase nuevo; build/type-check verdes tras el rename.

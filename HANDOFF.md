@@ -3,6 +3,42 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — RF-331: Renombrar PascalCase → kebab-case + regla de lint
+
+- **Ítem**: RF-331 — 5 componentes en `src/app` usaban PascalCase (§9).
+- **Rama**: `claude/gallant-sagan-VHKoN`.
+- **Estado**: ✅ completo. Gate verde. **609 tests** (63 archivos).
+
+### Qué se hizo
+
+**Renombrados 7 archivos** (5 source + 2 test):
+- `SettingsForm.tsx` → `settings-form.tsx`
+- `AlbumClient.tsx` → `album-client.tsx` (+ `AlbumClient.test.tsx` → `album-client.test.tsx`)
+- `OnboardingForm.tsx` → `onboarding-form.tsx`
+- `LoginForm.tsx` → `login-form.tsx` (+ `LoginForm.test.tsx` → `login-form.test.tsx`)
+- `ScrollHint.tsx` → `scroll-hint.tsx`
+
+**Imports actualizados** en 6 archivos: `settings/page.tsx`, `album/page.tsx`, `onboarding/page.tsx`, `auth/login/page.tsx`, `login-form.test.tsx`, `album-client.test.tsx`.
+
+**Regla de lint inline** (`local/kebab-case-filename: error`) en `eslint.config.mjs` — sin dependencia nueva. Exime los nombres reservados de Next.js (`page`, `layout`, `route`, etc.). Verificado: un archivo `src/TestComponent.tsx` devuelve `error: Filename "TestComponent.tsx" must use kebab-case (§9)`.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-332** (Could) — Partir `settings-form.tsx` (326 líneas, supera el techo de 300): extraer sub-componentes por sección.
+2. **RF-333** (Could) — `verify-otp` route: validación manual → Zod schema (`VerifyOtpSchema`).
+3. **RF-334** (Could) — `auth/logout` sin test propio.
+4. **RF-335** (Could) — PATCH bulk body malformado → 400 en vez de 500.
+5. **RF-343** (Must) — Read-tracking de mensajes + re-notificación (badge unread que nunca baja).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
 ## 2026-06-08 — RF-307: Jobs Inngest async (match-recompute, notification-email, digest)
 
 - **Ítem**: RF-307 — Mover recompute + email fuera del hot path HTTP via Inngest.
