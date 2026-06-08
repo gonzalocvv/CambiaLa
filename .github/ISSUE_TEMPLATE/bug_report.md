@@ -34,7 +34,7 @@ Si aplica, agregar screenshots o GIF para mostrar el problema.
 - **Pantalla afectada**: ej. P-006 `/album`
 - **RF relacionado**: ej. RF-208 (autosave)
 - **Browser/Device**: ej. Chrome 120 en iPhone 14
-- **URL exacta**: ej. https://figus.uy/album?team=URU
+- **URL exacta**: ej. https://cambiala.uy/album?team=URU
 - **Logueado como**: ej. usuario regular / admin / no logueado
 
 ## Severidad

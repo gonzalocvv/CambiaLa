@@ -1,5 +1,7 @@
 # Auditoría del repo CambiaLa — 2026-06-06
 
+> ⏱️ **Snapshot histórico del 2026-06-06 — NO refleja el estado actual.** El bloqueante #1 que describe (match engine sin runtime, RF-320) ya se resolvió (Ola A mergeada), y el doc-drift de auth/README/CONTRIBUTING (D-001/2/3) también. El estado vigente vive en `BACKLOG.md`.
+
 - **Auditor**: Suite gstack multi-agente (Producto/CEO, Arquitectura, Testing, Seguridad, DevEx, Diseño/A11y)
 - **Repo**: CambiaLa (`figus-uy`)
 - **Rama auditada**: `feat/wrapping` (working tree limpio; develop = PRODUCCIÓN)

@@ -40,7 +40,7 @@ Fuentes de verdad, por orden:
 
 Snapshot (act. 2026-06-07): Sprints 0/1/2/3 muy avanzados. **Auth CERRADO y probado E2E** (RF-101..107: código OTP de 6 dígitos + magic link de respaldo + Google OAuth; `src/lib/auth.ts` `getSession()` es real con `@supabase/ssr`). Supabase migrado + seedeado (896 stickers). Match engine puro RF-301..306 con 100% cobertura. Persistencia + TTL de matches; lista/detalle de matches; chat; reseñas; notificaciones in-app; landing v2 mergeada. Auditoría gstack Etapa 0 hecha (`reports/gstack-audit-2026-06-06.md`).
 
-**Camino crítico real (post-auditoría):** (1) **RF-320 — cablear el recompute de matches en runtime**: el match engine está implementado y testeado pero NINGÚN path lo invoca → la tabla `Match` nunca se escribe y `/matches` está vacío para usuarios reales. **Bloqueante #1 de launch.** (2) **RF-406 (código de email)**: Resend ya está configurado (key + dominio `cambiala.uy` verificado + SMTP propio en Supabase, E2E); falta solo el código de envío. Ver `BACKLOG.md` (sección auditoría: RF-320..337, D-001..003).
+**Camino crítico real (post-auditoría):** (1) ✅ **RF-320 — recompute de matches cableado en runtime** (Ola A, mergeada 2026-06-07): el recompute corre **síncrono** en `stickerService.bulkUpdateCounts`, así que la tabla `Match` se puebla y `/matches` muestra matches reales. (2) **RF-406 (código de email)**: Resend ya está configurado (key + dominio `cambiala.uy` verificado + SMTP propio en Supabase, E2E); falta el código de envío (en review). Ver `BACKLOG.md` (sección auditoría: RF-320..337, D-001..003).
 
 ---
 
@@ -64,7 +64,7 @@ Snapshot (act. 2026-06-07): Sprints 0/1/2/3 muy avanzados. **Auth CERRADO y prob
 
 El MVP lo construye un agente autónomo (routine de Claude Code en la nube, ~1 corrida/hora) + intervención humana puntual. Reglas del flujo (ver ADR-021):
 
-- **`develop` = PRODUCCIÓN.** Vercel deploya producción desde `develop` (no `main`). Todo merge a `develop` sale a `cambia-la.vercel.app`.
+- **`develop` = PRODUCCIÓN.** Vercel deploya producción desde `develop` (no `main`). Todo merge a `develop` sale a producción en **`https://cambiala.uy`** (la URL de Vercel `cambia-la.vercel.app` es alias técnico, no la URL de producción).
 - **Nunca pushees a `develop` directo.** Trabajá en una rama `claude/<rf>-<slug>` (o `feat/<slug>` si es manual). Abrí PR con **auto-merge**, que entra **solo si el CI pasa**.
 - **Estrategia de merge: rebase** (preserva commits en develop). Hacé **commits atómicos** por paso lógico (conventional commits: `feat:`, `test:`, `refactor:`, `fix:`, `chore:`, `docs:`).
 - **Un ítem por corrida.** Si es grande (ej. match engine), un sub-pedazo coherente + documentar el resto en HANDOFF.
@@ -238,7 +238,7 @@ La paleta vive en `src/app/globals.css` como **tokens** (shadcn / Tailwind v4, l
 - Supabase Auth, **implementado y probado E2E** (RF-101..107). `src/lib/auth.ts` `getSession()` es **real**: `@supabase/ssr` (`createClient` → `supabase.auth.getUser()` → `userRepository.findByEmail`, envuelto en `cache()`). Las rutas autenticadas chequean sesión y dan 401/redirect sin ella.
 - Métodos: **código OTP de 6 dígitos** (principal, `POST /api/auth/verify-otp`) + **magic link** de respaldo (callback PKCE + token-hash) + **Google OAuth** (`signInWithOAuth`, provider configurado en Google Cloud + Supabase, probado E2E). Registro automático en primer login (`userRepository.upsertByEmail`), sesión persistente vía cookie (middleware `@supabase/ssr`), logout (`POST /api/auth/logout`).
 - **Config de dashboard ya hecha** (Gonza): Email OTP Length = 6, SMTP propio (Resend) para que los códigos no topen la cuota del built-in. Google OAuth: solo queda lo cosmético (branding del consent screen).
-- **Endurecimiento pendiente** (no bloquea, detectado en la auditoría): protección de rutas en el middleware (RF-323) y rate limiting del OTP (RF-324).
+- **Endurecimiento ya hecho** (post-auditoría): protección de rutas privadas en el middleware (RF-323 — `isProtectedPath` redirige a `/auth/login` sin sesión) y rate limiting del OTP (RF-324 — `checkRateLimit` en `verify-otp`, 10/15min por IP+email).
 
 ---
 
@@ -348,7 +348,7 @@ Decisiones recientes que viven acá: **paleta celeste(light)/grafito(dark)+naran
 
 ## 21. Flags / decisiones pendientes del owner
 
-- **Naming/dominio**: **dominio decidido = `cambiala.uy`** (verificado en Resend; mails desde `consultas@cambiala.uy`). Marca = `CambiaLa` (prod `cambia-la.vercel.app`). Pendiente menor: actualizar referencias viejas a `figus.uy` en el env (`RESEND_FROM_EMAIL`, `NEXT_PUBLIC_BASE_URL`) y limpiar menciones residuales.
+- **Naming/dominio**: **dominio de producción = `https://cambiala.uy`** (verificado en Resend; mails desde `consultas@cambiala.uy`). Marca = `CambiaLa`. La URL de Vercel `cambia-la.vercel.app` es alias técnico, no la URL de producción. Pendiente menor: actualizar referencias viejas a `figus.uy` en el env (`RESEND_FROM_EMAIL`, `NEXT_PUBLIC_BASE_URL`) y limpiar menciones residuales.
 - Reemplazar el catálogo sintético de figuritas por el checklist real de Panini antes del launch.
 - ✅ Nits ya resueltos (auditoría Etapa 0, `reports/gstack-audit-2026-06-06.md`): back-link a `/matches` (la página existe), bump `postcss` (el lock resuelve 8.5.15). La deuda nueva detectada vive en `BACKLOG.md` (sección "Auditoría gstack 2026-06-06": RF-320..337, D-001..003).
 
@@ -359,4 +359,4 @@ Decisiones recientes que viven acá: **paleta celeste(light)/grafito(dark)+naran
 - Antes de construir un RF, verificá que esté en `BACKLOG.md` / `2.1 Requerimientos Funcionales` de Notion. Si no está, escribilo primero.
 - Modularizá (200–300 líneas/archivo). Diffs chicos y revisables.
 - Cuando tomes una decisión importante: actualizá este `CLAUDE.md` y agregá un ADR en Notion 4.6.
-- **Última actualización**: 2026-06-07 — Auth CERRADO + Landing v2 mergeada + Auditoría gstack Etapa 0 hecha. **Próximo gran hito: RF-320** (cablear el recompute de matches en runtime — el core no se ejecuta hoy). Ver `BACKLOG.md` (sección auditoría) y `reports/gstack-audit-2026-06-06.md`.
+- **Última actualización**: 2026-06-07 — Auth CERRADO + Landing v2 mergeada + Auditoría gstack Etapa 0 hecha + **matching runtime cableado (RF-320, Ola A mergeada)**. **Próximo gran hito: RF-406** (emails transaccionales, en review). Ver `BACKLOG.md` (sección auditoría) y `reports/gstack-audit-2026-06-06.md`.
