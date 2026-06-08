@@ -21,7 +21,7 @@ export function Navbar({ loginLabel, ctaLabel }: Props) {
             {loginLabel}
           </Link>
           <Link
-            href="/auth/login"
+            href="/auth/login?mode=signup"
             className="bg-accent text-accent-foreground hover:bg-accent/90 hover:shadow-accent/20 rounded-lg px-4 py-2 text-sm font-semibold transition-all hover:shadow-md"
           >
             {ctaLabel}
