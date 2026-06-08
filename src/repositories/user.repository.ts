@@ -109,6 +109,15 @@ export const userRepository = {
     });
   },
 
+  // RF-406: datos mínimos para mandar un mail transaccional a un usuario por id
+  // (el resto del repo no expone el email en findById).
+  findEmailRecipient(userId: string) {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, name: true, username: true, emailFrequency: true },
+    });
+  },
+
   findByUsername(username: string) {
     return prisma.user.findUnique({
       where: { username },

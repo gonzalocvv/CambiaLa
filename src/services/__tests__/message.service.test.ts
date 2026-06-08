@@ -11,8 +11,20 @@ const mockMessageRepo = vi.hoisted(() => ({
   countUnread: vi.fn(),
 }));
 
+const mockNotificationService = vi.hoisted(() => ({ createNotification: vi.fn() }));
+const mockLogger = vi.hoisted(() => ({
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+}));
+
 vi.mock('@/repositories/match.repository', () => ({ matchRepository: mockMatchRepo }));
 vi.mock('@/repositories/message.repository', () => ({ messageRepository: mockMessageRepo }));
+vi.mock('@/services/notification.service', () => ({
+  notificationService: mockNotificationService,
+}));
+vi.mock('@/lib/logger', () => ({ logger: mockLogger }));
 
 import { MessageAccessError, MatchNotFoundError, messageService } from '../message.service';
 
@@ -172,6 +184,66 @@ describe('messageService.sendMessage', () => {
     expect(result.body).toBe('¡Dale!');
     expect(result.createdAt).toBe(NOW.toISOString());
     expect(result.readAt).toBeNull();
+  });
+
+  it('notifies the recipient when the message is their first unread (countUnread===1)', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch());
+    mockMessageRepo.create.mockResolvedValue(makeDbMessage());
+    mockMessageRepo.countUnread.mockResolvedValue(1);
+
+    await messageService.sendMessage('match-1', 'user-a', 'Hola');
+
+    expect(mockMessageRepo.countUnread).toHaveBeenCalledWith('match-1', 'user-b');
+    expect(mockNotificationService.createNotification).toHaveBeenCalledWith(
+      'user-b',
+      'new_message',
+      {
+        matchId: 'match-1',
+        fromUserId: 'user-a',
+      },
+    );
+  });
+
+  it('does NOT notify on a subsequent unread message (countUnread>1) — anti-spam', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch());
+    mockMessageRepo.create.mockResolvedValue(makeDbMessage());
+    mockMessageRepo.countUnread.mockResolvedValue(3);
+
+    await messageService.sendMessage('match-1', 'user-a', 'otra');
+
+    expect(mockNotificationService.createNotification).not.toHaveBeenCalled();
+  });
+
+  it('derives the recipient correctly when user B sends', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch());
+    mockMessageRepo.create.mockResolvedValue(makeDbMessage({ fromUserId: 'user-b' }));
+    mockMessageRepo.countUnread.mockResolvedValue(1);
+
+    await messageService.sendMessage('match-1', 'user-b', 'Hola');
+
+    expect(mockNotificationService.createNotification).toHaveBeenCalledWith(
+      'user-a',
+      'new_message',
+      {
+        matchId: 'match-1',
+        fromUserId: 'user-b',
+      },
+    );
+  });
+
+  it('does not break the send when the notification fails', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch());
+    mockMessageRepo.create.mockResolvedValue(makeDbMessage({ body: 'igual sale' }));
+    mockMessageRepo.countUnread.mockResolvedValue(1);
+    mockNotificationService.createNotification.mockRejectedValue(new Error('notif down'));
+
+    const result = await messageService.sendMessage('match-1', 'user-a', 'igual sale');
+
+    expect(result.body).toBe('igual sale');
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'message notification failed',
+      expect.objectContaining({ error: 'notif down' }),
+    );
   });
 
   it('throws MessageAccessError when sender is not a participant', async () => {

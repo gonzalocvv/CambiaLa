@@ -258,7 +258,8 @@ pnpm test:coverage     # Vitest; match engine 100%
 NEXT_PUBLIC_SUPABASE_URL='https://mock.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='mock-key' \
 SUPABASE_SERVICE_ROLE_KEY='mock-service-key' DATABASE_URL='postgresql://mock:mock@localhost:5432/mock' \
 DIRECT_URL='postgresql://mock:mock@localhost:5432/mock' RESEND_API_KEY='mock-resend' \
-RESEND_FROM_EMAIL='test@example.com' NEXT_PUBLIC_BASE_URL='http://localhost:3000' \
+RESEND_FROM_EMAIL='test@example.com' UNSUBSCRIBE_SECRET='mock-unsubscribe-secret' \
+NEXT_PUBLIC_BASE_URL='http://localhost:3000' \
 INNGEST_SIGNING_KEY='mock-inngest' INNGEST_EVENT_KEY='mock-event' pnpm build
 ```
 
