@@ -3,6 +3,45 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — RF-346: Personalizar mail de new_message con nombre del remitente
+
+- **Ítem**: RF-346 — Mail de `new_message` genérico → personalizado con `fromName`.
+- **Rama**: `claude/gallant-sagan-obttph`.
+- **Estado**: ✅ completo. Gate verde. **676 tests** (67 archivos). PR abierto con auto-merge REBASE.
+
+### Qué se hizo
+
+**`src/services/message.service.ts`**: en `sendMessage`, dentro del bloque `countUnread === 1` (que ya estaba en try/catch), se carga `userRepository.findById(fromUserId)` para obtener el nombre del remitente. Se pasa `fromName: name ?? username ?? null` en el payload de la notificación solo cuando es no-null; de lo contrario el payload queda igual que antes (sin clave `fromName`). La query cae dentro del try/catch existente → un error de lookup no rompe el envío del mensaje ya persistido.
+
+**`src/lib/email/templates.ts`**: caso `new_message` en `buildNotificationEmail` ahora lee `payload.fromName` (string, trimmed, o null si ausente). Con nombre:
+- Subject: `"${fromName} te escribió en CambiaLa"`
+- Heading: `"${hi}, ${fromName} te escribió"`
+- Body: `"${fromName} te escribió por un intercambio de figuritas."`
+- Preheader: `"${fromName} te escribió por un intercambio."`
+
+Sin nombre → fallback genérico previo (backward compatible con notificaciones ya persistidas sin `fromName`). XSS seguro: `fromName` entra en `heading` y `bodyLines` que `layout()` escapa con `escapeHtml`; el `subject` recibe el raw string (texto plano, no HTML — correcto).
+
+**TDD (5 tests nuevos):**
+- `templates.test.ts`: new_message con fromName present (subject + body); fallback sin fromName; XSS en fromName (HTML escapeado en body, subject sin entidades).
+- `message.service.test.ts`: mock de `userRepository` añadido; test existente de notificación actualizado para incluir `fromName`; 2 tests nuevos (fallback a username cuando name=null; omite fromName cuando findById=null).
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-339** (Could) — Perf de render del álbum (medir con React Profiler antes de optimizar).
+2. **RF-340** (Could) — Persistir buffer en `localStorage` + rehidratar al volver (ventana <800ms en `pagehide`).
+3. **RF-115** (Could) — Geo opt-in con granularidad.
+4. **RF-112** (M) ⚠️ — Avatar upload (pendiente decisión de diseño/servicio de storage).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- **RF-344** ⛔ — Toggles email por tipo requieren migración de Prisma (dominio de Gonza).
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
 ## 2026-06-08 — RF-345: Expiry + re-suscripción del token de baja
 
 - **Ítem**: RF-345 — Token de baja sin expiración (security MEDIUM) + usuario pierde preferencia previa al darse de baja.
