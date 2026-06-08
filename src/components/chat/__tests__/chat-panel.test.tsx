@@ -30,7 +30,14 @@ function setup(messages: MessageItem[] = []) {
 }
 
 describe('ChatPanel — renderizado', () => {
-  afterEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    // RF-343: ChatPanel llama PATCH /read al montar; silenciar para tests de render puros.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 
   it('muestra los mensajes iniciales', () => {
     setup([makeMsg({ body: 'Hola vecino' })]);
