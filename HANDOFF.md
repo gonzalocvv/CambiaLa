@@ -3,6 +3,48 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — Corrida de estado: todos los ítems autónomos completos
+
+- **Ítem**: Verificación de estado — no hay ítems autónomos pendientes sin bloqueo.
+- **Rama**: `claude/gallant-sagan-76j6lq`.
+- **Estado**: ✅ gate verde confirmado (687 tests). Todo el trabajo previo (RF-307..RF-347) ya está en `develop` vía proxy. No se implementó ítem nuevo — todos los restantes tienen bloqueo documentado.
+
+### Verificación de gate
+
+Gate corrido desde cero (corepack + pnpm install fresh): format ✅ · lint ✅ · type-check ✅ · format:check ✅ · prisma:generate ✅ · test:coverage ✅ (687 tests, 68 archivos, match-engine 100%) · build ✅.
+
+### Estado de los ítems pendientes
+
+**Todos los ítems no-🔒/no-⏸️ del BACKLOG están bloqueados:**
+
+| Ítem | Bloqueo |
+|------|---------|
+| RF-112 — Avatar upload (M) | ⚠️ Pendiente decisión de diseño/storage. Necesita: (a) crear bucket en Supabase Storage (dashboard de Gonza); (b) decidir resize: `sharp` server-side vs deferred. Sin bucket activo, la feature no puede probarse E2E. |
+| RF-115 — Geo opt-in (C) | ⚠️ Requiere nuevo campo `geoConsent` en `User` → migración de Prisma. Dominio de Gonza (§10 del CLAUDE.md). |
+| RF-214b — Auditar catálogo vs álbum oficial (M) | ⛔ Necesita el checklist físico/oficial del álbum Panini 2026 (980 figuritas vs nuestros 896). Lo provee Gonza. |
+| RF-344 — Toggles email por tipo (S) | ⛔ Requiere migración Prisma (`notifyOnMessage`, `notifyOnReview` en `User`). Dominio de Gonza. |
+| RF-1005 — Link a Sentry (S) | 🔒 Requiere `SENTRY_DSN`. |
+| RF-824 — Bottom tab bar mobile (M) | ⏸️ RESERVADO (ola supervisada). |
+| RF-825 — Animación v2 (S) | ⏸️ RESERVADO (ola supervisada). |
+
+### Próximo paso para Gonza
+
+Para desbloquear el auto-builder, **cualquiera** de estas acciones habilita un nuevo ítem autónomo:
+
+1. **RF-112** — Crear bucket `avatars` en Supabase Storage con política "public read, owner write" y confirmar si usar `sharp` (server-side) o no redimensionar en MVP. Con esto el agente puede implementar el upload completo.
+2. **RF-115** — Correr la migración `prisma migrate dev --name geo-consent` con el campo `geoConsent Enum @default(NONE)` en `User`. Con el campo en la DB, el agente implementa el toggle de UI + settings.
+3. **RF-344** — Correr migración con `notifyOnMessage Boolean @default(true)` y `notifyOnReview Boolean @default(true)` en `User`. Con los campos en la DB, el agente implementa los toggles de settings + gating en `maybySendEmail`.
+
+### Bloqueos conocidos (resumen)
+
+- RF-214b ⛔ — checklist Panini 2026 (Gonza).
+- RF-112 ⚠️ — decisión de storage.
+- RF-115 ⚠️ — migración Geo opt-in (Gonza).
+- RF-344 ⛔ — migración toggles email (Gonza).
+- RF-1005 🔒 — Sentry DSN.
+
+---
+
 ## 2026-06-08 — RF-339: Perf de render del álbum (React.memo + hasInteracted)
 
 - **Ítem**: RF-339 — `StickerCell` memoizado + `count` como prop primitivo + `hasInteracted` flag.
