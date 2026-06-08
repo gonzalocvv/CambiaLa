@@ -3,6 +3,47 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — RF-342: Pruning de matches fantasma tras recompute
+
+- **Ítem**: RF-342 — `recomputeForUser` dejaba matches `active` stale cuando un par dejaba de complementar.
+- **Rama**: `claude/gallant-sagan-qfueq`.
+- **Estado**: ✅ completo. Gate verde. **651 tests** (67 archivos). PR abierto con auto-merge REBASE.
+
+### Qué se hizo
+
+**`src/repositories/match.repository.ts`**: nuevo método `pruneStaleForUser(userId, freshPartnerIds)`:
+- Two-step (findMany + updateMany), igual que `markInactiveByLastSeen`.
+- Filtra `status: 'active'` en el findMany → completed/trading nunca tocados.
+- Si `freshPartnerIds` es vacío: busca TODOS los activos del usuario (todo se vuelve stale).
+- Si no vacío: busca activos donde el contraparte NO está en `freshPartnerIds`.
+- Chat preservado (no borra la fila, solo cambia status a `inactive`).
+
+**`src/services/match.service.ts`**: en `recomputeForUser`, tras el persist loop:
+- Recoge `freshPartnerIds` de los resultados del engine (el que triggered el recompute puede ser `userA` o `userB`).
+- Llama `matchRepository.pruneStaleForUser` en try/catch: fallo no-fatal (loguea `'recompute: stale pruning failed'`, no re-lanza — el álbum ya se guardó y los matches nuevos ya se persistieron).
+- No se llama en early-returns (suspended, opted-out, etc.).
+
+**TDD** (8 tests nuevos, todos en verde antes de implementar):
+- `match.repository.test.ts`: 4 tests (marca stale, pruna todos si vacío, skip updateMany si sin stale, solo toca active).
+- `match.service.test.ts`: agrega `pruneStaleForUser` al mock; 4 tests (partner IDs correctos, [] sin matches, fallo no-fatal, no se llama en early-return).
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-345** (Should) — Expiry + re-suscripción del token de baja (token sin `exp` → nunca vence).
+2. **RF-346** (XS) — Nombre del remitente en el mail de mensaje ("X te escribió").
+3. **RF-339** (Could) — Perf de render del álbum (medir con profiler primero).
+4. **RF-340** (Could) — Persistir buffer en `localStorage` + rehidratar al volver.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- **RF-344** ⛔ — Toggles email por tipo requieren migración de Prisma (dominio de Gonza).
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
 ## 2026-06-08 — RF-338: Scoping de existence-check de stickers por álbum
 
 - **Ítem**: RF-338 — `getExistingStickerIds` no filtraba por álbum (PRE-F2 hardening).
