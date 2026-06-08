@@ -3,6 +3,45 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — RF-309: cron Inngest cleanup-matches (TTL diario de matches)
+
+- **Ítem**: RF-309 — Cablear el cron Inngest que marca `inactive` los matches con pares inactivos >30 días.
+- **Rama**: `claude/gallant-sagan-sde1gg`.
+- **Estado**: ✅ completo. Gate verde. **691 tests** (69 archivos).
+
+### Qué se hizo
+
+`matchService.cleanupExpiredMatches` existía con tests pero no tenía ningún caller en runtime. El cron de Inngest faltaba.
+
+**`src/inngest/functions/cleanup-matches.ts`** (nuevo):
+- `handleCleanupMatches(inactiveDays = 30)` — llama `matchService.cleanupExpiredMatches(inactiveDays)`, devuelve `{ marked: N }`. Propaga errores para que Inngest reintente.
+- `cleanupMatchesFn` — cron `0 3 * * *` (3am UTC, antes del digest de las 9am).
+
+**`src/app/api/inngest/route.ts`**: `cleanupMatchesFn` añadido al array `functions` del `serve()`.
+
+**TDD (4 tests)** en `cleanup-matches.test.ts`:
+1. Llama `cleanupExpiredMatches` con ventana de 30 días por defecto.
+2. Devuelve `{ marked: 5 }` cuando hay matches expirados.
+3. Devuelve `{ marked: 0 }` cuando no hay expirados.
+4. Propaga errores (Inngest maneja el retry).
+
+### Próximo paso
+
+Todos los ítems autónomos del BACKLOG siguen bloqueados (ver tabla en corrida anterior). Para desbloquear:
+1. **RF-112** — Gonza crea bucket `avatars` en Supabase Storage + confirma resize (sharp/deferred).
+2. **RF-115** — Gonza corre migración `geoConsent` en `User`.
+3. **RF-344** — Gonza corre migración `notifyOnMessage`/`notifyOnReview` en `User`.
+
+### Bloqueos conocidos
+
+- RF-214b ⛔ — checklist Panini 2026 (Gonza).
+- RF-112 ⚠️ — decisión de storage + bucket.
+- RF-115 ⚠️ — migración Geo opt-in (Gonza).
+- RF-344 ⛔ — migración toggles email (Gonza).
+- RF-1005 🔒 — Sentry DSN.
+
+---
+
 ## 2026-06-08 — Corrida de estado: todos los ítems autónomos completos
 
 - **Ítem**: Verificación de estado — no hay ítems autónomos pendientes sin bloqueo.
