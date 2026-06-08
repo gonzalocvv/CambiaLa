@@ -180,6 +180,19 @@ export const matchService = {
       throw error;
     }
 
+    // RF-342: marcar inactive los matches active que ya no son complementarios.
+    // El conjunto de pares que SÍ matchearon es la referencia; cualquier match active
+    // que no aparezca ahí tiene listas stale (aToB/bToA/score desactualizadas) y debe
+    // volverse inactive para no aparecer en /matches. Chat preservado (no se borra la fila).
+    // Fallo no-fatal: si la pruning falla, el álbum ya se guardó y los matches nuevos
+    // ya se persistieron — solo quedan algunos fantasmas hasta el próximo recompute.
+    const freshPartnerIds = results.map((r) => (r.userAId === userId ? r.userBId : r.userAId));
+    try {
+      await matchRepository.pruneStaleForUser(userId, freshPartnerIds);
+    } catch (error) {
+      logger.error('recompute: stale pruning failed', { userId, error });
+    }
+
     return { matched: results.length };
   },
 
