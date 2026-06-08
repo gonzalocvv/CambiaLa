@@ -3,17 +3,32 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-07 — Rebase de Ola B sobre develop + review del PR #86 (fixes aplicados)
+
+`feat/emails` (PR #86) se rebasó sobre `origin/develop` (post-merge del drift-sweep, PR #87). Conflicto de HANDOFF resuelto (quedan las dos entradas; Ola B arriba). `.env.example`: URL de prod `cambia-la.vercel.app` → `cambiala.uy` (consistencia con los docs mergeados). Después, **review multi-agente del PR #86** (4 dimensiones — seguridad/correctness/arquitectura/calidad — con verificación adversarial): **6 hallazgos confirmados, 5 descartados** (no explotables o ya diferidos). Veredicto: sólido y mergeable; ningún bloqueante de seguridad ni data-loss.
+
+**Fixes aplicados en la rama (post-review):**
+
+- **MEDIUM — email awaited en el hot path del PATCH del álbum** (decisión de Gonza: opción **(a)+(b)**). Seguro barato YA aplicado: `export const maxDuration = 30` en `src/app/api/album/stickers/route.ts` (evita el **504 sobre un guardado que SÍ funcionó** cuando un primer llenado encadena muchos envíos instant). La cura real se difiere a **RF-307** (Inngest), que **sube de prioridad**: BACKLOG RF-307 ahora documenta el modo de falla "504-sobre-guardado-OK" y su alcance doble (envío async fuera del request + **digest daily/weekly** de RF-407, "tenés matches esperándote").
+- **Tests faltantes (LOW)**: (1) `email.service.test` — branch de rechazo de `withTimeout` (Resend que **rechaza** por fallo de red; verifica que el error sube tal cual y que el timer queda limpio, `getTimerCount()===0`); (2) `notification.service.test` — fail-safe de `UNSUBSCRIBE_SECRET` ausente (sign lanza → se traga, se loguea, **no** se manda mail, la campanita in-app igual se crea).
+- **Nits**: `<title>CambiaLa</title>` en el `<head>` del mail (`templates.ts`); doc-drift dentro del PR corregido (`timeout 8s` → **4s**; conteo `556` → **558**).
+- **Branch `String(error)`** (no-Error en los catch) sigue sin cubrir → es la causa de que el branch-coverage de esos services no llegue a 100%; **aceptado** (riesgo nulo, documentado en el review).
+
+**Backlog nuevo (de la review):** **RF-347** (modo registro en `/auth/login` — entrar por "Registrate" cae en una pantalla "Iniciá sesión"; diferenciar vía `?mode=signup` manteniendo el OTP único). **Nota en RF-824** (tab bar mobile): criterio de aceptación = "Mi Álbum/Mis Matches" hoy wrapean en dos líneas, el tab bar debe resolverlo. (El template de registro de Supabase NO va al backlog — es config de dashboard, lo hace Gonza a mano.)
+
+**Estado**: **560 tests** (57 archivos), gate completo verde. PR #86 `MERGEABLE` (sin conflictos), **SIN auto-merge** → lo mergea Gonza tras este review + CI.
+
 ## 2026-06-07 — Ola B: RF-406 + RF-407 + RF-408 (emails transaccionales)
 
 - **Ítems**: RF-406 (email transaccional Resend), RF-407 (frecuencia instant/daily/weekly/never), RF-408 (unsubscribe firmado).
 - **Rama**: `feat/emails` (desde `develop`, post-merge Ola A). **PR de código → SIN auto-merge** (review gstack + Gonza).
-- **Estado**: ✅ completo en la rama. Gate completo verde. **556 tests** (57 archivos). Falta el **E2E manual** (lo corre Gonza: generar un match real y ver llegar el mail).
+- **Estado**: ✅ completo en la rama. Gate completo verde. **558 tests** (57 archivos). Falta el **E2E manual** (lo corre Gonza: generar un match real y ver llegar el mail).
 - **Proceso**: plan mode → fan-out de review pre-código (eng + security + email-design + red-team, 4 agentes) → críticos/altos aplicados → TDD → fan-out de review del diff.
 
 ### Arquitectura (capas respetadas)
 - **`src/lib/email/templates.ts`** (dominio puro): layout estética mail de login (tablas inline, entidades, `lang`/charset/viewport/`role=presentation`/preheader, parte **text/plain**, `escapeHtml` en TODO valor dinámico). Paleta hardcodeada = **excepción documentada a §7** (los clientes de mail no consumen tokens CSS). Copy es-UY hardcodeado = **excepción documentada a §8** (módulo dominio sin runtime next-intl, igual que el template de login en Supabase).
 - **`src/lib/email/unsubscribe.ts`** (dominio): HMAC-SHA256 sign/verify, timing-safe con guard de longitud, secret leído lazy (build sin `UNSUBSCRIBE_SECRET` no rompe).
-- **`src/services/email.service.ts`** (Service, único que toca Resend): `sendEmail` no-op sin API key, timeout 8s, lanza ante error (el caller atrapa).
+- **`src/services/email.service.ts`** (Service, único que toca Resend): `sendEmail` no-op sin API key, timeout 4s, lanza ante error (el caller atrapa).
 - **`notification.service.ts`**: `createNotification` crea la campanita SIEMPRE y primero; `maybeSendEmail` es side-effect en try/catch+logger (solo loguea `error.message`, nunca secretos/token). Gating: solo tipos emaileables; solo `emailFrequency==='instant'`. `unsubscribeByToken` → `emailFrequency='never'`.
 - **Triggers**: `rating_received` en `ratingService.createRating`; `new_message` en `messageService.sendMessage` (`assertParticipant` ahora devuelve el match; aviso solo si `countUnread===1`). Ambos en try/catch (no rompen el flujo). `new_match` ya existía (ahora también emailea).
 - **`src/app/api/unsubscribe/route.ts`**: GET muestra confirmación (NO muta → a prueba de prefetch de clientes de mail), POST ejecuta la baja. `Referrer-Policy: no-referrer`.
