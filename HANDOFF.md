@@ -3,6 +3,47 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — RF-347: Modo registro en /auth/login?mode=signup
+
+- **Ítem**: RF-347 — Diferenciar modo registro vs. login en `/auth/login`.
+- **Rama**: `claude/gallant-sagan-twDER`.
+- **Estado**: ✅ completo. Gate verde. **642 tests** (67 archivos). PR abierto con auto-merge REBASE.
+
+### Qué se hizo
+
+**`messages/es.json`**: 4 keys nuevas en `Auth.login` — `titleSignup`, `subtitleSignup`, `switchToLogin`, `switchToSignup`.
+
+**`login-form.tsx`**: acepta prop `mode?: 'login' | 'signup'` (default `'login'`). Al final del paso de email agrega un link de toggle:
+- Modo `signup` → "¿Ya tenés cuenta? Iniciá sesión" → `/auth/login`
+- Modo `login` → "¿Primera vez? Creá tu cuenta" → `/auth/login?mode=signup`
+
+**`login/page.tsx`**: lee `searchParams.mode`, computa `isSignup`, y condicionala H1, subtítulo y `<head><title>`. Pasa `mode` a `<LoginForm>`. La `generateMetadata` también toma el modo.
+
+**CTAs de registro actualizados** (solo presentación, sin cambio de backend):
+- `navbar.tsx`: botón CTA → `/auth/login?mode=signup`
+- `page.tsx` (landing): hero CTA + finalCta → `/auth/login?mode=signup`
+
+**Flujo OTP intacto**: el backend (`signInWithOtp`) no se bifurca; el registro automático en primer login sigue siendo vía `upsertByEmail`.
+
+**TDD**: 3 tests nuevos en `login-form.test.tsx` (modo signup link, modo login link, modo login explícito).
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-338** (Should) — Scoping de existence-check de stickers por álbum activo (PRE-F2).
+2. **RF-342** (Should) — Pruning de matches fantasma tras recompute.
+3. **RF-345** (Should) — Expiry + re-suscripción del token de baja.
+4. **RF-346** (XS) — Nombre del remitente en mail de mensaje.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+- RF-344 ⛔ — Toggles email por tipo requieren migración de Prisma (dominio de Gonza).
+
+---
+
 ## 2026-06-08 — Fix CI PR #95: test fetch mock faltante en ChatPanel (intento 1/3)
 
 - **Ítem**: Fix CI de PR #95 (`claude/gallant-sagan-xfAJe`).
