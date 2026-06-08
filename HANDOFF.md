@@ -3,6 +3,50 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — RF-345: Expiry + re-suscripción del token de baja
+
+- **Ítem**: RF-345 — Token de baja sin expiración (security MEDIUM) + usuario pierde preferencia previa al darse de baja.
+- **Rama**: `claude/gallant-sagan-f2mra`.
+- **Estado**: ✅ completo. Gate verde. **671 tests** (67 archivos). PR abierto con auto-merge REBASE.
+
+### Qué se hizo
+
+**`src/lib/email/unsubscribe.ts`** — rediseño del token:
+- Formato nuevo de baja: `${userId}.${expSeconds}.${hmac("unsub:" + payload)}` (3 partes vs 2 anteriores). TTL = 30 días por defecto.
+- `verifyUnsubscribeToken`: rechaza si expirado, si exp manipulado, si firma inválida. Tokens viejos (2 partes) rechazados por `parts.length !== 3`.
+- Nuevas funciones `signResubscribeToken(userId, prevFreq, ttlSeconds?)` y `verifyResubscribeToken(token)` → `{userId, prevFreq} | null`. Contexto HMAC separado ("resub:") para que no sean intercambiables.
+
+**`src/services/notification.service.ts`**:
+- `unsubscribeByToken`: lee `findById` antes de pisar, devuelve `{ok: true, prevFreq}` en vez de `boolean`.
+- `resubscribeByToken(token)`: verifica token de reactivación + valida que prevFreq es una de las 4 opciones válidas + llama `updateNotifications`.
+- `buildResubscribeToken(userId, prevFreq)`: helper con try/catch (no-op si falta UNSUBSCRIBE_SECRET).
+
+**`src/app/api/unsubscribe/route.ts`**:
+- POST de baja: tras unsubscribeByToken, construye el resubToken y lo embebe en la página de éxito con un form de reactivación.
+- POST `action=resubscribe`: verifica el resubToken con `verifyResubscribeToken` + llama `notificationService.resubscribeByToken`.
+- Mensaje de baja diferenciado: si prevFreq era `never`, no ofrece reactivación.
+
+**TDD**: 20 tests nuevos distribuidos en 3 archivos:
+- `unsubscribe.test.ts`: 20 tests (expiry, tampering, cross-token rejection, missing secret).
+- `notification.service.test.ts`: unsubscribeByToken (prevFreq) + resubscribeByToken (3 casos).
+- `route.test.ts`: GET + POST unsubscribe + POST resubscribe (happy path + errores).
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-346** (XS) — Personalizar el mail de mensaje con el nombre del remitente ("X te escribió").
+2. **RF-339** (Could) — Perf de render del álbum (medir con profiler primero).
+3. **RF-340** (Could) — Persistir buffer en `localStorage` + rehidratar al volver.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- **RF-344** ⛔ — Toggles email por tipo requieren migración de Prisma (dominio de Gonza).
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
 ## 2026-06-08 — RF-342: Pruning de matches fantasma tras recompute
 
 - **Ítem**: RF-342 — `recomputeForUser` dejaba matches `active` stale cuando un par dejaba de complementar.
