@@ -297,10 +297,7 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - Decisión B: si se decide no usarlo en el MVP, borrar `src/lib/logger.ts` y relajar la regla en CLAUDE.md §9 para que no quede deuda mandada por doc.
   - **TDD**: si A, test de que un 500 inesperado en una route llama `logger.error` (spy).
 
-- [ ] **RF-326** 🆕 **Tests directos de schemas Zod — 6 de 7 sin test propio.** (S) — _detectado 6-jun: solo `match.schema.ts` se importa desde tests; message/notification/onboarding/rating/settings/sticker dependen 100% de que el happy-path de su route los ejercite, justo donde un off-by-one se escapa._
-  - Test unitario por schema cubriendo bordes: acepta válidos / rechaza fuera de rango. Empezar por los de más reglas: sticker (count 0-99 entero), onboarding (username 3-20 alfanumérico/regex), rating (1-5 + comentario máx 200), message (máx 1000).
-  - Son funciones puras de dominio (CLAUDE.md §6) — baratas, sin mocks.
-  - **TDD**: para cada schema, casos límite (mínimo, máximo, fuera por 1, tipo inválido).
+- [x] **RF-326** 🆕 **Tests directos de schemas Zod — 6 de 7 sin test propio.** (S) — _Corrida 2026-06-08: tests para `onboarding.schema.ts` (UsernameSchema + CompleteOnboardingSchema), `rating.schema.ts` (CreateRatingSchema), `message.schema.ts` (SendMessageSchema). `sticker.schema.ts` ya tenía tests. 595 tests verdes._
 
 - [x] **RF-327** 🆕 **CI usa pnpm 9 pero el repo declara pnpm@10.34.1 — drift de versión.** (S) — _Corrida 45 (2026-06-07): `PNPM_VERSION: 9` → `10` en `ci.yml`. Lockfile 9.0 compatible con pnpm v10 sin cambios._ — _detectado 6-jun: `.github/workflows/ci.yml:17` setea `PNPM_VERSION: 9` y los 3 jobs hacen `--frozen-lockfile`, pero `package.json:10` declara `pnpm@10.34.1` y CLAUDE.md §3 dice pnpm 10; el lockfile `9.0` lo salva hoy, pero un cambio de resolución entre majors puede romper el gate con --frozen-lockfile._
   - Subir `PNPM_VERSION` a `10` en `ci.yml` (o quitar el override y dejar que `pnpm/action-setup` respete el campo `packageManager`).
