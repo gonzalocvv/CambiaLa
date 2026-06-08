@@ -64,6 +64,20 @@ describe('emailService.sendEmail', () => {
     await expect(emailService.sendEmail(INPUT)).rejects.toThrow('domain not verified');
   });
 
+  it('propagates the error (clearing the timer) when the Resend send rejects — e.g. a network failure', async () => {
+    // Camino distinto al { error } resuelto: el SDK puede RECHAZAR la promesa (fallo de red).
+    // Ejercita el handler de rechazo de withTimeout (clearTimeout + reject) y confirma que el
+    // error original sube tal cual al caller, sin convertirse en 'timed out' ni quedar tragado.
+    vi.useFakeTimers();
+    mockSend.mockRejectedValue(new Error('network down'));
+
+    await expect(emailService.sendEmail(INPUT)).rejects.toThrow('network down');
+
+    // El timer del timeout quedó limpio (clearTimeout en el handler de rechazo): sin timers pendientes.
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
+
   it('throws when the send exceeds the timeout', async () => {
     vi.useFakeTimers();
     mockSend.mockReturnValue(new Promise(() => {})); // never resolves

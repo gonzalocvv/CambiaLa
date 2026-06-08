@@ -160,6 +160,28 @@ describe('notificationService.createNotification', () => {
       expect.objectContaining({ type: 'new_match' }),
     );
   });
+
+  it('skips the email (fail-safe) but keeps the in-app notification when UNSUBSCRIBE_SECRET is unset', async () => {
+    // Sin secret, signUnsubscribeToken lanza → nunca se manda un mail con un link de baja sin
+    // firmar. El error lo traga el try/catch de maybeSendEmail (logueando solo el mensaje), así
+    // que createNotification igual crea la campanita in-app y no rompe el flujo que la disparó.
+    delete process.env.UNSUBSCRIBE_SECRET;
+
+    const result = await notificationService.createNotification('user-a', 'new_match', {
+      matchId: 'match-1',
+    });
+
+    expect(result.id).toBe('notif-1');
+    expect(mockEmailService.sendEmail).not.toHaveBeenCalled();
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'notification email failed',
+      expect.objectContaining({
+        userId: 'user-a',
+        type: 'new_match',
+        error: 'UNSUBSCRIBE_SECRET is not set',
+      }),
+    );
+  });
 });
 
 describe('notificationService.unsubscribeByToken', () => {
