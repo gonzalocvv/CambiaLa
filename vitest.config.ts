@@ -39,6 +39,7 @@ export default defineConfig({
           exclude: [
             'src/components/landing/**',
             'src/components/pwa/**',
+            'src/components/notifications/**',
             'src/app/album/**',
             'src/app/auth/**',
             'src/components/chat/**',
@@ -57,6 +58,7 @@ export default defineConfig({
           include: [
             'src/components/landing/**/*.{test,spec}.{ts,tsx}',
             'src/components/pwa/**/*.{test,spec}.{ts,tsx}',
+            'src/components/notifications/**/*.{test,spec}.{ts,tsx}',
             'src/app/album/**/*.{test,spec}.{ts,tsx}',
             'src/app/auth/**/*.{test,spec}.{ts,tsx}',
             'src/components/chat/**/*.{test,spec}.{ts,tsx}',
