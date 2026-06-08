@@ -3,6 +3,40 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — RF-338: Scoping de existence-check de stickers por álbum
+
+- **Ítem**: RF-338 — `getExistingStickerIds` no filtraba por álbum (PRE-F2 hardening).
+- **Rama**: `claude/gallant-sagan-Qndkx`.
+- **Estado**: ✅ completo. Gate verde. **643 tests** (68 archivos).
+
+### Qué se hizo
+
+**`src/repositories/sticker.repository.ts`**: `getExistingStickerIds` — agregado `album: { slug: MUNDIAL_2026_SLUG }` al `where` de `prisma.sticker.findMany`. Prisma genera un JOIN automático; sigue siendo 1 sola query. Sin cambios de firma ni de servicio.
+
+**Razonamiento PRE-F2**: antes del fix, la FK de `UserSticker.stickerId → Sticker.id` garantizaba que el sticker existía en ALGÚN álbum, pero no necesariamente en `mundial-2026`. Con 2 álbumes (F2), un usuario malintencionado podría escribir counts de stickers de otro álbum vía `PATCH /api/album/stickers`. El filtro por slug cierra esa ventana sin migración.
+
+**TDD**: 3 tests en `sticker.repository.test.ts` (TDD: rojo → verde):
+1. `scopes the query to the mundial-2026 album` — verifica que el `where` incluye `album: { slug: 'mundial-2026' }`.
+2. `returns an empty Set when none exist in the album` — caso vacío.
+3. `returns empty Set when sticker ids belong to a different album` — intención explícita del caso de abuso.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-342** (Should) — Pruning de matches fantasma tras recompute (stale matches de pares que dejaron de complementar).
+2. **RF-345** (Should) — Expiry + re-suscripción del token de baja.
+3. **RF-346** (XS) — Nombre del remitente en mail de mensaje.
+4. **RF-339** (Could) — Perf de render del álbum (medir con profiler primero).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+- RF-344 ⛔ — Toggles email por tipo requieren migración de Prisma (dominio de Gonza).
+
+---
+
 ## 2026-06-08 — RF-347: Modo registro en /auth/login?mode=signup
 
 - **Ítem**: RF-347 — Diferenciar modo registro vs. login en `/auth/login`.
