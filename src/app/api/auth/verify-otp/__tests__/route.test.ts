@@ -51,6 +51,13 @@ describe('POST /api/auth/verify-otp — validación', () => {
     expect(res.status).toBe(400);
     expect(mockAuth.verifyOtp).not.toHaveBeenCalled();
   });
+
+  it('400 si el token contiene caracteres no numéricos', async () => {
+    const res = await POST(makeRequest({ email: 'gonza@example.com', token: 'abc123' }));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'missing_fields' });
+    expect(mockAuth.verifyOtp).not.toHaveBeenCalled();
+  });
 });
 
 describe('POST /api/auth/verify-otp — rate limit', () => {

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { resolveDestinationForUser } from '@/lib/auth/resolve-destination';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { createClient } from '@/lib/supabase/server';
+import { VerifyOtpSchema } from '@/lib/validations/auth.schema';
 
 // Verifica el código OTP de 6 dígitos que el usuario recibe por mail.
 // Es la alternativa al magic link que NO obliga a abrir el link en el mismo
@@ -17,13 +18,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'bad_request' }, { status: 400 });
   }
 
-  const { email, token } = (body ?? {}) as { email?: unknown; token?: unknown };
-  const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
-  const cleanToken = typeof token === 'string' ? token.replace(/\s/g, '') : '';
-
-  if (!cleanEmail.includes('@') || cleanToken.length < 6) {
+  const parsed = VerifyOtpSchema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json({ error: 'missing_fields' }, { status: 400 });
   }
+  const { email: cleanEmail, token: cleanToken } = parsed.data;
 
   // Anti brute-force: 10 intentos por IP+email cada 15 min
   const ip = getClientIp(request.headers);
