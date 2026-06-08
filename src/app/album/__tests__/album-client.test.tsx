@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AlbumStats, StickerWithCount } from '@/lib/validations/sticker.schema';
 import { renderWithIntl } from '@/test/render-intl';
 
-import { AlbumClient, chunkChanges } from '../album-client';
+import { AlbumClient, STORAGE_KEY, chunkChanges } from '../album-client';
 
 type Change = { stickerId: string; count: number };
 
@@ -194,6 +194,62 @@ describe('AlbumClient — guardado en bulk', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const body2 = bodyOf(fetchMock.mock.calls[1]);
     expect(body2.changes.some((c) => c.stickerId === 'id1')).toBe(true); // S1 no se perdió
+  });
+});
+
+describe('AlbumClient — persistencia localStorage (RF-340)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    localStorage.clear();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    localStorage.clear();
+  });
+
+  it('persiste el buffer en localStorage tras cada click', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okResp());
+    vi.stubGlobal('fetch', fetchMock);
+    setup(2);
+
+    fireEvent.click(cell('S0'));
+
+    const stored = localStorage.getItem(STORAGE_KEY);
+    expect(stored).not.toBeNull();
+    expect(JSON.parse(stored!)).toEqual({ id0: 1 });
+  });
+
+  it('rehidrata el buffer de localStorage al montar y dispara el flush', async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ id0: 1, id1: 2 }));
+    const fetchMock = vi.fn().mockResolvedValue(okResp());
+    vi.stubGlobal('fetch', fetchMock);
+
+    setup(3);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(900);
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = bodyOf(fetchMock.mock.calls[0]);
+    expect(body.changes.some((c: Change) => c.stickerId === 'id0' && c.count === 1)).toBe(true);
+    expect(body.changes.some((c: Change) => c.stickerId === 'id1' && c.count === 2)).toBe(true);
+  });
+
+  it('limpia localStorage tras un flush exitoso', async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ id0: 1 }));
+    const fetchMock = vi.fn().mockResolvedValue(okResp());
+    vi.stubGlobal('fetch', fetchMock);
+
+    setup(3);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(900);
+    });
+
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
   });
 });
 
