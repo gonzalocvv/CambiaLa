@@ -218,4 +218,29 @@ describe('LoginForm', () => {
     expect(screen.queryByLabelText('Tu email')).not.toBeNull();
     expect(screen.queryByLabelText('Código')).toBeNull();
   });
+
+  // ── Modo registro vs. login ──────────────────────────────────────
+
+  it('modo signup → muestra link "¿Ya tenés cuenta? Iniciá sesión" apuntando a /auth/login', () => {
+    renderWithIntl(<LoginForm mode="signup" />);
+
+    const link = screen.getByRole('link', { name: '¿Ya tenés cuenta? Iniciá sesión' });
+    expect(link).toBeTruthy();
+    expect(link).toHaveAttribute('href', '/auth/login');
+  });
+
+  it('modo login (default) → muestra link "¿Primera vez? Creá tu cuenta" apuntando a ?mode=signup', () => {
+    renderWithIntl(<LoginForm />);
+
+    const link = screen.getByRole('link', { name: '¿Primera vez? Creá tu cuenta' });
+    expect(link).toBeTruthy();
+    expect(link).toHaveAttribute('href', '/auth/login?mode=signup');
+  });
+
+  it('modo login explícito → mismo link que el default', () => {
+    renderWithIntl(<LoginForm mode="login" />);
+
+    const link = screen.getByRole('link', { name: '¿Primera vez? Creá tu cuenta' });
+    expect(link).toBeTruthy();
+  });
 });
