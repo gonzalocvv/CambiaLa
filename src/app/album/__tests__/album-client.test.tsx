@@ -253,6 +253,50 @@ describe('AlbumClient — persistencia localStorage (RF-340)', () => {
   });
 });
 
+describe('AlbumClient — displayStats (RF-339)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('muestra initialStats en la barra de progreso antes de interactuar', () => {
+    const stickers = makeStickers(2);
+    const initial: AlbumStats = {
+      total: 2,
+      have: 0,
+      missing: 2,
+      duplicates: 0,
+      percentComplete: 75,
+    };
+    renderWithIntl(<AlbumClient stickers={stickers} initialStats={initial} />);
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '75');
+  });
+
+  it('cambia a stats en vivo tras el primer click', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue(okResp());
+    vi.stubGlobal('fetch', fetchMock);
+    // makeStickers(2): all count=0 → after 1 click live percentComplete = 50
+    const stickers = makeStickers(2);
+    const initial: AlbumStats = {
+      total: 2,
+      have: 0,
+      missing: 2,
+      duplicates: 0,
+      percentComplete: 75,
+    };
+    renderWithIntl(<AlbumClient stickers={stickers} initialStats={initial} />);
+
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '75');
+
+    await act(async () => {
+      fireEvent.click(cell('S0'));
+    });
+
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
+  });
+});
+
 describe('AlbumClient — team header (RF-215)', () => {
   it('renders the full Spanish country name with flag in team section headings', () => {
     const stickers: StickerWithCount[] = [
