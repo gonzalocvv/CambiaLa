@@ -3,6 +3,44 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — RF-333: verify-otp — validación manual → Zod schema
+
+- **Ítem**: RF-333 — `POST /api/auth/verify-otp` usaba checks manuales en vez de Zod.
+- **Rama**: `claude/gallant-sagan-56W50`.
+- **Estado**: ✅ completo. Gate verde. **621 tests** (64 archivos).
+
+### Qué se hizo
+
+**`src/lib/validations/auth.schema.ts`** (nuevo):
+- `VerifyOtpSchema`: `email` con `.transform(trim+toLowerCase).pipe(z.string().email())`; `token` con `.transform(remove-spaces).pipe(z.string().regex(/^\d{6}$/))`.
+- `VerifyOtpInput` type exportado.
+
+**`src/lib/validations/__tests__/auth.schema.test.ts`** (TDD primero — 11 tests):
+- Acepta email+token válidos, normaliza email (trim/lowercase), normaliza token (elimina espacios).
+- Rechaza: email sin @, email vacío, email ausente, token <6 dígitos, token >6 dígitos, token no-numérico, token ausente, token no-string.
+
+**`src/app/api/auth/verify-otp/route.ts`** actualizado:
+- Reemplazados los 4 checks manuales (`typeof`, `.includes('@')`, `.length < 6`, etc.) por `VerifyOtpSchema.safeParse(body)` → 400 `{error:'missing_fields'}` si falla.
+- Los valores normalizados vienen de `parsed.data` (comportamiento idéntico al anterior; test de normalización existente sigue pasando).
+
+**`src/app/api/auth/verify-otp/__tests__/route.test.ts`**: 1 test nuevo (token con letras → 400, que la validación manual anterior no distinguía de un token demasiado corto).
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-334** (Could) — `auth/logout` sin test propio (~15 líneas).
+2. **RF-335** (Could) — PATCH bulk body malformado → 400 (aplicar al endpoint `PATCH /api/album/stickers`).
+3. **RF-337** (Could) — Dropdown de notificaciones sin Escape ni aria-expanded/haspopup.
+4. **RF-343** (Must) — Read-tracking de mensajes + re-notificación (badge unread que nunca baja).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
 ## 2026-06-08 — RF-332: Extraer secciones de settings-form.tsx
 
 - **Ítem**: RF-332 — `settings-form.tsx` (672 líneas, muy por encima del techo de 300, §9).
