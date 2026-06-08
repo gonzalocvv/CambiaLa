@@ -336,19 +336,13 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - Agregar `src/app/api/auth/logout/__tests__/route.test.ts` mockeando `createClient`: assert que se llama `auth.signOut()` y que el redirect apunta a `${origin}/` con status 303.
   - **Criterio**: ~15 líneas; cierra la simetría del flujo de auth.
 
-- [ ] **RF-335** 🆕 **PATCH `/api/album/stickers/[stickerId]` da 500 ante body malformado.** (C) — _detectado 6-jun: `route.ts:18` hace `const body = await req.json();` sin guard, así que un JSON malformado lanza → 500 en vez del 400 que dan messages (`:32`) y onboarding (`:11-15`)._
-  - Cambiar a `const body = await req.json().catch(() => null);` y dejar que el `safeParse` devuelva 400.
-  - **TDD**: test de la route con body malformado → 400 (hoy 500).
-  - Nota: si RF-213 borra esta route, este fix se aplica al endpoint bulk nuevo en su lugar.
+- [x] **RF-335** 🆕 **PATCH `/api/album/stickers/[stickerId]` da 500 ante body malformado.** (C) — _fix ya incluido en el endpoint bulk de RF-213: `req.json().catch(() => null)` + test de body malformado → 400 (verificado en `__tests__/route.test.ts`)._
 
 - [x] **RF-336** 🆕 **`--passWithNoTests` activo enmascara suites vacías.** (C) — _ya removido por RF-321 (Corrida 41): `pnpm test` y `pnpm test:coverage` en `package.json` no tienen `--passWithNoTests`._ — _detectado 6-jun: `test` y `test:coverage` (`package.json:21,23`) usan `--passWithNoTests`; hoy no hay suites vacías, pero en un pipeline con auto-merge un glob roto o una suite vaciada pasaría en verde._
   - Quitar `--passWithNoTests` de `test:coverage` (y de `test` salvo razón concreta de globs que matcheen vacío legítimamente).
   - **Criterio**: un archivo de test sin casos `it()/test()` hace fallar el CI.
 
-- [ ] **RF-337** 🆕 **Dropdown de notificaciones sin Escape ni aria-expanded/haspopup.** (C) — _detectado 6-jun: `notification-bell.tsx:42-49` solo escucha `mousedown` afuera (sin Escape), y el botón (`:73-77`) no expone `aria-expanded`/`aria-haspopup`; un usuario de teclado/lector no sabe que abre un menú ni puede cerrarlo con Escape._
-  - Agregar `aria-expanded={isOpen}` y `aria-haspopup="menu"` al botón-campana.
-  - Handler de `keydown` Escape → `setIsOpen(false)`; idealmente devolver foco al botón al cerrar.
-  - **TDD**: test de que Escape cierra el dropdown y de que el botón expone los aria-* correctos.
+- [x] **RF-337** 🆕 **Dropdown de notificaciones sin Escape ni aria-expanded/haspopup.** (C) — _2026-06-08, rama `claude/gallant-sagan-ZSTdS`: `buttonRef` + `aria-haspopup="menu"` + `aria-expanded={isOpen}` en el botón-campana; handler `keydown Escape` → `setIsOpen(false)` + `buttonRef.current?.focus()` (devuelve foco al cerrar). `@testing-library/jest-dom/vitest` en setup; 5 tests TDD. 628 tests verdes._
 
 ### Follow-ups del review de RF-213 (PR #68) — ítems nuevos
 

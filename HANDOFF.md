@@ -3,6 +3,42 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-08 — RF-335 + RF-337: body malformado → 400 (ya hecho) + a11y del dropdown de notificaciones
+
+- **Ítems**: RF-335 (verificado ya hecho en bulk endpoint de RF-213) + RF-337 (Escape + aria en NotificationBell).
+- **Rama**: `claude/gallant-sagan-ZSTdS`.
+- **Estado**: ✅ completo. Gate verde. **628 tests** (66 archivos).
+
+### Qué se hizo
+
+**RF-335** — La ruta bulk `PATCH /api/album/stickers` ya tenía `req.json().catch(() => null)` + test de body malformado → 400 desde RF-213. Marcado `[x]` en BACKLOG sin código extra.
+
+**RF-337** — Tres cambios en `notification-bell.tsx`:
+1. `buttonRef = useRef<HTMLButtonElement>(null)` + `ref={buttonRef}` en el botón.
+2. `aria-haspopup="menu"` y `aria-expanded={isOpen}` en el botón.
+3. Handler `keydown Escape` (dentro del `useEffect` de `isOpen`): `setIsOpen(false)` + `buttonRef.current?.focus()`.
+
+**Infraestructura de tests:**
+- `vitest.config.ts`: `src/components/notifications/**` añadido al proyecto `dom` (y excluido del `node`).
+- `src/test/setup.ts`: importa `@testing-library/jest-dom/vitest` para habilitar `toHaveAttribute` y similares en todos los tests del proyecto `dom`.
+- `src/components/notifications/__tests__/notification-bell.test.tsx` — 5 tests TDD: `aria-haspopup`, `aria-expanded` cerrado/abierto, Escape cierra, Escape devuelve foco.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-343** (Must) — Read-tracking de mensajes + re-notificación. Badge de no-leídos que nunca baja; `markMessagesRead(matchId, userId)` al abrir la conversación.
+2. **RF-347** (Should) — Modo registro en `/auth/login?mode=signup`.
+3. **RF-338** (Should) — Scoping de existence-check de stickers por álbum activo (PRE-F2).
+4. **RF-342** (Should) — Pruning de matches fantasma tras recompute.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
 ## 2026-06-08 — RF-334: test de POST /api/auth/logout
 
 - **Ítem**: RF-334 — `auth/logout` era la única API route sin test.
