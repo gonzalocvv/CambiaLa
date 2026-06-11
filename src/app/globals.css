@@ -159,10 +159,6 @@ body[data-has-tabbar] {
 .exchange-scene {
   perspective: 800px;
   perspective-origin: 50% 40%;
-  /* Aspect-ratio fijo (desktop 520×480 = igual que antes) en vez de altura px fija:
-     así alto y ancho escalan juntos y el aterrizaje de las figuritas (que escala con
-     el ancho) cae en el hueco a cualquier viewport, incluido mobile (RF-825). */
-  aspect-ratio: 13 / 12;
 }
 
 /* Mini-álbumes tilteados en 3D */
@@ -413,11 +409,7 @@ body[data-has-tabbar] {
    `perspective` de la escena) y hacen crossfade co-ubicado con las copias estáticas. */
 .scene-fly {
   position: absolute;
-  /* Ancho proporcional puro (NO clamp): los translate() del vuelo son % del ancho
-     propio, así que el ancho debe escalar con la escena para que el aterrizaje caiga
-     en el hueco a cualquier viewport (en desktop 11.5% de 520 ≈ 60px = igual que antes;
-     el clamp rompía esto en mobile, ver RF-825). */
-  width: 11.5%;
+  width: clamp(46px, 11.5%, 60px);
   aspect-ratio: 3 / 4;
   border-radius: 1.5px;
   opacity: 0;
@@ -560,8 +552,7 @@ body[data-has-tabbar] {
    el contacto. Lockstep con su voladora (mismos % y beziers por tramo). */
 .fly-shadow {
   position: absolute;
-  /* Mismo ancho proporcional que .scene-fly (lockstep). */
-  width: 11.5%;
+  width: clamp(46px, 11.5%, 60px);
   aspect-ratio: 3 / 4;
   opacity: 0;
   background: radial-gradient(50% 16% at 50% 88%, rgb(0 0 0 / 0.45), transparent 70%);
