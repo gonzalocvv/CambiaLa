@@ -162,30 +162,61 @@ body {
   top: 2%;
   left: 1%;
   transform: rotateX(12deg) rotateY(38deg);
-  animation: cl-breathe-a 12s ease-in-out infinite;
+  animation: cl-breathe-a 12s linear infinite;
 }
 .album-b {
   bottom: 13%;
   right: 1%;
   transform: rotateX(12deg) rotateY(-38deg);
-  animation: cl-breathe-b 12s ease-in-out infinite;
+  animation: cl-breathe-b 12s linear infinite;
 }
+/* Recede sutil mientras las voladoras están en el aire (parallax real bajo la
+   perspective: translateZ primero) + micro-thud al recibir el impacto. Vuelve a
+   pose base ANTES del crossfade (60/62) para no desplazar las copias estáticas. */
 @keyframes cl-breathe-a {
   0%,
-  100% {
-    transform: rotateX(12deg) rotateY(38deg) scale(1);
+  12% {
+    transform: translateZ(0) rotateX(12deg) rotateY(38deg);
   }
-  46% {
-    transform: rotateX(12deg) rotateY(38deg) scale(1.015);
+  40% {
+    transform: translateZ(-10px) rotateX(11.5deg) rotateY(38deg);
+  }
+  51%,
+  55% {
+    transform: translateZ(0) rotateX(12deg) rotateY(38deg);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.5);
+  }
+  56.5% {
+    /* recibe a BRA (impacto de cl-sfb a 55%) */
+    transform: translateZ(-7px) rotateX(13deg) rotateY(38deg);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  61%,
+  100% {
+    transform: translateZ(0) rotateX(12deg) rotateY(38deg);
   }
 }
 @keyframes cl-breathe-b {
   0%,
-  100% {
-    transform: rotateX(12deg) rotateY(-38deg) scale(1);
+  12% {
+    transform: translateZ(0) rotateX(12deg) rotateY(-38deg);
   }
-  46% {
-    transform: rotateX(12deg) rotateY(-38deg) scale(1.015);
+  40% {
+    transform: translateZ(-10px) rotateX(11.5deg) rotateY(-38deg);
+  }
+  49%,
+  53% {
+    transform: translateZ(0) rotateX(12deg) rotateY(-38deg);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.5);
+  }
+  54.5% {
+    /* recibe a URU (impacto de cl-sfa a 53%) */
+    transform: translateZ(-7px) rotateX(13deg) rotateY(-38deg);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  59%,
+  100% {
+    transform: translateZ(0) rotateX(12deg) rotateY(-38deg);
   }
 }
 
@@ -199,32 +230,58 @@ body {
 .hole-fill-b {
   animation: cl-hole-b 12s linear infinite;
 }
+/* El relleno+ring del hueco flashea EN el impacto (no en el crossfade): entra grande
+   y se comprime → energía del golpe disipándose en el slot (scale = composite). */
 @keyframes cl-hole-b {
   0%,
-  60% {
+  52% {
     opacity: 0;
+    transform: scale(1.28);
   }
-  64%,
+  54.5% {
+    opacity: 1;
+    transform: scale(1.16);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  60%,
   90% {
     opacity: 1;
+    transform: scale(1);
   }
-  95%,
+  95% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  96%,
   100% {
     opacity: 0;
+    transform: scale(1.28);
   }
 }
 @keyframes cl-hole-a {
   0%,
-  62% {
+  54% {
     opacity: 0;
+    transform: scale(1.28);
   }
-  66%,
+  56.5% {
+    opacity: 1;
+    transform: scale(1.16);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  62%,
   90% {
     opacity: 1;
+    transform: scale(1);
   }
-  95%,
+  95% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  96%,
   100% {
     opacity: 0;
+    transform: scale(1.28);
   }
 }
 
@@ -320,84 +377,204 @@ body {
   z-index: 50;
   animation: cl-sfb 12s linear infinite;
 }
-/* scene-fly-a (URU): origen álbum A (tilt +38) → destino álbum B (tilt -38) */
+/* scene-fly-a (URU): A(+38°) → B(−38°). Vuela ALTO (Z 190px). Impacto a 53%.
+   Lista de transform normalizada (translate→translateZ→rotateX→rotateY→rotateZ→scale)
+   para interpolación función-por-función (sin descomposición de matrices = sin wobble). */
 @keyframes cl-sfa {
   0%,
   14% {
     opacity: 0;
-    transform: rotateX(12deg) rotateY(38deg) scale(1);
+    transform: translate(0%, 0%) translateZ(0) rotateX(12deg) rotateY(38deg) rotateZ(0deg) scale(1);
   }
-  18%,
-  22% {
+  /* crossfade co-ubicado con .static-src (14→18): pose origen EXACTA */
+  18% {
     opacity: 1;
-    transform: rotateX(12deg) rotateY(38deg) scale(1);
-    /* Ascenso: ease-out fuerte → despega rápido y flota al ápex */
+    transform: translate(0%, 0%) translateZ(0) rotateX(12deg) rotateY(38deg) rotateZ(0deg) scale(1);
+    /* peel: despegue suave de la superficie */
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  21% {
+    opacity: 1;
+    transform: translate(0%, 0%) translateZ(18px) rotateX(12deg) rotateY(38deg) rotateZ(0deg)
+      scale(1.03);
+    /* ascenso: ease-out fuerte → flota al ápex */
     animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
   }
   40% {
     opacity: 1;
-    transform: translate(234%, -34%) translateZ(150px) rotateX(8deg) rotateY(0deg) scale(1.16);
-    /* Caída: ease-in → acelera al bajar (gravedad) */
-    animation-timing-function: cubic-bezier(0.45, 0, 0.7, 0.2);
+    transform: translate(234%, -40%) translateZ(190px) rotateX(6deg) rotateY(-2deg) rotateZ(-3deg)
+      scale(1.16);
+    /* caída: gravedad */
+    animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0.4);
   }
-  56% {
+  /* IMPACTO: pasada de largo, comprimida contra el hueco */
+  53% {
     opacity: 1;
-    transform: translate(468%, 96%) translateZ(24px) rotateX(12deg) rotateY(-34deg) scale(1.04);
-    /* Aterrizaje: back-out con overshoot sutil → sensación de "encaje" */
-    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: translate(468%, 96%) translateZ(-10px) rotateX(13deg) rotateY(-41deg) rotateZ(0deg)
+      scale(0.975);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
   }
+  /* rebote */
+  56.5% {
+    opacity: 1;
+    transform: translate(468%, 96%) translateZ(6px) rotateX(11.5deg) rotateY(-36.5deg) rotateZ(0deg)
+      scale(1.015);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  /* reposo: pose EXACTA de .static-dst-b para el crossfade 60→64 */
   60% {
     opacity: 1;
-    transform: translate(468%, 96%) rotateX(12deg) rotateY(-38deg) scale(1);
+    transform: translate(468%, 96%) translateZ(0) rotateX(12deg) rotateY(-38deg) rotateZ(0deg)
+      scale(1);
   }
   64% {
     opacity: 0;
-    transform: translate(468%, 96%) rotateX(12deg) rotateY(-38deg) scale(1);
+    transform: translate(468%, 96%) translateZ(0) rotateX(12deg) rotateY(-38deg) rotateZ(0deg)
+      scale(1);
   }
   65%,
   100% {
     opacity: 0;
-    transform: rotateX(12deg) rotateY(38deg) scale(1);
+    transform: translate(0%, 0%) translateZ(0) rotateX(12deg) rotateY(38deg) rotateZ(0deg) scale(1);
   }
 }
-/* scene-fly-b (BRA): origen álbum B (tilt -38) → destino álbum A (tilt +38) */
+/* scene-fly-b (BRA): B(−38°) → A(+38°). Vuela BAJO (Z 150px). Impacto a 55%. */
 @keyframes cl-sfb {
   0%,
   14% {
     opacity: 0;
-    transform: rotateX(12deg) rotateY(-38deg) scale(1);
+    transform: translate(0%, 0%) translateZ(0) rotateX(12deg) rotateY(-38deg) rotateZ(0deg) scale(1);
   }
-  18%,
-  22% {
+  18% {
     opacity: 1;
-    transform: rotateX(12deg) rotateY(-38deg) scale(1);
-    /* Ascenso: ease-out fuerte → despega rápido y flota al ápex */
+    transform: translate(0%, 0%) translateZ(0) rotateX(12deg) rotateY(-38deg) rotateZ(0deg) scale(1);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  21% {
+    opacity: 1;
+    transform: translate(0%, 0%) translateZ(18px) rotateX(12deg) rotateY(-38deg) rotateZ(0deg)
+      scale(1.03);
     animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
   }
   42% {
     opacity: 1;
-    transform: translate(-307%, -44%) translateZ(120px) rotateX(8deg) rotateY(0deg) scale(1.12);
-    /* Caída: ease-in → acelera al bajar (gravedad) */
-    animation-timing-function: cubic-bezier(0.45, 0, 0.7, 0.2);
+    transform: translate(-307%, -48%) translateZ(150px) rotateX(6deg) rotateY(2deg) rotateZ(3deg)
+      scale(1.12);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0.4);
   }
-  58% {
+  55% {
     opacity: 1;
-    transform: translate(-615%, -126%) translateZ(24px) rotateX(12deg) rotateY(34deg) scale(1.04);
-    /* Aterrizaje: back-out con overshoot sutil → sensación de "encaje" */
-    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: translate(-615%, -126%) translateZ(-10px) rotateX(13deg) rotateY(41deg) rotateZ(0deg)
+      scale(0.975);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  58.5% {
+    opacity: 1;
+    transform: translate(-615%, -126%) translateZ(6px) rotateX(11.5deg) rotateY(36.5deg)
+      rotateZ(0deg) scale(1.015);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
   }
   62% {
     opacity: 1;
-    transform: translate(-615%, -126%) rotateX(12deg) rotateY(38deg) scale(1);
+    transform: translate(-615%, -126%) translateZ(0) rotateX(12deg) rotateY(38deg) rotateZ(0deg)
+      scale(1);
   }
   66% {
     opacity: 0;
-    transform: translate(-615%, -126%) rotateX(12deg) rotateY(38deg) scale(1);
+    transform: translate(-615%, -126%) translateZ(0) rotateX(12deg) rotateY(38deg) rotateZ(0deg)
+      scale(1);
   }
   67%,
   100% {
     opacity: 0;
-    transform: rotateX(12deg) rotateY(-38deg) scale(1);
+    transform: translate(0%, 0%) translateZ(0) rotateX(12deg) rotateY(-38deg) rotateZ(0deg) scale(1);
+  }
+}
+
+/* Sombra de piso de cada voladora: elipse pre-renderizada (rgba neutra, estática),
+   animada SOLO con transform/opacity. Viaja recta por la "cuerda" origen→destino
+   mientras la figurita arquea por arriba: el gap vende el alto, el reencuentro vende
+   el contacto. Lockstep con su voladora (mismos % y beziers por tramo). */
+.fly-shadow {
+  position: absolute;
+  width: clamp(46px, 11.5%, 60px);
+  aspect-ratio: 3 / 4;
+  opacity: 0;
+  background: radial-gradient(50% 16% at 50% 88%, rgb(0 0 0 / 0.45), transparent 70%);
+  will-change: transform, opacity;
+}
+.fly-shadow-a {
+  top: 9%;
+  left: 11.5%;
+  z-index: 40;
+  animation: cl-fsa 12s linear infinite;
+}
+.fly-shadow-b {
+  top: 67%;
+  left: 84%;
+  z-index: 40;
+  animation: cl-fsb 12s linear infinite;
+}
+@keyframes cl-fsa {
+  0%,
+  18% {
+    opacity: 0;
+    transform: translate(0%, 14%) scale(0.9);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  21% {
+    opacity: 0.35;
+    transform: translate(0%, 14%) scale(1);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  40% {
+    opacity: 0.12;
+    transform: translate(234%, 62%) scale(0.62);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0.4);
+  }
+  53% {
+    opacity: 0.4;
+    transform: translate(468%, 110%) scale(1.02);
+  }
+  56% {
+    opacity: 0;
+    transform: translate(468%, 110%) scale(1);
+  }
+  57%,
+  100% {
+    opacity: 0;
+    transform: translate(0%, 14%) scale(0.9);
+  }
+}
+@keyframes cl-fsb {
+  0%,
+  18% {
+    opacity: 0;
+    transform: translate(0%, 14%) scale(0.9);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  21% {
+    opacity: 0.35;
+    transform: translate(0%, 14%) scale(1);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  42% {
+    opacity: 0.12;
+    transform: translate(-307%, -49%) scale(0.66);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0.4);
+  }
+  55% {
+    opacity: 0.4;
+    transform: translate(-615%, -112%) scale(1.02);
+  }
+  58% {
+    opacity: 0;
+    transform: translate(-615%, -112%) scale(1);
+  }
+  59%,
+  100% {
+    opacity: 0;
+    transform: translate(0%, 14%) scale(0.9);
   }
 }
 
@@ -462,6 +639,7 @@ body {
 .exchange-scene.is-paused .album,
 .exchange-scene.is-paused .static-src,
 .exchange-scene.is-paused .scene-fly,
+.exchange-scene.is-paused .fly-shadow,
 .exchange-scene.is-paused .static-dst,
 .exchange-scene.is-paused .hole-fill,
 .exchange-scene.is-paused .match-badge,
@@ -469,11 +647,13 @@ body {
   animation-play-state: paused;
 }
 
-/* Reduced motion: sin loop → todo en su estado final (encajado + match card) */
+/* Reduced motion: sin loop → todo en su estado final (encajado + match card).
+   .fly-shadow base opacity:0 → invisible en estático. */
 @media (prefers-reduced-motion: reduce) {
   .album,
   .static-src,
   .scene-fly,
+  .fly-shadow,
   .static-dst,
   .hole-fill,
   .match-badge,

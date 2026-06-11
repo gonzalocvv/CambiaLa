@@ -138,6 +138,10 @@ export function ExchangeAnimation() {
         <MiniAlbum side="a" />
         <MiniAlbum side="b" />
 
+        {/* Sombras de piso de las voladoras: venden la altura del arco (transform/opacity only) */}
+        <div className="fly-shadow fly-shadow-a" />
+        <div className="fly-shadow fly-shadow-b" />
+
         {/* Voladoras a nivel escena: por encima de ambos álbumes (nunca ocluidas) */}
         <div className="scene-fly scene-fly-a">
           <StickerFace code="URU" number="9" variant="primary" />
