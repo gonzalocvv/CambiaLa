@@ -15,6 +15,9 @@ const mockGetNotificationsForUser = vi.hoisted(() =>
 );
 
 vi.mock('next-intl/server', () => ({ getTranslations: mockGetTranslations }));
+// El BottomTabBar montado dentro del AppNavbar usa hooks de cliente:
+vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
+vi.mock('next/navigation', () => ({ usePathname: () => '/album' }));
 vi.mock('@/lib/auth', () => ({ getSession: mockGetSession }));
 vi.mock('@/services/notification.service', () => ({
   notificationService: { getNotificationsForUser: mockGetNotificationsForUser },
