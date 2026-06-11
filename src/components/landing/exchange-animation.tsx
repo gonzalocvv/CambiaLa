@@ -27,7 +27,7 @@ function StickerFace({
   const f = FACE[variant];
   return (
     <div
-      className={`bg-card flex h-full w-full flex-col overflow-hidden rounded-[4px] border ${f.border}`}
+      className={`bg-card flex h-full w-full flex-col overflow-hidden rounded-[4px] border shadow-sm ${f.border}`}
     >
       <div
         className={`flex items-center justify-center py-0.5 text-[8px] font-bold tracking-widest ${f.band}`}
@@ -63,7 +63,7 @@ function MiniAlbum({ side }: { side: 'a' | 'b' }) {
   const holeIndex = isA ? 7 : 1;
 
   return (
-    <div className={`album album-${side} bg-card border-border border shadow-md`}>
+    <div className={`album album-${side} bg-card border-border border shadow-lg`}>
       <div className="grid h-full w-full grid-cols-3 grid-rows-3 gap-1.5 p-2">
         {Array.from({ length: 9 }).map((_, i) => {
           if (i === repeIndex) {

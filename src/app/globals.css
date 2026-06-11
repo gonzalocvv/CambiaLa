@@ -299,8 +299,13 @@ body {
   position: absolute;
   width: clamp(46px, 11.5%, 60px);
   aspect-ratio: 3 / 4;
+  border-radius: 4px;
   opacity: 0;
   backface-visibility: hidden;
+  /* Sombra base estática (no animada): da peso y eleva la voladora sobre la escena. */
+  box-shadow:
+    0 10px 22px -8px rgb(0 0 0 / 0.5),
+    0 2px 6px -2px rgb(0 0 0 / 0.3);
   will-change: transform, opacity;
 }
 .scene-fly-a {
@@ -326,19 +331,24 @@ body {
   22% {
     opacity: 1;
     transform: rotateX(12deg) rotateY(38deg) scale(1);
+    /* Ascenso: ease-out fuerte → despega rápido y flota al ápex */
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
   }
   40% {
     opacity: 1;
     transform: translate(234%, -34%) translateZ(150px) rotateX(8deg) rotateY(0deg) scale(1.16);
+    /* Caída: ease-in → acelera al bajar (gravedad) */
+    animation-timing-function: cubic-bezier(0.45, 0, 0.7, 0.2);
   }
   56% {
     opacity: 1;
     transform: translate(468%, 96%) translateZ(24px) rotateX(12deg) rotateY(-34deg) scale(1.04);
+    /* Aterrizaje: back-out con overshoot sutil → sensación de "encaje" */
+    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   60% {
     opacity: 1;
     transform: translate(468%, 96%) rotateX(12deg) rotateY(-38deg) scale(1);
-    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   64% {
     opacity: 0;
@@ -361,19 +371,24 @@ body {
   22% {
     opacity: 1;
     transform: rotateX(12deg) rotateY(-38deg) scale(1);
+    /* Ascenso: ease-out fuerte → despega rápido y flota al ápex */
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
   }
   42% {
     opacity: 1;
     transform: translate(-307%, -44%) translateZ(120px) rotateX(8deg) rotateY(0deg) scale(1.12);
+    /* Caída: ease-in → acelera al bajar (gravedad) */
+    animation-timing-function: cubic-bezier(0.45, 0, 0.7, 0.2);
   }
   58% {
     opacity: 1;
     transform: translate(-615%, -126%) translateZ(24px) rotateX(12deg) rotateY(34deg) scale(1.04);
+    /* Aterrizaje: back-out con overshoot sutil → sensación de "encaje" */
+    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   62% {
     opacity: 1;
     transform: translate(-615%, -126%) rotateX(12deg) rotateY(38deg) scale(1);
-    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   66% {
     opacity: 0;
