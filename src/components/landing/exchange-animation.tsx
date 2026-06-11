@@ -40,7 +40,7 @@ function StickerFace({
   const f = FACE[variant];
   return (
     <div
-      className={`bg-card ring-border/40 flex h-full w-full flex-col overflow-hidden rounded-[1.5px] border shadow-[0_1px_1px_rgba(0,0,0,0.22),0_2px_5px_-1px_rgba(0,0,0,0.16)] ring-1 ring-inset ${f.border}`}
+      className={`bg-card ring-border/40 relative flex h-full w-full flex-col overflow-hidden rounded-[1.5px] border shadow-[0_1px_1px_rgba(0,0,0,0.22),0_2px_5px_-1px_rgba(0,0,0,0.16)] ring-1 ring-inset ${f.border}`}
     >
       <div
         className={`flex items-center justify-center py-0.5 text-[8px] font-bold tracking-widest ${f.band}`}
@@ -52,6 +52,8 @@ function StickerFace({
       >
         {number}
       </div>
+      {/* Brillo de papel impreso: reflejo diagonal sutil (material, no color de marca). */}
+      <div className="sticker-sheen pointer-events-none absolute inset-0" />
     </div>
   );
 }
@@ -76,7 +78,7 @@ function MiniAlbum({ side }: { side: 'a' | 'b' }) {
   const holeIndex = isA ? 7 : 1;
 
   return (
-    <div className={`album album-${side} bg-card border-border border`}>
+    <div className={`album album-${side} border-border border`}>
       <div className="grid h-full w-full grid-cols-3 grid-rows-3 gap-1.5 p-2">
         {Array.from({ length: 9 }).map((_, i) => {
           if (i === repeIndex) {
