@@ -114,3 +114,6 @@ Desktop.ini
 package-lock.json
 yarn.lock
 .gstack/
+
+# Sentry Config File
+.env.sentry-build-plugin
