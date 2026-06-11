@@ -143,10 +143,7 @@ export function ExchangeAnimation() {
 
   return (
     <div aria-hidden="true" className="pointer-events-none w-full select-none">
-      <div
-        ref={stageRef}
-        className="exchange-scene relative mx-auto h-[420px] w-full max-w-[520px] sm:h-[480px]"
-      >
+      <div ref={stageRef} className="exchange-scene relative mx-auto w-full max-w-[520px]">
         <MiniAlbum side="a" />
         <MiniAlbum side="b" />
 
