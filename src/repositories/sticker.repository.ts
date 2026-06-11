@@ -6,6 +6,17 @@ import type { StickerRarity, StickerWithCount } from '@/lib/validations/sticker.
 
 const MUNDIAL_2026_SLUG = 'mundial-2026';
 
+// Orden de secciones del álbum: Intro (FWC) primero, países en el medio (A-Z),
+// Leyendas (LEG) y Coca-Cola (COKE) al final.
+const SECTION_RANK: Record<string, number> = { FWC: 0, LEG: 900, COKE: 901 };
+const COUNTRY_RANK = 100;
+
+/** Extrae la parte numérica final del número de figurita ("ALG10" → 10, "FWC1" → 1). */
+function numericPart(number: string): number {
+  const m = number.match(/(\d+)$/);
+  return m ? Number.parseInt(m[1], 10) : 0;
+}
+
 export const stickerRepository = {
   async getAlbumWithUserCounts(
     userId: string,
@@ -27,15 +38,26 @@ export const stickerRepository = {
 
     if (!album) return null;
 
-    const stickers: StickerWithCount[] = album.stickers.map((s) => ({
-      id: s.id,
-      number: s.number,
-      name: s.name,
-      team: s.team,
-      rarity: s.rarity as StickerRarity,
-      isSpecial: s.isSpecial,
-      count: s.userStickers[0]?.count ?? 0,
-    }));
+    const stickers: StickerWithCount[] = album.stickers
+      .map((s) => ({
+        id: s.id,
+        number: s.number,
+        name: s.name,
+        team: s.team,
+        rarity: s.rarity as StickerRarity,
+        isSpecial: s.isSpecial,
+        count: s.userStickers[0]?.count ?? 0,
+      }))
+      // Orden del álbum: Intro (FWC) primero, países A-Z, y Leyendas/Coca-Cola
+      // al final. Dentro de cada sección, por número REAL (no texto): así
+      // "ALG2" va antes que "ALG10" (el orderBy de Prisma ordena el string).
+      .sort((a, b) => {
+        const rankA = SECTION_RANK[a.team] ?? COUNTRY_RANK;
+        const rankB = SECTION_RANK[b.team] ?? COUNTRY_RANK;
+        if (rankA !== rankB) return rankA - rankB;
+        if (a.team !== b.team) return a.team.localeCompare(b.team);
+        return numericPart(a.number) - numericPart(b.number);
+      });
 
     return { albumId: album.id, stickers };
   },
