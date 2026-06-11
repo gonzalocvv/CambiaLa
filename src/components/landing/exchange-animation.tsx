@@ -9,12 +9,25 @@ import { MatchCardMock } from './match-card-mock';
 type Variant = 'primary' | 'accent' | 'special';
 
 const FACE: Record<Variant, { border: string; band: string; num: string }> = {
-  primary: { border: 'border-primary/40', band: 'bg-primary/15 text-primary', num: 'text-primary' },
-  accent: { border: 'border-accent/40', band: 'bg-accent/15 text-accent', num: 'text-accent' },
-  special: { border: 'border-special/50', band: 'bg-special/20 text-special', num: 'text-special' },
+  primary: {
+    border: 'border-primary/40',
+    band: 'bg-primary/15 text-primary border-b border-primary/25',
+    num: 'text-primary',
+  },
+  accent: {
+    border: 'border-accent/40',
+    band: 'bg-accent/15 text-accent border-b border-accent/25',
+    num: 'text-accent',
+  },
+  special: {
+    border: 'border-special/50',
+    band: 'bg-special/20 text-special border-b border-special/30',
+    num: 'text-special',
+  },
 };
 
-/** Figurita estilizada (retrato 3:4): código de equipo + número dorsal. Sobria, sin íconos. */
+/** Figurita estilizada (retrato 3:4): código de equipo + número dorsal. Sobria, sin íconos.
+ *  Look "de papel": esquinas filosas, marco fino impreso (ring-inset) y sombra recortada. */
 function StickerFace({
   code,
   number,
@@ -27,7 +40,7 @@ function StickerFace({
   const f = FACE[variant];
   return (
     <div
-      className={`bg-card flex h-full w-full flex-col overflow-hidden rounded-[4px] border shadow-sm ${f.border}`}
+      className={`bg-card ring-border/40 flex h-full w-full flex-col overflow-hidden rounded-[1.5px] border shadow-[0_1px_1px_rgba(0,0,0,0.22),0_2px_5px_-1px_rgba(0,0,0,0.16)] ring-1 ring-inset ${f.border}`}
     >
       <div
         className={`flex items-center justify-center py-0.5 text-[8px] font-bold tracking-widest ${f.band}`}
@@ -63,12 +76,12 @@ function MiniAlbum({ side }: { side: 'a' | 'b' }) {
   const holeIndex = isA ? 7 : 1;
 
   return (
-    <div className={`album album-${side} bg-card border-border border shadow-lg`}>
+    <div className={`album album-${side} bg-card border-border border`}>
       <div className="grid h-full w-full grid-cols-3 grid-rows-3 gap-1.5 p-2">
         {Array.from({ length: 9 }).map((_, i) => {
           if (i === repeIndex) {
             return (
-              <div key={i} className="relative rounded-[4px]">
+              <div key={i} className="relative rounded-[1.5px]">
                 <div className={`static-src static-src-${side} absolute inset-0`}>
                   <StickerFace {...source} />
                 </div>
@@ -79,10 +92,10 @@ function MiniAlbum({ side }: { side: 'a' | 'b' }) {
             return (
               <div
                 key={i}
-                className="border-primary/50 relative rounded-[4px] border border-dashed"
+                className="border-primary/50 relative rounded-[1.5px] border border-dashed shadow-[inset_0_1px_2px_rgba(0,0,0,0.08)]"
               >
                 <div
-                  className={`hole-fill hole-fill-${side} border-primary bg-primary/20 ring-primary/40 absolute inset-0 rounded-[4px] border ring-2`}
+                  className={`hole-fill hole-fill-${side} border-primary bg-primary/20 ring-primary/40 absolute inset-0 rounded-[1.5px] border ring-2`}
                 />
                 <div className={`static-dst static-dst-${side} absolute inset-0`}>
                   <StickerFace code={landed.code} number={landed.number} variant={landed.variant} />
@@ -90,15 +103,12 @@ function MiniAlbum({ side }: { side: 'a' | 'b' }) {
               </div>
             );
           }
-          if (isA && i === 4) {
-            return (
-              <div
-                key={i}
-                className="bg-special/15 border-special/40 ring-special/30 rounded-[4px] border ring-1"
-              />
-            );
-          }
-          return <div key={i} className="bg-muted rounded-[4px]" />;
+          return (
+            <div
+              key={i}
+              className="bg-muted rounded-[1.5px] shadow-[inset_0_1px_2px_rgba(0,0,0,0.08)]"
+            />
+          );
         })}
       </div>
     </div>
