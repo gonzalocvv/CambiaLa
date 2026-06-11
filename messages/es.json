@@ -133,7 +133,7 @@
     "filterHave": "Tengo",
     "filterDuplicates": "Repetidas",
     "filterSpecials": "Especiales",
-    "searchPlaceholder": "Buscar por número (URU9) o nombre (Suárez)…",
+    "searchPlaceholder": "Buscar por número (URU9) o nombre (Valverde)…",
     "searchClear": "Limpiar búsqueda",
     "teamFilterAll": "Todos los equipos",
     "emptyFilter": "No hay figuritas que coincidan con ese filtro.",
@@ -207,7 +207,8 @@
     "album": "Mi álbum",
     "matches": "Mis matches",
     "conversations": "Chats",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "primary": "Navegación principal"
   },
   "Conversations": {
     "title": "Mis chats",

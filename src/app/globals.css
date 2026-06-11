@@ -137,6 +137,18 @@ body {
   }
 }
 
+/* RF-824 — el bottom tab bar (mobile) lo marca con data-has-tabbar en mount.
+   Reservamos su alto + safe-area para que no tape el contenido. En desktop la
+   barra no existe (md:hidden), así que liberamos el padding. */
+body[data-has-tabbar] {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 768px) {
+  body[data-has-tabbar] {
+    padding-bottom: 0;
+  }
+}
+
 /* ===========================================================================
    Landing — animación "el intercambio" (RF-821)
    Loop 100% CSS, período compartido de 12s, SOLO transform/opacity (composite).
