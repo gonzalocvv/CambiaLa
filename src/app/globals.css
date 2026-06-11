@@ -170,15 +170,36 @@ body {
 }
 
 /* Brillo de papel impreso de cada figurita: reflejo diagonal sutil. Material
-   (blanco neutro a baja opacidad, análogo a las box-shadow), no color de marca.
-   Lee más glossy sobre card oscura (dark) y apenas sobre card clara (light). */
+   (blanco/negro neutro a baja opacidad, análogo a las box-shadow), no color de marca.
+   LIGHT: highlight blanco arriba (visible sobre la franja de color) + falloff oscuro
+   abajo (visible sobre el cuerpo blanco → da la curvatura glossy). DARK: el blanco ya
+   resalta sobre la card oscura, así que basta el highlight. */
 .sticker-sheen {
+  background: linear-gradient(
+    142deg,
+    rgb(255 255 255 / 0.5) 0%,
+    rgb(255 255 255 / 0.12) 16%,
+    transparent 40%,
+    rgb(0 0 0 / 0.07) 100%
+  );
+}
+.dark .sticker-sheen {
   background: linear-gradient(
     135deg,
     rgb(255 255 255 / 0.16) 0%,
     rgb(255 255 255 / 0.05) 20%,
     transparent 46%
   );
+}
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) .sticker-sheen {
+    background: linear-gradient(
+      135deg,
+      rgb(255 255 255 / 0.16) 0%,
+      rgb(255 255 255 / 0.05) 20%,
+      transparent 46%
+    );
+  }
 }
 .album-a {
   top: 2%;
