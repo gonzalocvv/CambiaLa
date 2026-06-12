@@ -1,20 +1,23 @@
-import { LoginForm } from './LoginForm';
+import { LoginForm } from './login-form';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 
 type Props = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; mode?: string }>;
 };
 
-export async function generateMetadata() {
+export async function generateMetadata({ searchParams }: Props) {
   const t = await getTranslations('Auth.login');
-  return { title: `${t('title')} — CambiaLa` };
+  const params = await searchParams;
+  const isSignup = params.mode === 'signup';
+  return { title: `${isSignup ? t('titleSignup') : t('title')} — CambiaLa` };
 }
 
 export default async function LoginPage({ searchParams }: Props) {
   const t = await getTranslations('Auth.login');
   const params = await searchParams;
   const hasError = Boolean(params.error);
+  const isSignup = params.mode === 'signup';
 
   return (
     <div className="bg-background flex min-h-screen flex-col items-center justify-center px-6 py-12">
@@ -24,8 +27,12 @@ export default async function LoginPage({ searchParams }: Props) {
             <span className="text-brand">Cambia</span>
             <span className="text-accent">La</span>
           </Link>
-          <h1 className="text-foreground mt-2 text-xl font-semibold">{t('title')}</h1>
-          <p className="text-muted-foreground mt-1 text-sm">{t('subtitle')}</p>
+          <h1 className="text-foreground mt-2 text-xl font-semibold">
+            {isSignup ? t('titleSignup') : t('title')}
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {isSignup ? t('subtitleSignup') : t('subtitle')}
+          </p>
         </div>
 
         {hasError && (
@@ -34,7 +41,7 @@ export default async function LoginPage({ searchParams }: Props) {
           </div>
         )}
 
-        <LoginForm />
+        <LoginForm mode={isSignup ? 'signup' : 'login'} />
 
         <p className="text-muted-foreground mt-6 text-center text-xs">
           <Link href="/" className="hover:text-foreground underline transition-colors">

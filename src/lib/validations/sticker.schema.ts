@@ -26,12 +26,21 @@ export const GetAlbumResponseSchema = z.object({
   stats: AlbumStatsSchema,
 });
 
-export const UpdateStickerCountSchema = z.object({
-  count: z.number().int().min(0).max(99),
+// Bulk: una ráfaga de clicks en el álbum se manda en un solo PATCH (RF-213).
+export const BulkUpdateStickersSchema = z.object({
+  changes: z
+    .array(
+      z.object({
+        stickerId: z.string().min(1).max(32), // L6: CUIDs son 24-25 chars; corta payloads absurdos
+        count: z.number().int().min(0).max(99),
+      }),
+    )
+    .min(1)
+    .max(200),
 });
 
 export type StickerRarity = z.infer<typeof StickerRaritySchema>;
 export type StickerWithCount = z.infer<typeof StickerWithCountSchema>;
 export type AlbumStats = z.infer<typeof AlbumStatsSchema>;
 export type GetAlbumResponse = z.infer<typeof GetAlbumResponseSchema>;
-export type UpdateStickerCountInput = z.infer<typeof UpdateStickerCountSchema>;
+export type BulkUpdateStickersInput = z.infer<typeof BulkUpdateStickersSchema>;

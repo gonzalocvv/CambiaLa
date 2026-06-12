@@ -9,10 +9,25 @@ const mockMessageRepo = vi.hoisted(() => ({
   create: vi.fn(),
   findByMatch: vi.fn(),
   countUnread: vi.fn(),
+  markMessagesRead: vi.fn(),
+}));
+
+const mockNotificationService = vi.hoisted(() => ({ createNotification: vi.fn() }));
+const mockUserRepo = vi.hoisted(() => ({ findById: vi.fn() }));
+const mockLogger = vi.hoisted(() => ({
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
 }));
 
 vi.mock('@/repositories/match.repository', () => ({ matchRepository: mockMatchRepo }));
 vi.mock('@/repositories/message.repository', () => ({ messageRepository: mockMessageRepo }));
+vi.mock('@/repositories/user.repository', () => ({ userRepository: mockUserRepo }));
+vi.mock('@/services/notification.service', () => ({
+  notificationService: mockNotificationService,
+}));
+vi.mock('@/lib/logger', () => ({ logger: mockLogger }));
 
 import { MessageAccessError, MatchNotFoundError, messageService } from '../message.service';
 
@@ -174,6 +189,101 @@ describe('messageService.sendMessage', () => {
     expect(result.readAt).toBeNull();
   });
 
+  it('notifies the recipient when the message is their first unread (countUnread===1)', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch());
+    mockMessageRepo.create.mockResolvedValue(makeDbMessage());
+    mockMessageRepo.countUnread.mockResolvedValue(1);
+    mockUserRepo.findById.mockResolvedValue({ id: 'user-a', name: 'Pepe', username: 'pepex' });
+
+    await messageService.sendMessage('match-1', 'user-a', 'Hola');
+
+    expect(mockMessageRepo.countUnread).toHaveBeenCalledWith('match-1', 'user-b');
+    expect(mockUserRepo.findById).toHaveBeenCalledWith('user-a');
+    expect(mockNotificationService.createNotification).toHaveBeenCalledWith(
+      'user-b',
+      'new_message',
+      {
+        matchId: 'match-1',
+        fromUserId: 'user-a',
+        fromName: 'Pepe',
+      },
+    );
+  });
+
+  it('uses username as fromName fallback when name is null', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch());
+    mockMessageRepo.create.mockResolvedValue(makeDbMessage());
+    mockMessageRepo.countUnread.mockResolvedValue(1);
+    mockUserRepo.findById.mockResolvedValue({ id: 'user-a', name: null, username: 'pepex' });
+
+    await messageService.sendMessage('match-1', 'user-a', 'Hola');
+
+    expect(mockNotificationService.createNotification).toHaveBeenCalledWith(
+      'user-b',
+      'new_message',
+      expect.objectContaining({ fromName: 'pepex' }),
+    );
+  });
+
+  it('omits fromName from payload when user lookup returns null', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch());
+    mockMessageRepo.create.mockResolvedValue(makeDbMessage());
+    mockMessageRepo.countUnread.mockResolvedValue(1);
+    mockUserRepo.findById.mockResolvedValue(null);
+
+    await messageService.sendMessage('match-1', 'user-a', 'Hola');
+
+    expect(mockNotificationService.createNotification).toHaveBeenCalledWith(
+      'user-b',
+      'new_message',
+      { matchId: 'match-1', fromUserId: 'user-a' },
+    );
+  });
+
+  it('does NOT notify on a subsequent unread message (countUnread>1) — anti-spam', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch());
+    mockMessageRepo.create.mockResolvedValue(makeDbMessage());
+    mockMessageRepo.countUnread.mockResolvedValue(3);
+
+    await messageService.sendMessage('match-1', 'user-a', 'otra');
+
+    expect(mockNotificationService.createNotification).not.toHaveBeenCalled();
+  });
+
+  it('derives the recipient correctly when user B sends', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch());
+    mockMessageRepo.create.mockResolvedValue(makeDbMessage({ fromUserId: 'user-b' }));
+    mockMessageRepo.countUnread.mockResolvedValue(1);
+    mockUserRepo.findById.mockResolvedValue({ id: 'user-b', name: 'Ana', username: 'anax' });
+
+    await messageService.sendMessage('match-1', 'user-b', 'Hola');
+
+    expect(mockNotificationService.createNotification).toHaveBeenCalledWith(
+      'user-a',
+      'new_message',
+      {
+        matchId: 'match-1',
+        fromUserId: 'user-b',
+        fromName: 'Ana',
+      },
+    );
+  });
+
+  it('does not break the send when the notification fails', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch());
+    mockMessageRepo.create.mockResolvedValue(makeDbMessage({ body: 'igual sale' }));
+    mockMessageRepo.countUnread.mockResolvedValue(1);
+    mockNotificationService.createNotification.mockRejectedValue(new Error('notif down'));
+
+    const result = await messageService.sendMessage('match-1', 'user-a', 'igual sale');
+
+    expect(result.body).toBe('igual sale');
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'message notification failed',
+      expect.objectContaining({ error: 'notif down' }),
+    );
+  });
+
   it('throws MessageAccessError when sender is not a participant', async () => {
     mockMatchRepo.findById.mockResolvedValue(makeMatch());
 
@@ -282,5 +392,36 @@ describe('messageService.getConversationsForUser', () => {
     expect(result).toHaveLength(2);
     expect(result[0].unreadCount).toBe(0);
     expect(result[1].unreadCount).toBe(3);
+  });
+});
+
+describe('messageService.markRead (RF-343)', () => {
+  it('marks messages as read for a participant', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch());
+    mockMessageRepo.markMessagesRead.mockResolvedValue(2);
+
+    await messageService.markRead('match-1', 'user-b');
+
+    expect(mockMessageRepo.markMessagesRead).toHaveBeenCalledWith('match-1', 'user-b');
+  });
+
+  it('returns without error when there are no unread messages', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch());
+    mockMessageRepo.markMessagesRead.mockResolvedValue(0);
+
+    await expect(messageService.markRead('match-1', 'user-a')).resolves.toBeUndefined();
+  });
+
+  it('throws MessageAccessError when user is not a participant', async () => {
+    mockMatchRepo.findById.mockResolvedValue(makeMatch());
+
+    await expect(messageService.markRead('match-1', 'user-c')).rejects.toThrow(MessageAccessError);
+    expect(mockMessageRepo.markMessagesRead).not.toHaveBeenCalled();
+  });
+
+  it('throws MatchNotFoundError when match does not exist', async () => {
+    mockMatchRepo.findById.mockResolvedValue(null);
+
+    await expect(messageService.markRead('match-1', 'user-a')).rejects.toThrow(MatchNotFoundError);
   });
 });

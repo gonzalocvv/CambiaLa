@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { getSession } from '@/lib/auth';
-import OnboardingForm from './OnboardingForm';
+import OnboardingForm from './onboarding-form';
 
 export async function generateMetadata() {
   const t = await getTranslations('Onboarding');
@@ -14,7 +14,7 @@ export default async function OnboardingPage() {
   const session = await getSession();
 
   if (!session) redirect('/auth/login');
-  if (session.onboardingDoneAt) redirect('/matches');
+  if (session.onboardingDoneAt) redirect('/album');
 
   return (
     <div className="bg-background flex min-h-screen flex-col items-center justify-center px-6 py-12">

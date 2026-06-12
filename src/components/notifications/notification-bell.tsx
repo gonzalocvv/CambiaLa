@@ -15,6 +15,7 @@ export function NotificationBell({ initialUnreadCount }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
   const fetchNotifications = async () => {
@@ -44,8 +45,18 @@ export function NotificationBell({ initialUnreadCount }: Props) {
         setIsOpen(false);
       }
     };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
     document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
   }, [isOpen]);
 
   const handleToggle = () => {
@@ -71,9 +82,12 @@ export function NotificationBell({ initialUnreadCount }: Props) {
   return (
     <div ref={containerRef} className="relative">
       <button
+        ref={buttonRef}
         onClick={handleToggle}
         className="hover:bg-muted relative rounded-lg p-2 transition-colors"
         aria-label={bellLabel}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
       >
         <Bell className="text-foreground h-5 w-5" />
         {unreadCount > 0 && (

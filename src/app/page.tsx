@@ -1,6 +1,9 @@
-import { ScrollHint } from '@/components/coming-soon/ScrollHint';
+import { ExchangeAnimation } from '@/components/landing/exchange-animation';
+import { Reveal } from '@/components/landing/reveal';
+import { WhySection } from '@/components/landing/why-section';
 import { Navbar } from '@/components/layout/navbar';
 import { SiteFooter } from '@/components/layout/site-footer';
+import { buildOrganizationJsonLd, buildWebSiteJsonLd, toJsonLdString } from '@/lib/json-ld';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -16,42 +19,59 @@ export default async function Home() {
 
   return (
     <div className="bg-background text-foreground flex flex-1 flex-col">
+      {/* Schema.org JSON-LD — RF-809 */}
+      {/* dangerouslySetInnerHTML es seguro aquí: toJsonLdString escapa <, >, & */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: toJsonLdString(buildWebSiteJsonLd(BASE_URL)) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: toJsonLdString(buildOrganizationJsonLd(BASE_URL)) }}
+      />
       <Navbar loginLabel={t('nav.login')} ctaLabel={t('nav.cta')} />
 
-      {/* Hero */}
-      <section className="bg-secondary/40 relative flex min-h-[92vh] flex-col items-center justify-center px-6 py-20 dark:bg-transparent">
-        <div className="max-w-2xl space-y-8 text-center">
-          <div className="bg-secondary text-secondary-foreground ring-primary/20 dark:bg-accent/10 dark:text-accent dark:ring-accent/20 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium ring-1 ring-inset">
-            <span>🇺🇾</span>
-            <span>{t('hero.badge')}</span>
+      {/* Hero — el match es el héroe */}
+      <section className="bg-secondary/40 relative px-6 py-14 md:py-20 dark:bg-transparent">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-8">
+          {/* Copy (estático para no afectar el LCP) */}
+          <div className="text-center lg:text-left">
+            <div className="bg-secondary text-secondary-foreground ring-primary/20 dark:bg-accent/10 dark:text-accent dark:ring-accent/20 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium ring-1 ring-inset">
+              <span aria-hidden="true">🇺🇾</span>
+              <span>{t('hero.badge')}</span>
+            </div>
+
+            <h1 className="mt-6 text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">
+              {t.rich('hero.title', {
+                hl: (chunks) => <span className="text-accent-text">{chunks}</span>,
+              })}
+            </h1>
+
+            <p className="text-muted-foreground mx-auto mt-5 max-w-xl text-lg font-light md:text-xl lg:mx-0">
+              {t('hero.subtitle')}
+            </p>
+
+            <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
+              <Link
+                href="/auth/login?mode=signup"
+                className="bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90 hover:shadow-accent/30 inline-flex items-center justify-center rounded-xl px-8 py-4 text-base font-semibold shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl"
+              >
+                {t('hero.cta')} →
+              </Link>
+              <a
+                href="#como-funciona"
+                className="border-border text-muted-foreground hover:border-primary hover:text-foreground inline-flex items-center justify-center rounded-xl border px-8 py-4 text-base font-semibold transition-all"
+              >
+                {t('hero.ctaSecondary')}
+              </a>
+            </div>
           </div>
 
-          <h1 className="text-6xl font-extrabold tracking-tight md:text-8xl">
-            <span className="text-brand">{t('hero.titlePrefix')}</span>
-            <span className="text-accent">{t('hero.titleHighlight')}</span>
-          </h1>
-
-          <p className="text-muted-foreground text-2xl font-light md:text-3xl">
-            {t('hero.subtitle')}
-          </p>
-
-          <div className="flex flex-col items-center gap-4 pt-2 sm:flex-row sm:justify-center">
-            <Link
-              href="/auth/login"
-              className="bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90 hover:shadow-accent/30 inline-flex items-center justify-center rounded-xl px-8 py-4 text-base font-semibold shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl"
-            >
-              {t('hero.cta')} →
-            </Link>
-            <a
-              href="#como-funciona"
-              className="border-border text-muted-foreground hover:border-primary hover:text-foreground inline-flex items-center justify-center rounded-xl border px-8 py-4 text-base font-semibold transition-all"
-            >
-              {t('hero.ctaSecondary')}
-            </a>
+          {/* Escena del intercambio + match card como desenlace */}
+          <div className="flex justify-center">
+            <ExchangeAnimation />
           </div>
         </div>
-
-        <ScrollHint targetId="como-funciona" label={t('hero.scrollHint')} />
       </section>
 
       {/* Stats bar */}
@@ -75,6 +95,11 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* ¿Por qué CambiaLa? — el diferencial */}
+      <Reveal>
+        <WhySection />
+      </Reveal>
 
       {/* Cómo funciona */}
       <section
@@ -173,7 +198,7 @@ export default async function Home() {
           </h2>
           <p className="text-muted-foreground text-lg">{t('finalCta.subtitle')}</p>
           <Link
-            href="/auth/login"
+            href="/auth/login?mode=signup"
             className="bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90 hover:shadow-accent/30 inline-flex items-center justify-center rounded-xl px-10 py-4 text-base font-semibold shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl"
           >
             {t('finalCta.cta')} →

@@ -5,10 +5,15 @@ const mockAuth = vi.hoisted(() => ({
 }));
 const mockCreateClient = vi.hoisted(() => vi.fn(async () => ({ auth: mockAuth })));
 const mockResolveDestination = vi.hoisted(() => vi.fn());
+const mockCheckRateLimit = vi.hoisted(() => vi.fn(() => ({ allowed: true, remaining: 9 })));
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: mockCreateClient }));
 vi.mock('@/lib/auth/resolve-destination', () => ({
   resolveDestinationForUser: mockResolveDestination,
+}));
+vi.mock('@/lib/rate-limit', () => ({
+  checkRateLimit: mockCheckRateLimit,
+  getClientIp: vi.fn(() => '1.2.3.4'),
 }));
 
 import { POST } from '../route';
@@ -23,7 +28,10 @@ function makeRequest(body: unknown) {
   });
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockCheckRateLimit.mockReturnValue({ allowed: true, remaining: 9 });
+});
 
 describe('POST /api/auth/verify-otp — validación', () => {
   it('400 si el body no es JSON', async () => {
@@ -41,6 +49,23 @@ describe('POST /api/auth/verify-otp — validación', () => {
   it('400 si el código tiene menos de 6 dígitos', async () => {
     const res = await POST(makeRequest({ email: 'gonza@example.com', token: '123' }));
     expect(res.status).toBe(400);
+    expect(mockAuth.verifyOtp).not.toHaveBeenCalled();
+  });
+
+  it('400 si el token contiene caracteres no numéricos', async () => {
+    const res = await POST(makeRequest({ email: 'gonza@example.com', token: 'abc123' }));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'missing_fields' });
+    expect(mockAuth.verifyOtp).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/auth/verify-otp — rate limit', () => {
+  it('429 cuando se excede el rate limit', async () => {
+    mockCheckRateLimit.mockReturnValueOnce({ allowed: false, remaining: 0 });
+    const res = await POST(makeRequest({ email: 'gonza@example.com', token: '123456' }));
+    expect(res.status).toBe(429);
+    expect(await res.json()).toEqual({ error: 'rate_limited' });
     expect(mockAuth.verifyOtp).not.toHaveBeenCalled();
   });
 });

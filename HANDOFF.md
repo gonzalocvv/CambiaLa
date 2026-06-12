@@ -3,6 +3,1643 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-12 — RF-1101..1108: Actividades de intercambio por departamento (módulo 1100)
+
+- **Ítem**: Módulo 1100 completo — actividades presenciales por departamento (admin publica, usuarios logueados ven, notificación in-app al depto).
+- **Rama**: `feat/activities` (sesión supervisada, construido en esta sesión por Claude, no por la rutina).
+- **Estado**: ✅ código completo, **GATE en verde** (format ✅ lint ✅ type-check ✅ format:check ✅ prisma:generate ✅ test:coverage ✅ **744 tests** / 77 archivos · build ✅). 9 rutas nuevas compilan.
+
+### Qué se hizo (TDD, commits atómicos)
+
+- **DB** (`prisma/schema.prisma`): modelo `Activity` (FK `Album` + `User` autor, `department`, `bannerUrl`, `startsAt/endsAt`, `isPublished`) + relaciones inversas. `new_activity` documentado en `Notification.type`.
+- **Validations** (`activity.schema.ts`): create/update/list + DTOs + constantes de banner.
+- **Repositories**: `album.repository` (`findActiveAlbum`) + `activity.repository` (CRUD, `findPublishedByDepartment`, `findAllForAdmin`, `findUserIdsByDepartment`).
+- **Storage** (`lib/supabase/admin.ts` + `lib/storage/activity-banner.ts`): cliente service-role + upload con validación MIME/size; si el bucket falta, loguea y crea sin banner.
+- **Service** (`activity.service.ts`): CRUD + fan-out in-app `new_activity` (excluye autor, tolerante a fallos).
+- **API**: `GET/POST /api/admin/activities`, `PATCH/DELETE /api/admin/activities/[id]`, `GET /api/activities`, `GET /api/activities/[id]`.
+- **UI usuario**: `/activities` (selector de depto, default el del usuario) + `/activities/[id]`. `/activities` en `PROTECTED_PATHS`. Link en navbar + bottom-tab-bar.
+- **UI admin**: `/admin/activities` (tabla) + alta/edición/baja con banner. Link en el panel `/admin`.
+- **Notificaciones**: `new_activity` en el enum + render en la campanita (link a `/activities/[id]`). NO entra en `EMAILABLE_NOTIFICATION_TYPES` (solo in-app, decisión del owner).
+- **Numeración**: el rango `RF-1101–1106` (antes "Plan Pro / monetización") se movió a `RF-1301–1306` para liberar el módulo 1100 (decisión del owner en esta sesión).
+
+### ⚠️ Pendiente de Gonza (infra — el código no rompe sin esto)
+
+1. **Migración Prisma**: generar/aplicar la migración del modelo `Activity` contra la DB real (`pnpm prisma:migrate --name add_activity`). El build/test usan DB mock, no la requieren.
+2. **Bucket de Storage**: crear `activity-banners` en Supabase con **lectura pública**. Sin él, la subida loguea error y la actividad se crea sin banner.
+
+### Próximos pasos / deuda
+
+- Validar/allowlistear el host de `bannerUrl` antes de renderizarlo (igual que el TODO de RF-112 avatar).
+- F2: email a usuarios del depto, RSVP/cupos, selector de álbum en UI.
+- PR **SIN auto-merge** (es código): lo revisa Gonza (gstack + humano) antes del merge por rebase.
+
+---
+
+## 2026-06-12 — Infra: metodología auto-builder instalada como config ejecutable
+
+- **Ítem**: Tooling — dejar la metodología del pipeline autónomo (ADR-021) instalada como **configuración versionada** de Claude Code (antes vivía solo como texto en `CLAUDE.md`/`CONTRIBUTING.md`).
+- **Rama**: `feat/activities` (sesión manual).
+- **Estado**: ✅ archivos creados y validados (JSON/bash/YAML OK, Prettier limpio). **No se tocó código de app.**
+
+### Qué se instaló
+
+- **`.claude/auto-builder.md`** — prompt/metodología de la rutina: objetivo, fuentes de verdad, reglas críticas, los 9 pasos, el GATE, formato del PR (sin footers de atribución), identidad de commits, y la alternativa Routines (web). Encabezado fija el runtime: **Fable 5 (`fable`) + effort máximo**.
+- **`.claude/settings.json`** — `model: "fable"` (Fable 5), `effortLevel: "xhigh"` (máximo persistible en settings; `max` es session-only → va por env/CLI), hook `SessionStart` (`startup` → `.claude/hooks/session-start.sh`, timeout 900s), y `permissions` allow/deny (deny precede: bloquea `sudo`, `rm -rf`, lectura de `.env*`; allow: comandos del GATE + git/gh + writes a `src`/`messages`/`prisma`).
+- **`.claude/hooks/session-start.sh`** (ejecutable) — corepack + `pnpm install --frozen-lockfile` + `pnpm prisma:generate` + identidad git del runner (`Gonzalo Cabrera <gcabrera3210@gmail.com>`). Tolerante a fallos (no aborta la sesión).
+- **`.github/workflows/auto-builder.yml`** — `on: schedule` cron `0 * * * *` (horario) + `workflow_dispatch`; `concurrency: auto-builder` sin cancel; `permissions` contents/pull-requests write; `anthropics/claude-code-action@v1` con `prompt` → `.claude/auto-builder.md`, `claude_args: --model fable --effort max`, env `CLAUDE_CODE_EFFORT_LEVEL=max`.
+
+### Correcciones vs. el plan (verificadas contra docs de Claude Code)
+
+- Model: se usa el **alias `"fable"`** (confirmado válido), no el ID crudo `claude-fable-5`.
+- Effort: `"xhigh"` en `settings.json` (`"max"` **no** es válido como valor de settings — es session-only); `max` se aplica vía `--effort max` + `CLAUDE_CODE_EFFORT_LEVEL=max` en el runner.
+- `timeout` del hook va en **segundos** (900), no ms.
+
+### Dependencia (🔒 — la hace Gonza)
+
+- Cargar **`ANTHROPIC_API_KEY`** en los *Secrets* del repo (Settings → Secrets → Actions). **El workflow está inerte hasta entonces.**
+- Confirmar que el token de checkout permite **push a ramas `claude/*`** y abrir PRs (si el `GITHUB_TOKEN` por defecto no alcanza, configurar un PAT/GitHub App).
+- Verificar en el runner que el binario de Claude Code soporta `--effort max` / `effortLevel: "xhigh"` (si no, caer a `--effort high` / `"high"`).
+
+### Próximo objetivo de la rutina
+
+Primer ítem `[ ]` autónomo planificado: **Actividades de intercambio por departamento (RF-1101..1108)** — ver `BACKLOG.md` y `plan-sesion3-actividades-departamento.md`.
+
+---
+
+## 2026-06-08 — Corrida de estado: todos los ítems autónomos siguen bloqueados
+
+- **Ítem**: Verificación de estado — no hay ítems autónomos pendientes sin bloqueo.
+- **Rama**: `claude/gallant-sagan-djrpvk`.
+- **Estado**: ✅ gate verde confirmado (**691 tests**, 69 archivos). No se implementó ítem nuevo — todos los restantes tienen bloqueo documentado.
+
+### Verificación de gate
+
+Gate corrido desde cero (corepack + pnpm install fresh): format ✅ · lint ✅ · type-check ✅ · format:check ✅ · prisma:generate ✅ · test:coverage ✅ (691 tests, 69 archivos, match-engine 100%) · build ✅.
+
+### Estado de los ítems pendientes
+
+**Todos los ítems no-🔒/no-⏸️ del BACKLOG están bloqueados:**
+
+| Ítem | Bloqueo |
+|------|---------|
+| RF-112 — Avatar upload (M) | ⚠️ Necesita: (a) crear bucket `avatars` en Supabase Storage (dashboard de Gonza); (b) decidir resize: `sharp` server-side vs deferred. Sin bucket activo y decisión de resize, la feature no puede implementarse ni probarse E2E. |
+| RF-115 — Geo opt-in (C) | ⚠️ Requiere nuevo campo `geoConsent` en `User` → migración de Prisma. Dominio de Gonza (§10 del CLAUDE.md). |
+| RF-214b — Auditar catálogo vs álbum oficial (M) | ⛔ Necesita el checklist físico/oficial del álbum Panini 2026 (980 figuritas vs nuestros 896). Lo provee Gonza. |
+| RF-344 — Toggles email por tipo (S) | ⛔ Requiere migración Prisma (`notifyOnMessage`, `notifyOnReview` en `User`). Dominio de Gonza. |
+| RF-1005 — Link a Sentry (S) | 🔒 Requiere `SENTRY_DSN`. |
+| RF-824 — Bottom tab bar mobile (M) | ⏸️ RESERVADO (ola supervisada). |
+| RF-825 — Animación v2 (S) | ⏸️ RESERVADO (ola supervisada). |
+
+### Próximo paso para Gonza
+
+Para desbloquear el auto-builder, **cualquiera** de estas acciones habilita un nuevo ítem autónomo:
+
+1. **RF-112** — Crear bucket `avatars` en Supabase Storage con política "public read, owner write" y confirmar si usar `sharp` (server-side) o no redimensionar en MVP. Con esto el agente puede implementar el upload completo.
+2. **RF-115** — Correr `prisma migrate dev --name geo-consent` con `geoConsent Enum @default(NONE)` en `User`. Con el campo en la DB, el agente implementa el toggle de UI + settings.
+3. **RF-344** — Correr migración con `notifyOnMessage Boolean @default(true)` y `notifyOnReview Boolean @default(true)` en `User`. Con los campos en la DB, el agente implementa los toggles de settings + gating en `maybySendEmail`.
+
+### Bloqueos conocidos
+
+- RF-112 ⚠️ — decisión de storage + bucket (Gonza).
+- RF-115 ⚠️ — migración Geo opt-in (Gonza).
+- RF-214b ⛔ — checklist Panini 2026 (Gonza).
+- RF-344 ⛔ — migración toggles email (Gonza).
+- RF-1005 🔒 — Sentry DSN.
+
+---
+
+## 2026-06-08 — RF-309: cron Inngest cleanup-matches (TTL diario de matches)
+
+- **Ítem**: RF-309 — Cablear el cron Inngest que marca `inactive` los matches con pares inactivos >30 días.
+- **Rama**: `claude/gallant-sagan-sde1gg`.
+- **Estado**: ✅ completo. Gate verde. **691 tests** (69 archivos).
+
+### Qué se hizo
+
+`matchService.cleanupExpiredMatches` existía con tests pero no tenía ningún caller en runtime. El cron de Inngest faltaba.
+
+**`src/inngest/functions/cleanup-matches.ts`** (nuevo):
+- `handleCleanupMatches(inactiveDays = 30)` — llama `matchService.cleanupExpiredMatches(inactiveDays)`, devuelve `{ marked: N }`. Propaga errores para que Inngest reintente.
+- `cleanupMatchesFn` — cron `0 3 * * *` (3am UTC, antes del digest de las 9am).
+
+**`src/app/api/inngest/route.ts`**: `cleanupMatchesFn` añadido al array `functions` del `serve()`.
+
+**TDD (4 tests)** en `cleanup-matches.test.ts`:
+1. Llama `cleanupExpiredMatches` con ventana de 30 días por defecto.
+2. Devuelve `{ marked: 5 }` cuando hay matches expirados.
+3. Devuelve `{ marked: 0 }` cuando no hay expirados.
+4. Propaga errores (Inngest maneja el retry).
+
+### Próximo paso
+
+Todos los ítems autónomos del BACKLOG siguen bloqueados (ver tabla en corrida anterior). Para desbloquear:
+1. **RF-112** — Gonza crea bucket `avatars` en Supabase Storage + confirma resize (sharp/deferred).
+2. **RF-115** — Gonza corre migración `geoConsent` en `User`.
+3. **RF-344** — Gonza corre migración `notifyOnMessage`/`notifyOnReview` en `User`.
+
+### Bloqueos conocidos
+
+- RF-214b ⛔ — checklist Panini 2026 (Gonza).
+- RF-112 ⚠️ — decisión de storage + bucket.
+- RF-115 ⚠️ — migración Geo opt-in (Gonza).
+- RF-344 ⛔ — migración toggles email (Gonza).
+- RF-1005 🔒 — Sentry DSN.
+
+---
+
+## 2026-06-08 — Corrida de estado: todos los ítems autónomos completos
+
+- **Ítem**: Verificación de estado — no hay ítems autónomos pendientes sin bloqueo.
+- **Rama**: `claude/gallant-sagan-76j6lq`.
+- **Estado**: ✅ gate verde confirmado (687 tests). Todo el trabajo previo (RF-307..RF-347) ya está en `develop` vía proxy. No se implementó ítem nuevo — todos los restantes tienen bloqueo documentado.
+
+### Verificación de gate
+
+Gate corrido desde cero (corepack + pnpm install fresh): format ✅ · lint ✅ · type-check ✅ · format:check ✅ · prisma:generate ✅ · test:coverage ✅ (687 tests, 68 archivos, match-engine 100%) · build ✅.
+
+### Estado de los ítems pendientes
+
+**Todos los ítems no-🔒/no-⏸️ del BACKLOG están bloqueados:**
+
+| Ítem | Bloqueo |
+|------|---------|
+| RF-112 — Avatar upload (M) | ⚠️ Pendiente decisión de diseño/storage. Necesita: (a) crear bucket en Supabase Storage (dashboard de Gonza); (b) decidir resize: `sharp` server-side vs deferred. Sin bucket activo, la feature no puede probarse E2E. |
+| RF-115 — Geo opt-in (C) | ⚠️ Requiere nuevo campo `geoConsent` en `User` → migración de Prisma. Dominio de Gonza (§10 del CLAUDE.md). |
+| RF-214b — Auditar catálogo vs álbum oficial (M) | ⛔ Necesita el checklist físico/oficial del álbum Panini 2026 (980 figuritas vs nuestros 896). Lo provee Gonza. |
+| RF-344 — Toggles email por tipo (S) | ⛔ Requiere migración Prisma (`notifyOnMessage`, `notifyOnReview` en `User`). Dominio de Gonza. |
+| RF-1005 — Link a Sentry (S) | 🔒 Requiere `SENTRY_DSN`. |
+| RF-824 — Bottom tab bar mobile (M) | ⏸️ RESERVADO (ola supervisada). |
+| RF-825 — Animación v2 (S) | ⏸️ RESERVADO (ola supervisada). |
+
+### Próximo paso para Gonza
+
+Para desbloquear el auto-builder, **cualquiera** de estas acciones habilita un nuevo ítem autónomo:
+
+1. **RF-112** — Crear bucket `avatars` en Supabase Storage con política "public read, owner write" y confirmar si usar `sharp` (server-side) o no redimensionar en MVP. Con esto el agente puede implementar el upload completo.
+2. **RF-115** — Correr la migración `prisma migrate dev --name geo-consent` con el campo `geoConsent Enum @default(NONE)` en `User`. Con el campo en la DB, el agente implementa el toggle de UI + settings.
+3. **RF-344** — Correr migración con `notifyOnMessage Boolean @default(true)` y `notifyOnReview Boolean @default(true)` en `User`. Con los campos en la DB, el agente implementa los toggles de settings + gating en `maybySendEmail`.
+
+### Bloqueos conocidos (resumen)
+
+- RF-214b ⛔ — checklist Panini 2026 (Gonza).
+- RF-112 ⚠️ — decisión de storage.
+- RF-115 ⚠️ — migración Geo opt-in (Gonza).
+- RF-344 ⛔ — migración toggles email (Gonza).
+- RF-1005 🔒 — Sentry DSN.
+
+---
+
+## 2026-06-08 — RF-339: Perf de render del álbum (React.memo + hasInteracted)
+
+- **Ítem**: RF-339 — `StickerCell` memoizado + `count` como prop primitivo + `hasInteracted` flag.
+- **Rama**: `claude/rf339-album-render-perf`.
+- **Estado**: ✅ completo. Gate verde. **687 tests** (68 archivos). PR abierto con auto-merge REBASE.
+
+### Qué se hizo
+
+**`src/components/album/sticker-cell.tsx`**:
+- Envuelto con `React.memo` (renombrado a export constante).
+- `Props` ahora incluye `count: number` como campo separado (en vez de leerlo de `sticker.count`).
+- Dentro del componente, `count` viene del prop — `sticker` solo se usa para `id`, `number`, `name`, `isSpecial`.
+- Con `memo` + `sticker` reference estable + `count` primitivo + `onUpdate` estable (via useCallback), solo re-renderiza la celda tocada en una ráfaga de clicks.
+
+**`src/app/album/album-client.tsx`**:
+- `hasInteracted` flag (useState): reemplaza la comparación por índice frágil `Object.values(counts).every((c, i) => c === stickers[i]?.count)`. Más simple y correcto.
+- `handleUpdate` setea `hasInteracted(true)` en el primer click.
+- `displayStats = hasInteracted ? stats : initialStats` (sin recorrido de todos los stickers).
+- `grouped` ya no incluye `currentCount` ni el spread `{ ...s, currentCount: ... }` → tipo `Map<string, StickerWithCount[]>`, dependencia solo de `filteredStickers` (no de `counts`).
+- `StickerCell` recibe `count={counts[s.id] ?? s.count}` como prop primitivo separado.
+
+**`vitest.config.ts`**: `src/components/album/**` añadido al proyecto `dom` (y excluido del `node`).
+
+**Tests nuevos (TDD)**:
+- `src/components/album/__tests__/sticker-cell.test.tsx` (6 tests): número, count prop, click+1, ciclo 99→0, click derecho, no bajar de 0.
+- `album-client.test.tsx` +2 tests: progressbar muestra `initialStats` antes de interactuar, cambia a live stats tras primer click.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-115** (Could) — Geo opt-in con granularidad. ⚠️ Requiere nuevo campo en User → migración (dominio de Gonza).
+2. **RF-112** (M) ⚠️ — Avatar upload (pendiente decisión de diseño/servicio de storage).
+3. **RF-1005** (S) 🔒 — Link al dashboard de Sentry.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- **RF-344** ⛔ — Toggles email por tipo requieren migración de Prisma (dominio de Gonza).
+- **RF-115** ⚠️ — Geo opt-in requiere nuevo campo + migración (dominio de Gonza).
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+### Nota de corrida
+
+El PR acumulado de la sesión anterior (50 commits en `claude/gallant-sagan-8njmy5`: RF-307..RF-340) no tenía PR abierto pero sus commits YA estaban en `develop` (force-update vía proxy git). Se verificó que develop y la rama de sesión eran idénticos. Esta corrida arrancó desde esa base con un ítem nuevo limpio.
+
+---
+
+## 2026-06-08 — RF-340: Persistir buffer del álbum en localStorage
+
+- **Ítem**: RF-340 — Persistir buffer pendiente en `localStorage` + rehidratar al montar.
+- **Rama**: `claude/gallant-sagan-x0uf7d`.
+- **Estado**: ✅ completo. Gate verde. **679 tests** (67 archivos). PR pendiente de push.
+
+### Qué se hizo
+
+**`src/app/album/album-client.tsx`** — 3 nuevas exportaciones + 2 puntos de llamada + 1 effect:
+
+- `STORAGE_KEY = 'cambiala:album:pending-buffer'` — clave de localStorage.
+- `persistBuffer(buffer)` — serializa el Map a JSON en localStorage; si buffer vacío llama `removeItem`. No-op con try/catch (SSR, private browsing, cuota).
+- `loadPersistedBuffer()` — lee y valida el shape JSON (enteros 0–99); retorna `null` ante datos corruptos o SSR.
+- `handleUpdate`: llama `persistBuffer(bufferRef.current)` después de cada `bufferRef.current.set`.
+- `flush`: llama `persistBuffer(bufferRef.current)` después de borrar las keys confirmadas (ok y 4xx). En 5xx/red el buffer no cambia → localStorage conserva los datos.
+- `useEffect([scheduleFlush])` (nuevo, mount-only): lee localStorage, popula `bufferRef.current` (acceso a ref en effect: permitido), llama `scheduleFlush()` si hay datos. **No llama a setState** (respeta `react-hooks/set-state-in-effect`). Los counts del servidor se muestran hasta que el flush se confirma (~800ms).
+
+**Trade-off documentado**: en el escenario de rehidratación (tab cerrado antes del flush), el usuario ve brevemente los counts del servidor hasta que el flush confirma. Los cambios NO se pierden, que es el objetivo del RF.
+
+**`src/app/album/__tests__/album-client.test.tsx`** — nuevo describe `AlbumClient — persistencia localStorage (RF-340)` con 3 tests:
+1. `persiste el buffer en localStorage tras cada click`
+2. `rehidrata el buffer de localStorage al montar y dispara el flush`
+3. `limpia localStorage tras un flush exitoso`
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-339** (Could) — Perf de render del álbum (React.memo en StickerCell, flag `hasInteracted`). ⚠️ Requiere medir con React Profiler antes — el routine puede aplicar las optimizaciones conocidas pero no puede verificar el impacto real en el profiler.
+2. **RF-115** (Could) — Geo opt-in con granularidad (requiere migración de Prisma — dominio de Gonza).
+3. **RF-112** (M) ⚠️ — Avatar upload (pendiente decisión de diseño/servicio de storage).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- **RF-344** ⛔ — Toggles email por tipo requieren migración de Prisma (dominio de Gonza).
+- **RF-115** ⚠️ — Geo opt-in requiere nuevo campo en User → migración (Gonza).
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
+## 2026-06-08 — RF-346: Personalizar mail de new_message con nombre del remitente
+
+- **Ítem**: RF-346 — Mail de `new_message` genérico → personalizado con `fromName`.
+- **Rama**: `claude/gallant-sagan-obttph`.
+- **Estado**: ✅ completo. Gate verde. **676 tests** (67 archivos). PR abierto con auto-merge REBASE.
+
+### Qué se hizo
+
+**`src/services/message.service.ts`**: en `sendMessage`, dentro del bloque `countUnread === 1` (que ya estaba en try/catch), se carga `userRepository.findById(fromUserId)` para obtener el nombre del remitente. Se pasa `fromName: name ?? username ?? null` en el payload de la notificación solo cuando es no-null; de lo contrario el payload queda igual que antes (sin clave `fromName`). La query cae dentro del try/catch existente → un error de lookup no rompe el envío del mensaje ya persistido.
+
+**`src/lib/email/templates.ts`**: caso `new_message` en `buildNotificationEmail` ahora lee `payload.fromName` (string, trimmed, o null si ausente). Con nombre:
+- Subject: `"${fromName} te escribió en CambiaLa"`
+- Heading: `"${hi}, ${fromName} te escribió"`
+- Body: `"${fromName} te escribió por un intercambio de figuritas."`
+- Preheader: `"${fromName} te escribió por un intercambio."`
+
+Sin nombre → fallback genérico previo (backward compatible con notificaciones ya persistidas sin `fromName`). XSS seguro: `fromName` entra en `heading` y `bodyLines` que `layout()` escapa con `escapeHtml`; el `subject` recibe el raw string (texto plano, no HTML — correcto).
+
+**TDD (5 tests nuevos):**
+- `templates.test.ts`: new_message con fromName present (subject + body); fallback sin fromName; XSS en fromName (HTML escapeado en body, subject sin entidades).
+- `message.service.test.ts`: mock de `userRepository` añadido; test existente de notificación actualizado para incluir `fromName`; 2 tests nuevos (fallback a username cuando name=null; omite fromName cuando findById=null).
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-339** (Could) — Perf de render del álbum (medir con React Profiler antes de optimizar).
+2. **RF-340** (Could) — Persistir buffer en `localStorage` + rehidratar al volver (ventana <800ms en `pagehide`).
+3. **RF-115** (Could) — Geo opt-in con granularidad.
+4. **RF-112** (M) ⚠️ — Avatar upload (pendiente decisión de diseño/servicio de storage).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- **RF-344** ⛔ — Toggles email por tipo requieren migración de Prisma (dominio de Gonza).
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
+## 2026-06-08 — RF-345: Expiry + re-suscripción del token de baja
+
+- **Ítem**: RF-345 — Token de baja sin expiración (security MEDIUM) + usuario pierde preferencia previa al darse de baja.
+- **Rama**: `claude/gallant-sagan-f2mra`.
+- **Estado**: ✅ completo. Gate verde. **671 tests** (67 archivos). PR abierto con auto-merge REBASE.
+
+### Qué se hizo
+
+**`src/lib/email/unsubscribe.ts`** — rediseño del token:
+- Formato nuevo de baja: `${userId}.${expSeconds}.${hmac("unsub:" + payload)}` (3 partes vs 2 anteriores). TTL = 30 días por defecto.
+- `verifyUnsubscribeToken`: rechaza si expirado, si exp manipulado, si firma inválida. Tokens viejos (2 partes) rechazados por `parts.length !== 3`.
+- Nuevas funciones `signResubscribeToken(userId, prevFreq, ttlSeconds?)` y `verifyResubscribeToken(token)` → `{userId, prevFreq} | null`. Contexto HMAC separado ("resub:") para que no sean intercambiables.
+
+**`src/services/notification.service.ts`**:
+- `unsubscribeByToken`: lee `findById` antes de pisar, devuelve `{ok: true, prevFreq}` en vez de `boolean`.
+- `resubscribeByToken(token)`: verifica token de reactivación + valida que prevFreq es una de las 4 opciones válidas + llama `updateNotifications`.
+- `buildResubscribeToken(userId, prevFreq)`: helper con try/catch (no-op si falta UNSUBSCRIBE_SECRET).
+
+**`src/app/api/unsubscribe/route.ts`**:
+- POST de baja: tras unsubscribeByToken, construye el resubToken y lo embebe en la página de éxito con un form de reactivación.
+- POST `action=resubscribe`: verifica el resubToken con `verifyResubscribeToken` + llama `notificationService.resubscribeByToken`.
+- Mensaje de baja diferenciado: si prevFreq era `never`, no ofrece reactivación.
+
+**TDD**: 20 tests nuevos distribuidos en 3 archivos:
+- `unsubscribe.test.ts`: 20 tests (expiry, tampering, cross-token rejection, missing secret).
+- `notification.service.test.ts`: unsubscribeByToken (prevFreq) + resubscribeByToken (3 casos).
+- `route.test.ts`: GET + POST unsubscribe + POST resubscribe (happy path + errores).
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-346** (XS) — Personalizar el mail de mensaje con el nombre del remitente ("X te escribió").
+2. **RF-339** (Could) — Perf de render del álbum (medir con profiler primero).
+3. **RF-340** (Could) — Persistir buffer en `localStorage` + rehidratar al volver.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- **RF-344** ⛔ — Toggles email por tipo requieren migración de Prisma (dominio de Gonza).
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
+## 2026-06-08 — RF-342: Pruning de matches fantasma tras recompute
+
+- **Ítem**: RF-342 — `recomputeForUser` dejaba matches `active` stale cuando un par dejaba de complementar.
+- **Rama**: `claude/gallant-sagan-qfueq`.
+- **Estado**: ✅ completo. Gate verde. **651 tests** (67 archivos). PR abierto con auto-merge REBASE.
+
+### Qué se hizo
+
+**`src/repositories/match.repository.ts`**: nuevo método `pruneStaleForUser(userId, freshPartnerIds)`:
+- Two-step (findMany + updateMany), igual que `markInactiveByLastSeen`.
+- Filtra `status: 'active'` en el findMany → completed/trading nunca tocados.
+- Si `freshPartnerIds` es vacío: busca TODOS los activos del usuario (todo se vuelve stale).
+- Si no vacío: busca activos donde el contraparte NO está en `freshPartnerIds`.
+- Chat preservado (no borra la fila, solo cambia status a `inactive`).
+
+**`src/services/match.service.ts`**: en `recomputeForUser`, tras el persist loop:
+- Recoge `freshPartnerIds` de los resultados del engine (el que triggered el recompute puede ser `userA` o `userB`).
+- Llama `matchRepository.pruneStaleForUser` en try/catch: fallo no-fatal (loguea `'recompute: stale pruning failed'`, no re-lanza — el álbum ya se guardó y los matches nuevos ya se persistieron).
+- No se llama en early-returns (suspended, opted-out, etc.).
+
+**TDD** (8 tests nuevos, todos en verde antes de implementar):
+- `match.repository.test.ts`: 4 tests (marca stale, pruna todos si vacío, skip updateMany si sin stale, solo toca active).
+- `match.service.test.ts`: agrega `pruneStaleForUser` al mock; 4 tests (partner IDs correctos, [] sin matches, fallo no-fatal, no se llama en early-return).
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-345** (Should) — Expiry + re-suscripción del token de baja (token sin `exp` → nunca vence).
+2. **RF-346** (XS) — Nombre del remitente en el mail de mensaje ("X te escribió").
+3. **RF-339** (Could) — Perf de render del álbum (medir con profiler primero).
+4. **RF-340** (Could) — Persistir buffer en `localStorage` + rehidratar al volver.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- **RF-344** ⛔ — Toggles email por tipo requieren migración de Prisma (dominio de Gonza).
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
+## 2026-06-08 — RF-338: Scoping de existence-check de stickers por álbum
+
+- **Ítem**: RF-338 — `getExistingStickerIds` no filtraba por álbum (PRE-F2 hardening).
+- **Rama**: `claude/gallant-sagan-Qndkx`.
+- **Estado**: ✅ completo. Gate verde. **643 tests** (68 archivos).
+
+### Qué se hizo
+
+**`src/repositories/sticker.repository.ts`**: `getExistingStickerIds` — agregado `album: { slug: MUNDIAL_2026_SLUG }` al `where` de `prisma.sticker.findMany`. Prisma genera un JOIN automático; sigue siendo 1 sola query. Sin cambios de firma ni de servicio.
+
+**Razonamiento PRE-F2**: antes del fix, la FK de `UserSticker.stickerId → Sticker.id` garantizaba que el sticker existía en ALGÚN álbum, pero no necesariamente en `mundial-2026`. Con 2 álbumes (F2), un usuario malintencionado podría escribir counts de stickers de otro álbum vía `PATCH /api/album/stickers`. El filtro por slug cierra esa ventana sin migración.
+
+**TDD**: 3 tests en `sticker.repository.test.ts` (TDD: rojo → verde):
+1. `scopes the query to the mundial-2026 album` — verifica que el `where` incluye `album: { slug: 'mundial-2026' }`.
+2. `returns an empty Set when none exist in the album` — caso vacío.
+3. `returns empty Set when sticker ids belong to a different album` — intención explícita del caso de abuso.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-342** (Should) — Pruning de matches fantasma tras recompute (stale matches de pares que dejaron de complementar).
+2. **RF-345** (Should) — Expiry + re-suscripción del token de baja.
+3. **RF-346** (XS) — Nombre del remitente en mail de mensaje.
+4. **RF-339** (Could) — Perf de render del álbum (medir con profiler primero).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+- RF-344 ⛔ — Toggles email por tipo requieren migración de Prisma (dominio de Gonza).
+
+---
+
+## 2026-06-08 — RF-347: Modo registro en /auth/login?mode=signup
+
+- **Ítem**: RF-347 — Diferenciar modo registro vs. login en `/auth/login`.
+- **Rama**: `claude/gallant-sagan-twDER`.
+- **Estado**: ✅ completo. Gate verde. **642 tests** (67 archivos). PR abierto con auto-merge REBASE.
+
+### Qué se hizo
+
+**`messages/es.json`**: 4 keys nuevas en `Auth.login` — `titleSignup`, `subtitleSignup`, `switchToLogin`, `switchToSignup`.
+
+**`login-form.tsx`**: acepta prop `mode?: 'login' | 'signup'` (default `'login'`). Al final del paso de email agrega un link de toggle:
+- Modo `signup` → "¿Ya tenés cuenta? Iniciá sesión" → `/auth/login`
+- Modo `login` → "¿Primera vez? Creá tu cuenta" → `/auth/login?mode=signup`
+
+**`login/page.tsx`**: lee `searchParams.mode`, computa `isSignup`, y condicionala H1, subtítulo y `<head><title>`. Pasa `mode` a `<LoginForm>`. La `generateMetadata` también toma el modo.
+
+**CTAs de registro actualizados** (solo presentación, sin cambio de backend):
+- `navbar.tsx`: botón CTA → `/auth/login?mode=signup`
+- `page.tsx` (landing): hero CTA + finalCta → `/auth/login?mode=signup`
+
+**Flujo OTP intacto**: el backend (`signInWithOtp`) no se bifurca; el registro automático en primer login sigue siendo vía `upsertByEmail`.
+
+**TDD**: 3 tests nuevos en `login-form.test.tsx` (modo signup link, modo login link, modo login explícito).
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-338** (Should) — Scoping de existence-check de stickers por álbum activo (PRE-F2).
+2. **RF-342** (Should) — Pruning de matches fantasma tras recompute.
+3. **RF-345** (Should) — Expiry + re-suscripción del token de baja.
+4. **RF-346** (XS) — Nombre del remitente en mail de mensaje.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+- RF-344 ⛔ — Toggles email por tipo requieren migración de Prisma (dominio de Gonza).
+
+---
+
+## 2026-06-08 — Fix CI PR #95: test fetch mock faltante en ChatPanel (intento 1/3)
+
+- **Ítem**: Fix CI de PR #95 (`claude/gallant-sagan-xfAJe`).
+- **Rama**: `claude/gallant-sagan-xfAJe`.
+- **Estado**: ✅ fix pusheado. Gate verde local (639 tests). CI re-triggerado. Auto-merge REBASE habilitado.
+
+### Qué se hizo
+
+PR #95 fallaba "Unit Tests" por `ERR_INVALID_URL` en el describe `ChatPanel — renderizado`. Causa: RF-343 agrega un `useEffect` que llama `fetch('/api/matches/.../messages/read')` al montar, pero los tests de renderizado no mockeaban `fetch`, por lo que el Node.js real falla ante URLs relativas (jsdom no tiene `window.location` con origin). Fix: `beforeEach(() => vi.stubGlobal('fetch', vi.fn(...)))` + `afterEach(() => vi.unstubAllGlobals())` en el describe de renderizado.
+
+### Próximo paso
+
+Si el CI pasa → el PR se auto-mergea → en la próxima corrida elegir el primer `[ ]` autónomo (RF-347 modo registro en login).
+
+---
+
+## 2026-06-08 — RF-343: Read-tracking de mensajes + re-notificación
+
+- **Ítem**: RF-343 — `markMessagesRead` + endpoint PATCH /read + ChatPanel llama al abrir.
+- **Rama**: `claude/gallant-sagan-xfAJe` (acumula RF-307..RF-343).
+- **Estado**: ✅ completo. Gate verde. **639 tests** (67 archivos).
+
+### Qué se hizo
+
+**`messageRepository.markMessagesRead(matchId, userId)`**: `prisma.message.updateMany` — pone `readAt = now()` en los mensajes de ese match que son de otros usuarios y tienen `readAt: null`. Devuelve el count de mensajes marcados.
+
+**`messageService.markRead(matchId, userId)`**: llama `assertParticipant` (mismo helper privado que usa `sendMessage`) + `markMessagesRead`. Lanza `MatchNotFoundError` / `MessageAccessError` si el match no existe o el usuario no es participante.
+
+**`PATCH /api/matches/[id]/messages/read`**: session → markRead → 200 `{ ok: true }`. 401 sin sesión, 404 si no es participante o match no existe.
+
+**`ChatPanel`**: nuevo `useEffect` con deps `[matchId]` que llama `PATCH /api/matches/${matchId}/messages/read` al montar (fire-and-forget). Al abrir la conversación, `countUnread` vuelve a 0 → el mecanismo anti-spam de `sendMessage` (`countUnread===1`) re-notifica de verdad cuando lleguen nuevos mensajes.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-347** (Should) — Modo registro en `/auth/login?mode=signup` (CTAs de landing dicen "Registrate" pero página dice "Iniciá sesión").
+2. **RF-338** (Should) — Scoping de existence-check de stickers por álbum activo (PRE-F2).
+3. **RF-342** (Should) — Pruning de matches fantasma tras recompute.
+4. **RF-344** (Should) — Toggles de email por tipo (requiere migración, dominio de Gonza).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+- RF-344 ⛔ — Toggles email por tipo requieren migración de Prisma (dominio de Gonza).
+
+---
+
+## 2026-06-08 — RF-335 + RF-337: body malformado → 400 (ya hecho) + a11y del dropdown de notificaciones
+
+- **Ítems**: RF-335 (verificado ya hecho en bulk endpoint de RF-213) + RF-337 (Escape + aria en NotificationBell).
+- **Rama**: `claude/gallant-sagan-ZSTdS`.
+- **Estado**: ✅ completo. Gate verde. **628 tests** (66 archivos).
+
+### Qué se hizo
+
+**RF-335** — La ruta bulk `PATCH /api/album/stickers` ya tenía `req.json().catch(() => null)` + test de body malformado → 400 desde RF-213. Marcado `[x]` en BACKLOG sin código extra.
+
+**RF-337** — Tres cambios en `notification-bell.tsx`:
+1. `buttonRef = useRef<HTMLButtonElement>(null)` + `ref={buttonRef}` en el botón.
+2. `aria-haspopup="menu"` y `aria-expanded={isOpen}` en el botón.
+3. Handler `keydown Escape` (dentro del `useEffect` de `isOpen`): `setIsOpen(false)` + `buttonRef.current?.focus()`.
+
+**Infraestructura de tests:**
+- `vitest.config.ts`: `src/components/notifications/**` añadido al proyecto `dom` (y excluido del `node`).
+- `src/test/setup.ts`: importa `@testing-library/jest-dom/vitest` para habilitar `toHaveAttribute` y similares en todos los tests del proyecto `dom`.
+- `src/components/notifications/__tests__/notification-bell.test.tsx` — 5 tests TDD: `aria-haspopup`, `aria-expanded` cerrado/abierto, Escape cierra, Escape devuelve foco.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-343** (Must) — Read-tracking de mensajes + re-notificación. Badge de no-leídos que nunca baja; `markMessagesRead(matchId, userId)` al abrir la conversación.
+2. **RF-347** (Should) — Modo registro en `/auth/login?mode=signup`.
+3. **RF-338** (Should) — Scoping de existence-check de stickers por álbum activo (PRE-F2).
+4. **RF-342** (Should) — Pruning de matches fantasma tras recompute.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
+## 2026-06-08 — RF-334: test de POST /api/auth/logout
+
+- **Ítem**: RF-334 — `auth/logout` era la única API route sin test.
+- **Rama**: `claude/gallant-sagan-D6Eka`.
+- **Estado**: ✅ completo. Gate verde. **623 tests** (65 archivos).
+
+### Qué se hizo
+
+**`src/app/api/auth/logout/__tests__/route.test.ts`** (2 tests, TDD):
+- Mock de `@/lib/supabase/server` vía `vi.hoisted`.
+- Test 1: `POST /api/auth/logout` llama `auth.signOut()` exactamente una vez.
+- Test 2: la respuesta tiene `status 303` y `location: ${origin}/`.
+
+Cierra la simetría del flujo de auth (callback y verify-otp ya tenían tests).
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-335** (Could) — PATCH `/api/album/stickers` body malformado → 400 en vez de 500.
+2. **RF-337** (Could) — Dropdown de notificaciones sin Escape ni aria-expanded/haspopup.
+3. **RF-343** (Must) — Read-tracking de mensajes + re-notificación (badge unread que nunca baja).
+4. **RF-347** (Should) — Modo registro en `/auth/login?mode=signup`.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
+## 2026-06-08 — RF-333: verify-otp — validación manual → Zod schema
+
+- **Ítem**: RF-333 — `POST /api/auth/verify-otp` usaba checks manuales en vez de Zod.
+- **Rama**: `claude/gallant-sagan-56W50`.
+- **Estado**: ✅ completo. Gate verde. **621 tests** (64 archivos).
+
+### Qué se hizo
+
+**`src/lib/validations/auth.schema.ts`** (nuevo):
+- `VerifyOtpSchema`: `email` con `.transform(trim+toLowerCase).pipe(z.string().email())`; `token` con `.transform(remove-spaces).pipe(z.string().regex(/^\d{6}$/))`.
+- `VerifyOtpInput` type exportado.
+
+**`src/lib/validations/__tests__/auth.schema.test.ts`** (TDD primero — 11 tests):
+- Acepta email+token válidos, normaliza email (trim/lowercase), normaliza token (elimina espacios).
+- Rechaza: email sin @, email vacío, email ausente, token <6 dígitos, token >6 dígitos, token no-numérico, token ausente, token no-string.
+
+**`src/app/api/auth/verify-otp/route.ts`** actualizado:
+- Reemplazados los 4 checks manuales (`typeof`, `.includes('@')`, `.length < 6`, etc.) por `VerifyOtpSchema.safeParse(body)` → 400 `{error:'missing_fields'}` si falla.
+- Los valores normalizados vienen de `parsed.data` (comportamiento idéntico al anterior; test de normalización existente sigue pasando).
+
+**`src/app/api/auth/verify-otp/__tests__/route.test.ts`**: 1 test nuevo (token con letras → 400, que la validación manual anterior no distinguía de un token demasiado corto).
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-334** (Could) — `auth/logout` sin test propio (~15 líneas).
+2. **RF-335** (Could) — PATCH bulk body malformado → 400 (aplicar al endpoint `PATCH /api/album/stickers`).
+3. **RF-337** (Could) — Dropdown de notificaciones sin Escape ni aria-expanded/haspopup.
+4. **RF-343** (Must) — Read-tracking de mensajes + re-notificación (badge unread que nunca baja).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
+## 2026-06-08 — RF-332: Extraer secciones de settings-form.tsx
+
+- **Ítem**: RF-332 — `settings-form.tsx` (672 líneas, muy por encima del techo de 300, §9).
+- **Rama**: `claude/gallant-sagan-UUn9f`.
+- **Estado**: ✅ completo. Gate verde. **609 tests** (63 archivos).
+
+### Qué se hizo
+
+`settings-form.tsx` había crecido a 672 líneas tras las adiciones de RF-905/906. Extraídas 5 secciones independientes — cada una con su propio estado, handler y JSX:
+
+- `profile-section.tsx` (~176L): nombre, bio, whatsapp, perfil público → `PUT /api/settings`
+- `location-section.tsx` (~119L): ciudad, barrio → `PUT /api/settings/location`
+- `notifications-section.tsx` (~110L): notifyOnMatch, emailFrequency, pushEnabled → `PUT /api/settings/notifications`
+- `matchmaking-section.tsx` (~129L): participatesInMatchmaking, matchRadius, offerUniques, acceptUnbalanced → `PUT /api/settings/matchmaking`
+- `account-section.tsx` (~101L): logout + zona de peligro con modal de borrado → `DELETE /api/settings/account`
+
+`settings-form.tsx` quedó como orquestador de ~55 líneas. Sin cambios de comportamiento; `settings/page.tsx` no requirió modificación.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-333** (Could) — `verify-otp` route: validación manual → Zod schema (`VerifyOtpSchema`).
+2. **RF-334** (Could) — `auth/logout` sin test propio.
+3. **RF-335** (Could) — PATCH bulk body malformado → 400 en vez de 500.
+4. **RF-337** (Could) — Dropdown de notificaciones sin Escape ni aria-expanded.
+5. **RF-343** (Must) — Read-tracking de mensajes + re-notificación (badge unread que nunca baja).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
+## 2026-06-08 — RF-331: Renombrar PascalCase → kebab-case + regla de lint
+
+- **Ítem**: RF-331 — 5 componentes en `src/app` usaban PascalCase (§9).
+- **Rama**: `claude/gallant-sagan-VHKoN`.
+- **Estado**: ✅ completo. Gate verde. **609 tests** (63 archivos).
+
+### Qué se hizo
+
+**Renombrados 7 archivos** (5 source + 2 test):
+- `SettingsForm.tsx` → `settings-form.tsx`
+- `AlbumClient.tsx` → `album-client.tsx` (+ `AlbumClient.test.tsx` → `album-client.test.tsx`)
+- `OnboardingForm.tsx` → `onboarding-form.tsx`
+- `LoginForm.tsx` → `login-form.tsx` (+ `LoginForm.test.tsx` → `login-form.test.tsx`)
+- `ScrollHint.tsx` → `scroll-hint.tsx`
+
+**Imports actualizados** en 6 archivos: `settings/page.tsx`, `album/page.tsx`, `onboarding/page.tsx`, `auth/login/page.tsx`, `login-form.test.tsx`, `album-client.test.tsx`.
+
+**Regla de lint inline** (`local/kebab-case-filename: error`) en `eslint.config.mjs` — sin dependencia nueva. Exime los nombres reservados de Next.js (`page`, `layout`, `route`, etc.). Verificado: un archivo `src/TestComponent.tsx` devuelve `error: Filename "TestComponent.tsx" must use kebab-case (§9)`.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-332** (Could) — Partir `settings-form.tsx` (326 líneas, supera el techo de 300): extraer sub-componentes por sección.
+2. **RF-333** (Could) — `verify-otp` route: validación manual → Zod schema (`VerifyOtpSchema`).
+3. **RF-334** (Could) — `auth/logout` sin test propio.
+4. **RF-335** (Could) — PATCH bulk body malformado → 400 en vez de 500.
+5. **RF-343** (Must) — Read-tracking de mensajes + re-notificación (badge unread que nunca baja).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
+## 2026-06-08 — RF-307: Jobs Inngest async (match-recompute, notification-email, digest)
+
+- **Ítem**: RF-307 — Mover recompute + email fuera del hot path HTTP via Inngest.
+- **Rama**: `claude/gallant-sagan-Gdrxn`.
+- **Estado**: ✅ completo. Gate verde. **609 tests** (63 archivos).
+
+### Qué se hizo
+
+**Infraestructura Inngest:**
+- `src/inngest/client.ts` — singleton `Inngest({ id: 'cambiala' })`
+- `src/app/api/inngest/route.ts` — `serve()` handler (GET/POST/PUT) con las 3 funciones
+- `package.json` — `inngest@4.5.0` añadido
+
+**Tres funciones Inngest (con tests):**
+- `match-recompute` — escucha `match/recompute`, llama `matchService.recomputeForUser(userId)`
+- `notification-email` — escucha `notification/email`, llama `notificationService.maybySendEmail`
+- `digest-matches` — cron `0 9 * * *`; daily todos los días + weekly solo lunes
+
+**Hot path desacoplado:**
+- `stickerService.bulkUpdateCounts` ya NO llama `matchService.recomputeForUser` directo; encola `match/recompute` en Inngest (failure → log, no revierte el guardado del álbum)
+- `notificationService.createNotification` ya NO llama `maybySendEmail` directo; encola `notification/email` (failure → log, no revierte la notificación in-app)
+
+**Nuevos métodos de servicio:**
+- `notificationService.maybySendEmail(userId, type, payload)` — gating de `emailFrequency`, construye template, llama `emailService.sendEmail`; falla → log, no lanza
+- `notificationService.sendMatchDigest(frequency, baseUrl)` — envía digest a usuarios con `emailFrequency=frequency` que tengan `new_match` sin leer
+- `buildDigestEmail(...)` añadido en `src/lib/email/templates.ts`
+- `userRepository.findUsersForMatchDigest(frequency)` — encuentra usuarios con preferencia + unread matches
+
+### Próximo paso
+- **RF-406** — email transaccional de verificación OTP (Resend ya configurado, solo falta el código)
+- **RF-309** — cablear el cron de TTL de matches en Inngest (el cron ya puede ir junto con `digest-matches` o como función separada)
+
+### Bloqueos
+Ninguno técnico. Inngest keys ya están en `.env.local` + Vercel.
+
+---
+
+## 2026-06-08 — RF-326: Tests directos de schemas Zod
+
+- **Ítem**: RF-326 — Tests unitarios de schemas Zod (onboarding, rating, message).
+- **Rama**: `claude/gallant-sagan-6racC`.
+- **Estado**: ✅ completo. Gate verde. **595 tests** (60 archivos).
+
+### Qué se hizo
+
+Tests de bordes límite para 3 schemas que carecían de test propio (el schema de sticker ya tenía tests completos desde RF-213):
+
+**`src/lib/validations/__tests__/onboarding.schema.test.ts`** (11 tests):
+- `UsernameSchema`: acepta válido, min 3, max 20; rechaza 2 chars, 21 chars, guión, espacio, acento, string vacío, no-string.
+- `CompleteOnboardingSchema`: acepta ciudad normal sin barrio, acepta Montevideo con barrio; rechaza Montevideo sin barrio, ciudad inválida, username inválido (corto, caracteres especiales).
+
+**`src/lib/validations/__tests__/rating.schema.test.ts`** (10 tests):
+- `CreateRatingSchema`: acepta stars 1-5 (enteros); acepta comment hasta 200 chars; rechaza 0, 6, 3.5, string, missing; rechaza comment de 201 chars.
+
+**`src/lib/validations/__tests__/message.schema.test.ts`** (8 tests):
+- `SendMessageSchema`: acepta body válido, 1 char (min), 1000 chars (max); rechaza vacío, 1001 chars, non-string, missing, null.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-331** (Could) — Renombrar PascalCase → kebab-case en 5 archivos (`SettingsForm.tsx`, `AlbumClient.tsx`, `OnboardingForm.tsx`, `LoginForm.tsx`, `ScrollHint.tsx`) + regla de lint.
+2. **RF-332** (Could) — Partir `SettingsForm.tsx` (326 líneas, supera el techo de 300).
+3. **RF-333** (Could) — `verify-otp` route: validación manual → Zod schema (`VerifyOtpSchema`).
+4. **RF-334** (Could) — `auth/logout` sin test propio.
+5. **RF-343** (Must) — Read-tracking de mensajes + re-notificación.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+### Nota sobre el estado de la rama
+
+La rama `claude/gallant-sagan-6racC` contiene TODO el trabajo acumulado desde RF-213 (álbum bulk) hasta este commit (RF-326). Nunca fue pusheada ni tiene PR abierto. El próximo push crea el PR con auto-merge hacia `develop`.
+
+## 2026-06-07 — Rebase de Ola B sobre develop + review del PR #86 (fixes aplicados)
+
+`feat/emails` (PR #86) se rebasó sobre `origin/develop` (post-merge del drift-sweep, PR #87). Conflicto de HANDOFF resuelto (quedan las dos entradas; Ola B arriba). `.env.example`: URL de prod `cambia-la.vercel.app` → `cambiala.uy` (consistencia con los docs mergeados). Después, **review multi-agente del PR #86** (4 dimensiones — seguridad/correctness/arquitectura/calidad — con verificación adversarial): **6 hallazgos confirmados, 5 descartados** (no explotables o ya diferidos). Veredicto: sólido y mergeable; ningún bloqueante de seguridad ni data-loss.
+
+**Fixes aplicados en la rama (post-review):**
+
+- **MEDIUM — email awaited en el hot path del PATCH del álbum** (decisión de Gonza: opción **(a)+(b)**). Seguro barato YA aplicado: `export const maxDuration = 30` en `src/app/api/album/stickers/route.ts` (evita el **504 sobre un guardado que SÍ funcionó** cuando un primer llenado encadena muchos envíos instant). La cura real se difiere a **RF-307** (Inngest), que **sube de prioridad**: BACKLOG RF-307 ahora documenta el modo de falla "504-sobre-guardado-OK" y su alcance doble (envío async fuera del request + **digest daily/weekly** de RF-407, "tenés matches esperándote").
+- **Tests faltantes (LOW)**: (1) `email.service.test` — branch de rechazo de `withTimeout` (Resend que **rechaza** por fallo de red; verifica que el error sube tal cual y que el timer queda limpio, `getTimerCount()===0`); (2) `notification.service.test` — fail-safe de `UNSUBSCRIBE_SECRET` ausente (sign lanza → se traga, se loguea, **no** se manda mail, la campanita in-app igual se crea).
+- **Nits**: `<title>CambiaLa</title>` en el `<head>` del mail (`templates.ts`); doc-drift dentro del PR corregido (`timeout 8s` → **4s**; conteo `556` → **558**).
+- **Branch `String(error)`** (no-Error en los catch) sigue sin cubrir → es la causa de que el branch-coverage de esos services no llegue a 100%; **aceptado** (riesgo nulo, documentado en el review).
+
+**Backlog nuevo (de la review):** **RF-347** (modo registro en `/auth/login` — entrar por "Registrate" cae en una pantalla "Iniciá sesión"; diferenciar vía `?mode=signup` manteniendo el OTP único). **Nota en RF-824** (tab bar mobile): criterio de aceptación = "Mi Álbum/Mis Matches" hoy wrapean en dos líneas, el tab bar debe resolverlo. (El template de registro de Supabase NO va al backlog — es config de dashboard, lo hace Gonza a mano.)
+
+**Estado**: **560 tests** (57 archivos), gate completo verde. PR #86 `MERGEABLE` (sin conflictos), **SIN auto-merge** → lo mergea Gonza tras este review + CI.
+
+## 2026-06-07 — Ola B: RF-406 + RF-407 + RF-408 (emails transaccionales)
+
+- **Ítems**: RF-406 (email transaccional Resend), RF-407 (frecuencia instant/daily/weekly/never), RF-408 (unsubscribe firmado).
+- **Rama**: `feat/emails` (desde `develop`, post-merge Ola A). **PR de código → SIN auto-merge** (review gstack + Gonza).
+- **Estado**: ✅ completo en la rama. Gate completo verde. **558 tests** (57 archivos). Falta el **E2E manual** (lo corre Gonza: generar un match real y ver llegar el mail).
+- **Proceso**: plan mode → fan-out de review pre-código (eng + security + email-design + red-team, 4 agentes) → críticos/altos aplicados → TDD → fan-out de review del diff.
+
+### Arquitectura (capas respetadas)
+- **`src/lib/email/templates.ts`** (dominio puro): layout estética mail de login (tablas inline, entidades, `lang`/charset/viewport/`role=presentation`/preheader, parte **text/plain**, `escapeHtml` en TODO valor dinámico). Paleta hardcodeada = **excepción documentada a §7** (los clientes de mail no consumen tokens CSS). Copy es-UY hardcodeado = **excepción documentada a §8** (módulo dominio sin runtime next-intl, igual que el template de login en Supabase).
+- **`src/lib/email/unsubscribe.ts`** (dominio): HMAC-SHA256 sign/verify, timing-safe con guard de longitud, secret leído lazy (build sin `UNSUBSCRIBE_SECRET` no rompe).
+- **`src/services/email.service.ts`** (Service, único que toca Resend): `sendEmail` no-op sin API key, timeout 4s, lanza ante error (el caller atrapa).
+- **`notification.service.ts`**: `createNotification` crea la campanita SIEMPRE y primero; `maybeSendEmail` es side-effect en try/catch+logger (solo loguea `error.message`, nunca secretos/token). Gating: solo tipos emaileables; solo `emailFrequency==='instant'`. `unsubscribeByToken` → `emailFrequency='never'`.
+- **Triggers**: `rating_received` en `ratingService.createRating`; `new_message` en `messageService.sendMessage` (`assertParticipant` ahora devuelve el match; aviso solo si `countUnread===1`). Ambos en try/catch (no rompen el flujo). `new_match` ya existía (ahora también emailea).
+- **`src/app/api/unsubscribe/route.ts`**: GET muestra confirmación (NO muta → a prueba de prefetch de clientes de mail), POST ejecuta la baja. `Referrer-Policy: no-referrer`.
+- **env**: `.env.example` + `ci.yml` build + CLAUDE.md §13 con `UNSUBSCRIBE_SECRET`; `RESEND_FROM_EMAIL` → `consultas@cambiala.uy`; base url prod → `cambia-la.vercel.app`. **Gonza: setear `UNSUBSCRIBE_SECRET` en Vercel/CI runtime** (`openssl rand -hex 32`).
+
+### Decisión de alcance (aprobada por Gonza en sesión)
+`new_message` y `rating_received` NO se creaban como notificación (solo `new_match`). Se cablearon los 3 (con anti-spam de mensaje). El review pre-código encontró que **el anti-spam por `countUnread===1` es honesto pero limitado**: como nada marca mensajes como leídos hoy, manda ~un mail por conversación por dirección. Documentado y diferido a **RF-343** (read-tracking).
+
+### Follow-ups creados (NO este PR)
+RF-343 (read-tracking + re-notify de mensajes), RF-344 (toggles de email por tipo, requiere migración), RF-345 (expiry + re-suscripción del token), RF-346 (nombre del remitente en el mail de mensaje). Digests daily/weekly siguen pendientes de **RF-307** (Inngest), que también mueve el envío fuera del hot path del PATCH del álbum.
+
+## 2026-06-07 — Drift-sweep de docs (rama `docs/drift-sweep`)
+
+Auditoría anti doc-drift de todos los `.md`, verificando cada claim contra el CÓDIGO/estado real (no contra otro doc). Solo docs, cero código. Gate completo verde (519 tests en develop; nada de código tocado).
+
+- **Dominio (política del owner)**: producción = `https://cambiala.uy`; `cambia-la.vercel.app` es alias técnico, no la URL de producción. Corregido en CLAUDE.md §4 + §21, README.md (L7 + Despliegue), y el ejemplo de URL en `bug_report.md` (`figus.uy` → `cambiala.uy`).
+- **Features entregadas que figuraban como pendientes** (verificado en código): RF-320 matching runtime (cableado en `bulkUpdateCounts`, Ola A mergeada) en CLAUDE.md §2 + §22; RF-323 (protección de rutas en `middleware.ts`) y RF-324 (rate limit OTP en `verify-otp`) en CLAUDE.md §12.
+- **D-001/D-002/D-003 tildados**: las correcciones (CLAUDE.md auth CERRADO, README reescrito, CONTRIBUTING marca/flujo) ya estaban en develop pero los checkboxes habían quedado sin tildar. Verificado y tildado.
+- **reports/**: nota de "snapshot histórico" al tope de `audit-2026-06-01.md` y `gstack-audit-2026-06-06.md` (no se reescribió el cuerpo — son bitácora).
+- **FUERA de scope (lo entrega PR #86, emails, todavía OPEN)**: RF-406/407/408 + RESERVADO, entrada Ola B en HANDOFF, CLAUDE.md §13 (UNSUBSCRIBE_SECRET), `.env.example`. En develop esos RFs siguen abiertos y los docs lo dicen bien. No se tocó el conteo "558" (es de la rama del #86).
+- **Nota de verificación**: la política de dominio (cambiala.uy = producción) es directiva del owner; no es verificable contra el código (DNS/Vercel no viven en el repo).
+
+## 2026-06-07 — Review gstack de Ola A (PR #85): 4 fixes de correctness + 2 trivials
+
+Review pre-landing de `feat/matching-runtime`. El engine pasó a ser el write-path más caliente (antes `saveMatchResult`/`upsert` eran código muerto), lo que volvió alcanzables varias aristas. Gonza aprobó aplicar los 4 fixes + 2 trivials en este PR; el pruning de fantasmas va como follow-up (RF-342).
+
+- **D1 — `upsert` ya NO resucita estados terminales.** `matchRepository.upsert` pasó de `prisma.match.upsert` (que forzaba `status:'active'` en el branch update) a **create-catch-P2002**: el INSERT que entra ⇒ match nuevo; el que choca con `@@unique` ⇒ `updateMany WHERE status IN ('active','inactive')` (reactiva inactivos, **deja intactos `completed`/`trading`**). Antes, editar el álbum revivía un cambio ya `completed` → reaparecía en `/matches` y rompía el alta de reseña (`rating.service` exige `status==='completed'`).
+- **D4 — novedad race-safe + sin TOCTOU de notificaciones.** La novedad la decide el INSERT (`{ match, created }`), no un `findByUsers` previo. Dos recomputes concurrentes (A y B editando a la vez) ya no disparan `new_match` duplicado; reactivar un inactivo no re-notifica; se elimina una query en el camino de match nuevo. `saveMatchResult` ahora devuelve `{ created }` (su único caller, `recomputeForUser`, no usa la fila).
+- **D2 — `notifyOnMatch` respetado.** `MatchmakingProfile`/`MatchmakingCandidate` cargan `notifyOnMatch`; `recomputeForUser` arma un mapa `id → notifyOnMatch` (target + pool) y `saveMatchResult` gatea cada `new_match` por destinatario. El toggle de settings ("avisame cuando aparezca un match") dejó de ser letra muerta.
+- **D3 — guard de suspendido + LIMIT en la query.** `findMatchmakingProfile` trae `isSuspended`; `recomputeForUser` corta si el target está suspendido (el pool ya los excluía, faltaba el iniciador). `findCandidatePool` recibe `take` (= `MAX_POOL_SIZE`, lo pasa el service para respetar capas) + `orderBy: { lastSeenAt: 'desc' }` → el LIMIT vive en SQL (no se trae todo el padrón a memoria) y la truncación deja de ser arbitraria.
+- **Trivials**: el log de fallo parcial reporta el conteo real persistido (`persisted` + `total`, no `results.length`); `ACTIVE_DAYS` se importa de `match-engine` (`ACTIVE_DAYS_DEFAULT` exportado) → una sola fuente para el cutoff SQL y el filtro del engine.
+- **Follow-up (NO este PR)**: **RF-342** — pruning de matches fantasma (un par que dejó de complementar queda `active` con listas stale; no se autocorrige para usuarios activos).
+- **`match-engine.ts`**: solo se exportó `ACTIVE_DAYS_DEFAULT` (sin cambios de lógica → 100% RF-321 intacto). Tests actualizados/agregados (repo upsert create-catch + terminal-state, `isSuspended`/`notifyOnMatch`/`take`/`orderBy`, service novedad/gating/suspendido/persisted). Gate completo verde.
+
+## 2026-06-07 — Ola A: RF-320 + RF-318 (recompute de matches en runtime — LAUNCH BLOCKER)
+
+- **Ítems**: RF-320 (cablear el recompute SÍNCRONO de matches) + RF-318 (fallback de ubicación sin barrio ⇒ depto).
+- **Rama**: `feat/matching-runtime` (desde `develop`). **PR de código → SIN auto-merge** (review gstack + Gonza).
+- **Estado**: ✅ completo en la rama. Gate completo verde. **514 tests** (53 archivos). Falta el cierre **E2E manual** (lo corre Gonza).
+
+### Qué se hizo (sesión supervisada, plan mode + /plan-design-review + eng-review multi-agente + TDD)
+
+El match engine tenía 100% cobertura pero **cero callers en runtime** → la tabla `Match` nunca se escribía y `/matches` siempre vacío. Esta ola revive el core:
+
+- **`src/repositories/match.repository.ts`** — 2 métodos nuevos (+ tipos `MatchmakingProfile`/`MatchmakingCandidate` en `src/types/match.ts`):
+  - `findMatchmakingProfile(userId)`: perfil del target + figus ofrecibles (`count >= 1`, optimización de storage; las ausentes las infiere el engine como "necesita").
+  - `findCandidatePool(targetUserId, { city, cutoffDate })`: pool en **una** query con `include` (sin N+1). Filtra activos (`lastSeenAt > cutoff`), `participatesInMatchmaking`, no suspendidos, excluye self. `city: null` ⇒ sin filtro (radius `country`); con `city` ⇒ mismo depto. NO filtra por barrio (el fallback RF-318 lo resuelve el engine).
+- **`src/services/match.service.ts`** — `recomputeForUser(userId, now = new Date())`:
+  - Early-returns: target inexistente / `participatesInMatchmaking=false` / radius local sin `city` / `matchRadius` inválido (log + `{matched:0}`).
+  - Scope del pool espeja `isSameLocation`; arma `UserCollectionInput`; llama `findMatchesForUser` puro (con `now` inyectado → determinismo); persiste cada match vía `saveMatchResult` (upsert idempotente RF-308 + notificación `new_match` RF-409 a ambas partes solo en match nuevo).
+  - Guardrails: `MAX_POOL_SIZE` (5000, exportado, placeholder a tunear) + `now` inyectable + loop en try/catch que re-lanza con `attempted` (idempotente ⇒ retry-safe).
+- **`src/services/sticker.service.ts`** — hook RF-320: dentro del `if (valid.length > 0)` (único write del álbum, guardado por `applied > 0`), tras `bulkUpsertCounts` → `await matchService.recomputeForUser(userId)` en **try/catch + `logger.error`** (el álbum ya se guardó; un recompute lento/fallido no rompe el PATCH).
+- **`src/lib/match-engine.ts`** — **SIN CAMBIOS** (RF-318 ya implementado; se preserva el 100% forzado por CI, RF-321). Route `PATCH /api/album/stickers` SIN cambios (contrato intacto).
+
+### RF-318
+
+Entregado por pool-por-depto + radius-del-target. Los 5 casos del BACKLOG (a-e) son tests de `recomputeForUser` con el engine real. Nadie queda con 0 matches por no setear barrio.
+
+### Tests (TDD)
+
+`match.repository.test.ts` (+6: where exacto, omite city en country, aplana stickers), `match.service.test.ts` (+16: full chain, early returns, country scope, RF-318 a-e, inactivo, orden por score desc, rethrow parcial, pool cap), `sticker.service.test.ts` (+3: recompute on applied>0, no-recompute on applied=0, error no-fatal). Mocks: se agregó mock de `@/services/match.service` y `@/lib/logger` en sticker.service.test (si no, arrastra Prisma real).
+
+### Decisiones (aprobadas por Gonza, NO relitigar)
+
+`acceptUnbalanced` no se aplica · sin stale-pruning · reactivación de `inactive` sin re-notificar · radius del target · M7 diferido · single-álbum.
+
+### Eng-review (multi-agente, pre-código) — verdicto IMPLEMENT-WITH-FIXES, todo aplicado
+
+Critical/high foldeados (repo methods, scope espejando isSameLocation, `now` inyectable, mocks de tests, `lastSeenAt` en el select). Mediums baratos foldeados (validación de radius, pool cap, tests extra, rethrow, tipos en `src/types`). Detalle en el plan (`~/.claude/plans/clever-noodling-cocoa.md`).
+
+### Pendiente / follow-ups (diferidos, NO en esta ola)
+
+- **Cierre E2E (Gonza)**: 2 cuentas mismo depto con sets complementarios → guardar una → la otra ve el match en `/matches` + notificación `new_match`. (La query real ya se validó contra Supabase en RF-213.)
+- Índice compuesto `@@index([participatesInMatchmaking, isSuspended, lastSeenAt])` en `User` (migración = dominio de Gonza, §10; solo-perf, si latencia del pool >500ms).
+- Tunear `MAX_POOL_SIZE` tras test de capacidad.
+- RF-307 (mover el recompute a Inngest async cuando el volumen lo pida; keys ya cargadas).
+
+### Próximo paso
+
+En orden del plan maestro v2: **Ola B — `feat/emails` (RF-406 + RF-407 + RF-408)**.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 (lo provee Gonza).
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
+## 2026-06-07 — Corrida 52: RF-325 (logger estructurado adoptado en API routes)
+
+- **Ítem**: RF-325 — Wiring del logger en los catch blocks de API routes (decisión A).
+- **Rama**: `claude/rf325-logger`.
+- **Estado**: ✅ completo. Gate verde. **490 tests** (53 archivos).
+
+### Qué se hizo
+
+**Decisión**: Opción A (recomendada en BACKLOG) — adoptar `logger.error(...)` en los `catch` de API routes que hacían `throw err` o `return 500` sin ningún rastro estructurado en producción.
+
+**9 routes modificadas** (import `@/lib/logger` + `logger.error('Unhandled error', { error: ... })` antes del throw/return 500):
+- `src/app/api/admin/users/[id]/route.ts` — GET y PATCH
+- `src/app/api/matches/[id]/messages/route.ts` — GET y POST
+- `src/app/api/matches/[id]/ratings/route.ts` — GET y POST
+- `src/app/api/onboarding/route.ts` — POST
+- `src/app/api/settings/route.ts` — PUT
+- `src/app/api/settings/account/route.ts` — DELETE (caso `return 500`)
+- `src/app/api/settings/location/route.ts` — PUT
+- `src/app/api/settings/matchmaking/route.ts` — PUT
+- `src/app/api/settings/notifications/route.ts` — PUT
+
+**No se loguea PII**: el contexto solo incluye `error.message` (sin userId, sin body). Las rutas `auth/verify-otp` y `album/stickers` no tienen catch con throw/500, sin cambios.
+
+**Test TDD (1 nuevo)**: en `src/app/api/settings/__tests__/route.test.ts` — spy `mockLoggerError` sobre `@/lib/logger`, test `logs unexpected errors before rethrowing` verifica que `logger.error('Unhandled error', { error: 'db boom' })` se llama antes del rethrow en PUT /api/settings.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-326** (Should) — Tests directos de schemas Zod (sticker, onboarding, rating, message) — funciones puras de dominio, sin mocks.
+2. **D-001** (Must) — Update CLAUDE.md (§2/§12/§22 todavía dicen que Auth es stub).
+3. **RF-331** (Could) — Renombrar PascalCase → kebab-case en 5 archivos.
+4. **RF-332** (Could) — Partir SettingsForm.tsx (326 líneas).
+5. **RF-333** (Could) — `verify-otp` route: validación manual → Zod schema.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
+## 2026-06-07 — Corrida 51: RF-322 (tests de componentes client con lógica real)
+
+- **Ítem**: RF-322 — Tests de LoginForm (OTP state machine) y ChatPanel (polling + cleanup).
+- **Rama**: `claude/cool-volta-Hn8Vi`.
+- **Estado**: ✅ completo. Gate verde. **489 tests** (53 archivos).
+
+### Qué se hizo
+
+**`vitest.config.ts`:**
+- Dom project: agregados `src/app/auth/**` y `src/components/chat/**` al `include`.
+- Node project: agregados `src/app/auth/**` y `src/components/chat/**` al `exclude` para evitar doble ejecución.
+
+**`src/app/auth/login/__tests__/LoginForm.test.tsx`** (8 tests, TDD):
+- Email step rinde por defecto (sin input de código).
+- Email válido → `signInWithOtp` llamado, avanza a paso código.
+- Email sin `@` → `errorInvalidEmail`, no avanza.
+- Error de Supabase → `errorGeneric`, no avanza.
+- `verifyCode` exitoso (200) → `fetch /api/auth/verify-otp` + `window.location.assign(destination)`.
+- `verifyCode` 400 → `errorInvalidCode` sin redirigir.
+- `verifyCode` 429 → `errorRateLimited`.
+- Código <6 dígitos → error sin `fetch`.
+- "← Usar otro mail" → vuelve al paso de email.
+- Técnica: `vi.hoisted` para el mock de `@/lib/supabase/client`; `fireEvent.submit(form)` en vez de `fireEvent.click(submitButton)` (jsdom no dispara `onSubmit` con click sintético en submit buttons).
+
+**`src/components/chat/__tests__/chat-panel.test.tsx`** (8 tests, TDD):
+- Render: mensajes iniciales, estado vacío, distinción propios/otros.
+- Polling: dispara `fetch` cada 10s (fake timers), sin `fetch` en mount; actualiza mensajes con datos del poll.
+- Cleanup: al desmontar no hay más `fetch` (interval limpiado).
+- Envío: mensaje exitoso → agrega al listado; fallo → muestra error.
+- `scrollIntoView` mockeado en `beforeEach` (no implementado en jsdom).
+- Con fake timers: `act(async () => { await vi.advanceTimersByTimeAsync(...) })` para asentar promesas; NO usar `waitFor` con timers falsos (usa timers reales internamente).
+
+**AlbumClient** ya tenía 9 tests completos desde RF-213 (buffer, flush, retry, unmount, etc.).
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-325** (Should) — Logger estructurado: adoptar `logger.error` en catches 500 o eliminar el módulo muerto.
+2. **RF-326** (Should) — Tests directos de schemas Zod (sticker, onboarding, rating, message).
+3. **D-001** (Must) — Update CLAUDE.md (sección auth todavía dice "stub return null").
+4. **RF-331** (Could) — Renombrar PascalCase → kebab-case en 5 archivos.
+5. **RF-332** (Could) — Partir SettingsForm.tsx (326 líneas, supera el techo).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
+## 2026-06-07 — Corrida 50: RF-329 (WCAG AA — token accent-text para naranja sobre fondo claro)
+
+- **Ítem**: RF-329 — `text-accent` sobre fondo claro falla WCAG AA (2.80:1 < 3.0 grande / 4.5 normal).
+- **Rama**: `claude/rf329-accent-text-wcag`.
+- **Estado**: ✅ completo. Gate verde. **472 tests** (51 archivos).
+
+### Qué se hizo
+
+**Token nuevo en `globals.css`:**
+- `:root` (light): `--accent-text: #c2410c` (naranja oscuro, ≈4.5:1 sobre `#ffffff`, WCAG AA normal text).
+- `.dark` + `@media prefers-color-scheme: dark`: `--accent-text: #f97316` (mismo que `--accent`; en dark ya pasa 6.8:1).
+- `@theme inline`: `--color-accent-text: var(--accent-text)` → habilita la utility `text-accent-text`.
+
+**Componentes corregidos (5 archivos):**
+- `sticker-cell.tsx:32` — clase de estado "repetida": `bg-accent/10 text-accent` → `bg-accent/10 text-accent-text`.
+- `ScrollHint.tsx:21` — enlace de scroll `bg-accent/5 text-accent` → `text-accent-text`.
+- `AlbumClient.tsx:309` — stat "Repetidas" (2xl bold sobre bg-card) → `text-accent-text`.
+- `page.tsx:46` — resalte `hl` del H1 (4xl+, pero 2.80:1 falla incluso AA-large 3.0:1) → `text-accent-text`.
+- `rating-modal.tsx:71` — íconos de estrellas (2xl) → `text-accent-text`.
+
+**Sin cambios (tradeoffs aceptados):**
+- Wordmark "La" en navbar/app-navbar/login/onboarding — decisión de marca documentada en la auditoría.
+- `exchange-animation.tsx` — elemento `aria-hidden` decorativo, no sujeto a WCAG.
+- Badge `bg-accent text-accent-foreground` — ya pasaba (texto oscuro sobre fondo naranja).
+
+**RF-336 marcado `[x]`:** `--passWithNoTests` fue eliminado por RF-321 (Corrida 41); ya no estaba en `package.json`.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-322** (Should) — Tests de componentes client (AlbumClient con fake timers, LoginForm OTP, chat-panel polling).
+2. **RF-325** (Should) — Logger estructurado: adoptar `logger.error` en catches o eliminar el módulo.
+3. **RF-326** (Should) — Tests directos de schemas Zod (sticker, onboarding, rating, message).
+4. **D-001** (Must) — Update CLAUDE.md (sección auth todavía dice "stub return null").
+5. **RF-331** (Could) — Renombrar PascalCase → kebab-case en 5 archivos.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
+## 2026-06-07 — Corrida 49: S3.2 (loading/empty/error states — todas las pantallas)
+
+- **Ítem**: S3.2 — Loading / empty / error states en todas las pantallas autenticadas.
+- **Rama**: `claude/cool-volta-viVUu`.
+- **Estado**: ✅ completo. Gate verde. **472 tests** (51 archivos).
+
+### Qué se hizo
+
+**Empty states con CTA** (reemplaza <p> de texto plano sin acción):
+- `/matches` vacío: ícono 🤝 + título "Todavía no tenés matches" + descripción + botón "Cargar mi álbum" → `/album`.
+- `/conversations` vacío: ícono 💬 + título "Todavía no tenés chats" + descripción + botón "Ver mis matches" → `/matches`.
+- i18n: claves `emptyTitle` / `emptyDescription` / `emptyCta` en `MatchesList` y `Conversations`.
+
+**Loading skeletons nuevos** (`animate-pulse`, tokens de color, `aria-busy`):
+- `src/app/settings/loading.tsx`: skeleton de formulario (sección perfil + ubicación + toggles + botón).
+- `src/app/admin/loading.tsx`: skeleton de tabla (barra de búsqueda + 8 filas de usuarios).
+
+Loading de `/album`, `/matches`, `/conversations` ya existían desde RF-328.
+Error boundary (`error.tsx`, `not-found.tsx`, `global-error.tsx`) ya existían desde RF-328.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-329** (Should) — `text-accent` sobre fondo claro falla WCAG AA → token `--accent-text` (~`#c2410c`). Afecta sticker-cell, ScrollHint, AlbumClient.
+2. **RF-322** (Should) — Tests de componentes client (AlbumClient, LoginForm, chat-panel).
+3. **RF-325** (Should) — Logger estructurado: adoptar o eliminar.
+4. **RF-326** (Should) — Tests de schemas Zod (sticker, onboarding, rating, message).
+5. **D-001** (Must) — Update CLAUDE.md (sección auth desactualizada).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
+## 2026-06-07 — Corrida 48: RF-1001..RF-1004 (Admin module)
+
+- **Ítems**: RF-1001 (protección /admin), RF-1002 (lista usuarios), RF-1003 (detalle), RF-1004 (suspensión).
+- **Rama**: `claude/cool-volta-d7BiL`.
+- **Estado**: ✅ completo. Gate verde. **472 tests** (51 archivos).
+
+### Qué se hizo
+
+**Auth layer extendido:**
+- `Session` ahora incluye `role: string` (sin cambio de superficie — misma función `getSession()`).
+- `userRepository.findByEmail` selecciona `role` junto con los otros campos.
+
+**Repository — 3 métodos nuevos en `userRepository`:**
+- `findAllForAdmin({search?, page, pageSize})`: paginación + búsqueda case-insensitive por email/username. `Promise.all` para `findMany` + `count` en paralelo.
+- `findByIdForAdmin(id)`: devuelve todos los campos privados del User (email, role, isSuspended, reputation, timestamps, etc.).
+- `updateSuspension(id, isSuspended)`: update puntual a `isSuspended`.
+
+**Service — 3 métodos nuevos en `userService`:**
+- `listUsersForAdmin(opts)`: delega a repo.
+- `getUserDetailForAdmin(id)`: delega + lanza `UserNotFoundError` si null.
+- `toggleSuspension(id, isSuspended)`: verifica existencia → `updateSuspension`.
+
+**API routes:**
+- `GET /api/admin/users?search=&page=&pageSize=`: 401/403/400/200. Valida con `ListUsersQuerySchema`.
+- `GET /api/admin/users/[id]`: 401/403/404/200. Detalle completo.
+- `PATCH /api/admin/users/[id]`: 401/403/400/404/200. Body `{isSuspended}` validado con `SuspendUserSchema`.
+
+**Pages:**
+- `src/app/admin/layout.tsx`: guard `session.role !== 'admin'` → redirect `/album` (RF-1001).
+- `src/app/admin/page.tsx`: tabla de usuarios con búsqueda (form GET), badges rol/estado, paginación por `searchParams` (RF-1002).
+- `src/app/admin/users/[id]/page.tsx`: detalle completo con filas label/value (RF-1003) + `SuspendButton` (RF-1004).
+- `src/components/admin/suspend-button.tsx` (client): confirm() → PATCH → `router.refresh()`.
+
+**Middleware:** `/admin` agregado a `PROTECTED_PATHS`. Test de middleware actualizado.
+
+**i18n:** namespace `Admin` (35 claves) en `messages/es.json`.
+
+**TDD:** 29 tests nuevos (repo + service + 2 API routes × múltiples casos).
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **S3.2** (M) — Loading/empty/error states: revisar qué pantallas autenticadas carecen de empty state con CTA claro (album, matches, conversations ya tienen, revisar /admin y /settings).
+2. **RF-329** (Should) — `text-accent` sobre fondo claro falla WCAG AA → token `--accent-text` (~`#c2410c`).
+3. **RF-322** (Should) — Tests de componentes client (AlbumClient, LoginForm, chat-panel).
+4. **RF-326** (Should) — Tests directos de schemas Zod.
+5. **D-001** (Must) — Update CLAUDE.md (auth section desactualizada).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+- RF-1005 (S) — Link Sentry: 🔒 requiere `SENTRY_DSN`.
+
+---
+
+## 2026-06-07 — Corrida 47: RF-119/RF-908 (borrado de cuenta — compliance Ley 18.331)
+
+- **Ítems**: RF-119/RF-908 — Borrado de cuenta con doble confirmación + cascade real. RF-903 marcado [x] (ya estaba cubierto por RF-114).
+- **Rama**: `claude/cool-volta-mfaNa` (acumula corridas 45..47).
+- **Estado**: ✅ completo. Gate verde. **443 tests** (49 archivos).
+
+### Qué se hizo
+
+**RF-119/RF-908 — Borrado de cuenta:**
+- **`userRepository.deleteUserCascade(userId)`**: borra en orden FK-safe — (1) `rating.deleteMany(raterId|ratedId)`, (2) `match.deleteMany(userAId|userBId)` (cascada `Message` vía `matchId`), (3) `message.deleteMany(fromUserId)` (red de seguridad), (4) `user.delete` (cascada `UserSticker` y `Notification`). Sin migración (borrado manual en orden).
+- **`userService.deleteAccount(userId)`**: verifica existencia del user (lanza `UserNotFoundError` si no existe) → llama `deleteUserCascade`.
+- **`DELETE /api/settings/account`**: session → `userService.deleteAccount` → `supabase.auth.signOut()` → best-effort `supabase.auth.admin.deleteUser(authUserId)` (usa `@supabase/supabase-js` con `SUPABASE_SERVICE_ROLE_KEY`). 401 sin sesión, 404 user no encontrado, 500 error inesperado, 200 éxito.
+- **SettingsForm**: nuevos estados `showDeleteModal`, `isDeleting`, `deleteError` + `handleDeleteAccount`. Sección "Zona de peligro" con botón rojo + modal de doble confirmación (mensaje de advertencia + "Cancelar" / "Sí, borrar definitivamente"). Tokens de color: `border-destructive/50`, `text-destructive`, `bg-destructive`.
+- **i18n**: 9 claves nuevas en `Settings` namespace (`dangerZoneTitle`, `deleteAccountButton`, `deleteAccountModalTitle`, `deleteAccountModalBody`, `deleteAccountModalConfirm`, `deleteAccountModalCancel`, `deleteAccountDeleting`, `deleteAccountError`).
+- **Tests TDD (8 nuevos)**: `deleteUserCascade` — verifica orden de llamadas + invocation order; `deleteAccount` (service) — happy path + UserNotFoundError; `DELETE` route — 401, 200, 404, 500, best-effort falla → sigue 200.
+
+**RF-903 marcado [x]:** el campo WhatsApp ya estaba implementado desde RF-114 (Corrida 25) con validación `normalizeUruguayanMobile`.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **S3.2** (M) — Loading/empty/error states (RF-328 cubrió error/not-found/loading para `/album`, `/matches`, `/conversations`; revisar si hay pantallas sin estado vacío con CTA claro).
+2. **RF-329** (Should) — `text-accent` sobre fondo claro falla WCAG AA → token `--accent-text` (~`#c2410c`).
+3. **RF-322** (Should) — Tests de componentes client (AlbumClient, LoginForm, chat-panel).
+4. **RF-326** (Should) — Tests directos de schemas Zod.
+5. **Admin module** RF-1001..1005 (M) — `/admin` solo con `role=admin`.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+
+---
+
+## 2026-06-07 — Corrida 46: RF-905 + RF-906 + RF-904 (settings de notificaciones y matchmaking)
+
+- **Ítems**: RF-905 (config notificaciones) + RF-906 (config matchmaking) + RF-904 marcado [x] (ya implementado desde Corrida 22).
+- **Rama**: `claude/cool-volta-upCdx` (desde `develop`).
+- **Estado**: ✅ completo. Gate verde. **435 tests** (48 archivos).
+
+### Qué se hizo
+
+**RF-905 — Config de notificaciones:**
+- `src/lib/validations/settings.schema.ts`: `UpdateNotificationsSchema` (`notifyOnMatch`, `emailFrequency: enum instant|daily|weekly|never`, `pushEnabled`).
+- `src/repositories/user.repository.ts`: `UpdateNotificationsData` type + método `updateNotifications` (patch parcial) + extendido `findById` con los campos notification + matchmaking.
+- `src/services/user.service.ts`: `updateNotifications(userId, data)`.
+- `PUT /api/settings/notifications` (nueva route): session → Zod → service → 200.
+- `SettingsForm.tsx`: sección "Notificaciones" con toggle `notifyOnMatch`, select `emailFrequency`, toggle `pushEnabled` (marcado "próximamente").
+
+**RF-906 — Config de matchmaking:**
+- `src/lib/validations/settings.schema.ts`: `UpdateMatchmakingSchema` (`participatesInMatchmaking`, `matchRadius: enum neighborhood|department|country`, `offerUniques`, `acceptUnbalanced`).
+- `src/repositories/user.repository.ts`: `UpdateMatchmakingData` type + método `updateMatchmaking` (patch parcial).
+- `src/services/user.service.ts`: `updateMatchmaking(userId, data)`.
+- `PUT /api/settings/matchmaking` (nueva route): session → Zod → service → 200.
+- `SettingsForm.tsx`: sección "Matchmaking" con 2 toggles + select `matchRadius` + toggle `offerUniques` + toggle `acceptUnbalanced`.
+
+**RF-904 — Toggle perfil público:** ya estaba implementado desde Corrida 22 (RF-901). Solo marcado [x] en BACKLOG.
+
+**Tests (TDD):**
+- `src/app/api/settings/notifications/__tests__/route.test.ts` (6 tests): 401, 400 malformed, 400 emailFrequency inválido, 200 notifyOnMatch, 200 emailFrequency=weekly, 404 user not found.
+- `src/app/api/settings/matchmaking/__tests__/route.test.ts` (6 tests): 401, 400 malformed, 400 matchRadius inválido, 200 participatesInMatchmaking, 200 matchRadius=neighborhood, todos los campos, 404 user not found.
+- `src/repositories/__tests__/user.repository.test.ts`: test de `findById` actualizado para reflejar los nuevos campos en el select.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-903** (Should) — Editar WhatsApp con validación (ya hay un campo en el form pero sin sección separada — revisar si ya está cubierto).
+2. **RF-119/RF-908** (M) — Borrado de cuenta con doble confirmación (compliance crítico Ley 18.331).
+3. **S3.2** (M) — Loading/empty/error states (ya parcialmente cubierto por RF-328).
+4. **RF-329** (Should, Deuda) — `text-accent` sobre fondo claro falla WCAG AA → token `--accent-text`.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+
+---
+
+## 2026-06-07 — Corrida 45: RF-327 + RF-330 (pnpm CI + overlay token)
+
+- **Ítems**: RF-327 (pnpm version drift en CI) + RF-330 (bg-black/80 → design token).
+- **Rama**: `claude/cool-volta-pXJFl` (desde `develop`).
+- **Estado**: ✅ completo. Gate verde. **422 tests** (46 archivos).
+
+### Qué se hizo
+
+**RF-327 — pnpm version en CI:**
+- `.github/workflows/ci.yml`: `PNPM_VERSION: 9` → `PNPM_VERSION: 10`. El lockfile usa formato `9.0` que es compatible con pnpm v10 sin cambios. Ahora CI, corepack local y `package.json` (pnpm@10.34.1) apuntan a la misma major.
+
+**RF-330 — overlay token en dialog:**
+- `src/app/globals.css`: nuevo token `--overlay: #0f172a` en `:root` (oscuro fijo, sin override en `.dark` — un scrim debe ser siempre oscuro independientemente del tema). `--color-overlay: var(--overlay)` en `@theme inline`.
+- `src/components/ui/dialog.tsx`: `bg-black/80` → `bg-overlay/80`. Scrim visible en light (navy 80%) y en dark (mismo navy 80% sobre grafito — contraste adecuado). Grep `bg-black|text-white|bg-zinc|bg-slate|bg-gray` sobre `src/` da 0 matches.
+- **Nota diseño**: se eligió `--overlay` en lugar de `bg-foreground/60` porque en dark mode `--foreground` es `#ededee` (near-white), lo que habría producido un scrim blanco — incorrecto para un modal.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-329** (Should) — `text-accent` sobre fondo claro falla WCAG AA → token `--accent-text` (~`#c2410c`). Afecta sticker-cell, ScrollHint, AlbumClient.
+2. **RF-322** (Should) — Tests de componentes client (AlbumClient, LoginForm, chat-panel).
+3. **RF-325** (Should) — Logger estructurado: adoptar o eliminar (hoy: código muerto).
+4. **RF-326** (Should) — Tests de schemas Zod (sticker, onboarding, rating, message).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+
+---
+
+## 2026-06-07 — Corrida 44: RF-324 (rate limiting in-memory)
+
+- **Ítem**: RF-324 — Rate limiting in-memory (ADR-016) en las rutas expuestas.
+- **Rama**: `claude/cool-volta-F5BRb` (desde `develop`).
+- **Estado**: ✅ completo. Gate verde. **422 tests** (46 archivos).
+
+### Qué se hizo
+
+- **`src/lib/rate-limit.ts`** (Domain, puro): ventana fija en memoria (`Map` module-level). `checkRateLimit(key, max, windowMs)` → `{allowed, remaining}`. Cleanup periódico cada 200 llamadas (evita crecer indefinidamente). `getClientIp(headers)` — extrae el primer IP de `x-forwarded-for` o `'unknown'`. `_resetStoreForTests()` para limpiar entre tests. Documentado: por instancia serverless → migrar a Redis en F2 (ADR-016).
+- **`src/lib/__tests__/rate-limit.test.ts`** (TDD primero — 7 tests): permite N, bloquea N+1, resetea al vencer la ventana (fake timers), remaining correcto, claves independientes, getClientIp con y sin header.
+- Aplicado en 4 rutas (cada una con test de 429 añadido + mock del módulo):
+  - `POST /api/auth/verify-otp`: `otp:${ip}:${email}` — 10 intentos / 15 min (anti brute-force OTP).
+  - `POST /api/matches/[id]/messages`: `msg:${userId}` — 60 mensajes / min (anti-spam).
+  - `GET /api/onboarding/check-username`: `chkusr:${userId}` — 20 búsquedas / min (anti-enumeración).
+  - `PATCH /api/album/stickers`: `album:${userId}` — 30 flushes / min (anti-abuso bulk).
+- **`src/app/auth/login/LoginForm.tsx`**: `verifyCode` ahora muestra `errorRateLimited` ante 429 (antes mostraba `errorInvalidCode` para cualquier error no-OK).
+- **`messages/es.json`**: namespace `Errors` con `rateLimited` ("Demasiados intentos. Esperá unos minutos e intentá de nuevo.").
+- Cada ruta responde `{ error: 'rate_limited' }` con HTTP 429. No filtra si el username existe cuando hay rate limit en check-username.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-327** (Should) — pnpm 10 en CI (hoy: `PNPM_VERSION: 9` en `ci.yml` vs `package.json pnpm@10.34.1`). 1 línea de change.
+2. **RF-330** (Should) — `bg-black/80` en `dialog.tsx` → `bg-foreground/60` (única clase de color cruda en `src/`).
+3. **RF-329** (Should) — `text-accent` sobre fondo claro falla WCAG AA → token `--accent-text`.
+4. **RF-322** (Should) — Tests de componentes client (AlbumClient, LoginForm, chat-panel).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+
+---
+
+## 2026-06-07 — Corrida 43: RF-323 (protección de rutas privadas en el middleware)
+
+- **Ítem**: RF-323 — `middleware.ts` redirige usuarios sin sesión en rutas protegidas.
+- **Rama**: `claude/cool-volta-4gOGV` (desde `develop`).
+- **Estado**: ✅ completo. Gate verde. **411 tests** (45 archivos).
+
+### Qué se hizo
+
+- **`middleware.ts`**: `isProtectedPath(pathname)` — exact match o `startsWith(p + '/')` contra la lista `['/album', '/matches', '/conversations', '/settings', '/onboarding']`. Si `!user && isProtectedPath(...)` → `NextResponse.redirect` a `/auth/login?next=<pathname>` (307). Rutas públicas (`/`, `/como-funciona`, `/auth/*`, `/u/*`, `/api/*`, páginas estáticas) no se tocan.
+- **`src/__tests__/middleware.test.ts`** (TDD primero — 16 tests): mocks de `@supabase/ssr` vía `vi.hoisted`; `NextRequest` real de `next/server`. Casos: 5 rutas protegidas sin sesión → 307+location; subruta `/matches/abc123` → 307 con next encodado; ruta protegida con sesión → pasa; 6 rutas públicas sin sesión → pasan; `/auth/login`, `/u/gonzalo`, `/api/auth/callback` → pasan.
+- Layers: solo `middleware.ts` (no toca Services/Repositories). Chequeos `getSession()` por page/route se mantienen como segunda capa.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-324** (Must) — Rate limiting in-memory (verify-otp, messages, check-username). ADR-016.
+2. **RF-327** (Should) — pnpm 10 en CI (hoy: PNPM_VERSION: 9 en ci.yml vs package.json pnpm@10.34.1).
+3. **RF-330** (Should) — `bg-black/80` en `dialog.tsx` → `bg-foreground/60`.
+4. **RF-329** (Should) — `text-accent` sobre fondo claro falla WCAG AA → token `--accent-text`.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+
+---
+
+## 2026-06-07 — Corrida 42: RF-328 (error.tsx / not-found.tsx / loading.tsx brandados)
+
+- **Ítem**: RF-328 — Error boundaries y loading skeletons en App Router.
+- **Rama**: `claude/rf328-error-pages` (desde `develop`).
+- **Estado**: ✅ completo. Gate verde. **394 tests** (44 archivos).
+
+### Qué se hizo
+
+- **`messages/es.json`**: namespace `ErrorPages` con 8 claves (notFoundTitle/Subtitle/Cta/CtaAlt, errorTitle/Subtitle/Retry/Cta).
+- **`src/app/not-found.tsx`** (server async): 404 branded con tokens + i18n; CTAs a `/album` y `/`. Se solicita el namespace `ErrorPages` vía `getTranslations`.
+- **`src/app/error.tsx`** (`'use client'`): boundary de error con botón "Intentar de nuevo" (`reset`) y CTA "Ir al inicio" (`/`). Usa `useTranslations('ErrorPages')`.
+- **`src/app/global-error.tsx`** (`'use client'`): último recurso fuera del root layout. `NextIntlClientProvider` no está disponible → strings hardcodeados en español (excepción documentada en el componente). Tokens de color vía Tailwind (el bundle CSS de globals.css sigue disponible).
+- **`src/app/album/loading.tsx`**, **`src/app/matches/loading.tsx`**, **`src/app/conversations/loading.tsx`**: skeletons `animate-pulse` con `aria-busy="true"`, navbar placeholder + contenido shimmer, tokens de color. Proveen Suspense fallback inmediato mientras las Server Pages hacen `await`.
+- **Tests** (TDD): `src/app/__tests__/not-found.test.tsx` (4 tests: título, CTA /album, CTA /, namespace) + `src/app/__tests__/error.test.tsx` (4 tests: título, reintentar, CTA /, namespace). Corren en el proyecto `node` con `renderToStaticMarkup` + mocks de `next-intl/server` / `next-intl` / `next/link`.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-323** (Must) — Proteger rutas privadas en el middleware (redirect a `/auth/login?next=` si sin sesión en ruta protegida). 100% autónomo.
+2. **RF-324** (Must) — Rate limiting in-memory (verify-otp, messages, check-username). ADR-016.
+3. **RF-327** (Should) — pnpm 10 en CI (hoy: PNPM_VERSION: 9 en ci.yml vs package.json pnpm@10.34.1).
+4. **RF-330** (Should) — `bg-black/80` en dialog.tsx → `bg-foreground/60` (única clase de color cruda real en src/).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch).
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+
+---
+
+## 2026-06-07 — Corrida 41: RF-321 (Enforced coverage CI para match-engine)
+
+- **Ítem**: RF-321 — Cobertura forzada al 100% sobre `src/lib/match-engine.ts` en el CI.
+- **Rama**: `claude/cool-volta-pVjTy` (desde `develop`).
+- **Estado**: ✅ completo. Gate verde. **386 tests** (42 archivos).
+
+### Qué se hizo
+
+- **`vitest.config.ts`**: `coverage.include: ['src/**/*.{ts,tsx}']` para que todos los archivos fuente aparezcan en el reporte (antes: solo los importados por algún test). `coverage.exclude`: `src/types/**`, `src/test/**`, `src/**/*.d.ts`, `**/__tests__/**`, `**/*.{test,spec}.{ts,tsx}`. `coverage.thresholds['src/lib/match-engine.ts']`: 100% en statements/branches/functions/lines.
+- **`package.json`**: removido `--passWithNoTests` de `test` y `test:coverage`. Un glob roto o suite vacía ahora falla visiblemente en vez de pasar en verde.
+
+### Verificación negativa
+
+Introducido temporalmente `function _neverCalled() { return false; }` en `match-engine.ts` → `pnpm test:coverage` devuelve **exit code 1** con:
+```
+ERROR: Coverage for functions (92.3%) does not meet "src/lib/match-engine.ts" threshold (100%)
+```
+Revertido. Funciona.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-328** (Must) — `error.tsx` / `not-found.tsx` / `loading.tsx` branded (skeletons para `/matches`, `/album`, `/conversations`). 100% autónomo.
+2. **RF-323** (Must) — Proteger rutas privadas en el middleware.
+3. **RF-324** (Must) — Rate limiting in-memory (verify-otp, messages, check-username).
+4. **RF-327** (Should) — pnpm CI versión fix (CI usa pnpm 9, repo declara pnpm@10).
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza.
+- RF-320 ⏸️ RESERVADO — match engine en runtime.
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+
+---
+
+## 2026-06-07 — Corrida 40: S3.1 (PWA — manifest + service worker + instalable)
+
+- **Ítem**: S3.1 — Web App Manifest + Service Worker + instalable como PWA.
+- **Rama**: `claude/cool-volta-JNl5F` (continúa desde corridas 37/38/39).
+- **Estado**: ✅ completo. Gate verde. **386 tests** (42 archivos).
+
+### Qué se hizo
+
+- **`src/app/manifest.ts`** (Next.js MetadataRoute.Manifest): genera `/manifest.webmanifest` automáticamente. Campos: `name="CambiaLa — Figuritas del Mundial 2026"`, `short_name="CambiaLa"`, `start_url="/album"`, `display="standalone"`, `orientation="portrait"`, `theme_color="#0284c7"` (celeste de marca), `background_color="#ffffff"`, `lang="es"`. Íconos: `/icon.png` (192×192 any + 512×512 maskable).
+- **`src/app/icon.tsx`** (192×192 PNG): wordmark "CambiaLa" en navy (`#1E3A8A`) + naranja (`#F97316`) sobre fondo navy con `borderRadius`. Generado vía `next/og` `ImageResponse` → `/icon.png`.
+- **`src/app/apple-icon.tsx`** (180×180 PNG): idéntico pero para iOS add-to-homescreen → `/apple-icon.png`.
+- **`public/sw.js`**: service worker con dos estrategias: cache-first para `/_next/static/**` (assets content-hashed → seguros de cachear indefinidamente); network-first para páginas (fresco online, fallback a caché offline); skip total de `/api/` y `/auth/`. `activate` limpia cachés de versiones anteriores; `skipWaiting` en `install`.
+- **`src/components/pwa/sw-register.tsx`** (client component): `useEffect` registra `/sw.js`; guard `navigator.serviceWorker` (falsy → skip, no lanza en entornos sin soporte).
+- **`src/app/layout.tsx`**: `<SwRegister />` en body + `appleWebApp` metadata (capable/title/statusBarStyle).
+- **`vitest.config.ts`**: `src/components/pwa/**` excluido del proyecto node, incluido en el proyecto dom.
+- **Tests** (TDD): `src/app/__tests__/manifest.test.ts` (6 assertions: campos requeridos, ícono 192×192, theme_color, lang, short_name) + `src/components/pwa/__tests__/sw-register.test.tsx` (3 tests: renderiza null, registra /sw.js, no lanza si SW no disponible).
+
+### Rutas nuevas en el build
+
+```
+○ /icon            (PNG 192×192 generado)
+○ /icon.png
+○ /apple-icon      (PNG 180×180 generado)
+○ /apple-icon.png
+○ /manifest.webmanifest
+```
+
+### Criterio de aceptación
+
+Con el build en Vercel: abrir en Chrome → DevTools → Application → Manifest → válido. Lighthouse "Installable" = verde. "Add to Home Screen" aparece en Android Chrome.
+
+### Próximo paso
+
+En orden del BACKLOG (primer `[ ]` autónomo no 🔒/⏸️):
+1. **RF-214b** — ⛔ Bloqueado: requiere datos del álbum Panini físico 2026 que el agente no tiene.
+2. **RF-112** — Avatar upload ⚠️ pendiente decisión de almacenamiento.
+3. **Deuda Must**: **RF-321** (enforced coverage CI), **RF-323** (middleware protection), **RF-324** (rate limiting), **RF-328** (error/not-found pages). → **RF-321 es el próximo ítem autónomo viable**.
+
+### Bloqueos conocidos
+
+- **RF-214b** ⛔ — checklist oficial Panini 2026 necesita ser provisto por Gonza (del álbum físico).
+- RF-320 ⏸️ RESERVADO — match engine en runtime.
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ — Avatar upload pendiente decisión.
+
+---
+
+## 2026-06-07 — Corrida 39: RF-809 (Schema.org JSON-LD)
+
+- **Ítem**: RF-809 — Schema.org JSON-LD (`Person` en perfiles públicos, `WebSite` + `Organization` en landing).
+- **Rama**: `claude/cool-volta-m0Fn1` (continúa desde corridas 37 + 38).
+- **Estado**: ✅ completo. Gate verde. **377 tests** (40 archivos).
+
+### Qué se hizo
+
+- **`src/lib/json-ld.ts`** (Domain, funciones puras): `buildWebSiteJsonLd(url)`, `buildOrganizationJsonLd(url)`, `buildPersonJsonLd({username, name, bio?, city?, baseUrl})`, `toJsonLdString(data)` — serializa con escape de `<`, `>`, `&` para prevenir inyección de `</script>` vía contenido de usuario.
+- **`src/lib/__tests__/json-ld.test.ts`** (TDD primero — 9 tests): estructura correcta de cada builder + fallback sin campos opcionales + escaping de `</script>`, `& ` en `toJsonLdString`.
+- **`src/app/page.tsx`**: 2 `<script type="application/ld+json">` — `WebSite` (con `potentialAction: SearchAction` a `/u/{username}`) y `Organization`.
+- **`src/app/u/[username]/page.tsx`**: 1 `<script type="application/ld+json">` — `Person` con `name`, `url`, `description` (bio), `address` (ciudad + `addressCountry: UY`).
+
+### Próximo paso
+
+En orden de BACKLOG (primer ítem `[ ]` de SPRINT 1 en adelante que no sea 🔒/⏸️ RESERVADO):
+1. **RF-214b** (M) — Auditar catálogo vs álbum oficial (980 vs 896 figuritas). Requiere research externo. ⚠️ Documentar bloqueante si no hay fuente confiable.
+2. **RF-112** (M) — Avatar upload — pendiente decisión storage.
+3. **S3.1** (M) — PWA: manifest + service worker. 100% autónomo.
+4. Deuda Must: **RF-323** (middleware route protection), **RF-324** (rate limiting), **RF-328** (error/not-found pages).
+
+### Bloqueos conocidos
+
+- RF-320 ⏸️ RESERVADO — match engine en runtime.
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ Avatar upload — pendiente decisión.
+
+---
+
+## 2026-06-07 — Corrida 38: RF-215 (nombres de país en headers del álbum)
+
+- **Ítem**: RF-215 — headers de equipo muestran nombre completo en español + bandera emoji.
+- **Rama**: `claude/cool-volta-CBy3l` (desde `develop`).
+- **Estado**: ✅ completo. Gate verde. **368 tests** (39 archivos).
+
+### Qué se hizo
+
+- **`src/lib/team-names.ts`** (Domain, datos puros): `TEAM_NAMES` — Record con los 49 códigos del catálogo (ALG..VEN + FWC), cada uno con `name` (español) y `flag` (emoji unicode). `getTeamDisplay(code)` devuelve `"🇺🇾 Uruguay · URU"` o el code si no existe.
+- **`src/lib/__tests__/team-names.test.ts`** (TDD primero): (1) todos los códigos del catálogo tienen entrada en el mapping; (2) todas las entradas tienen name y flag no vacíos; (3) formato de `getTeamDisplay`; (4) fallback a código crudo.
+- **`src/app/album/AlbumClient.tsx`**: importa `getTeamDisplay`; reemplaza `{team === 'FWC' ? t('teamFWC') : team}` (dos lugares: section header + dropdown option) por `{getTeamDisplay(team)}`.
+- **`messages/es.json`**: eliminada la key `Album.teamFWC` (ahora la maneja el mapping).
+- **`src/app/album/__tests__/AlbumClient.test.tsx`**: 2 tests nuevos — render del header con nombre y bandera (URU, ARG), render del FWC con "🏆 Copa del Mundo · FWC".
+
+### Próximo paso
+
+En orden de BACKLOG (primer ítem `[ ]` de SPRINT 1 en adelante que no sea 🔒/⏸️ RESERVADO):
+1. **RF-214b** (M) — Auditar catálogo vs álbum oficial (980 vs 896 figuritas). Requiere research externo (buscar checklist Panini 2026).
+2. **RF-809** (S) — Schema.org JSON-LD (`Person` en perfiles, `WebSite`/`Organization` en landing). 100% autónomo.
+3. **S3.1** (M) — PWA: manifest + service worker.
+
+### Bloqueos conocidos
+
+- RF-320 ⏸️ RESERVADO — match engine en runtime.
+- RF-406 ⏸️ RESERVADO — email transaccional Resend.
+- RF-112 ⚠️ Avatar upload — pendiente decisión.
+
+---
+
+## 2026-06-07 — Corrida 37: RF-120 + RF-121 (destino post-login y logo navbar)
+
+- **Ítems**: RF-120 (destino post-login = `/album`) + RF-121 (logo navbar → `/album`)
+- **Rama**: `claude/cool-volta-U6cB8` (desde `develop`).
+- **Estado**: ✅ completo. Gate verde (format/lint/type-check/format:check/prisma:generate/test:coverage/build). **360 tests** (38 archivos).
+
+### Qué se hizo
+
+**RF-120 — Destino post-login = `/album`:**
+- `src/lib/auth/resolve-destination.ts`: default `next` cambia de `'/matches'` a `'/album'`.
+- `src/app/api/auth/callback/route.ts`: fallback `?? '/album'` (antes `'/matches'`).
+- `src/app/onboarding/OnboardingForm.tsx`: `router.push('/album')` tras completar onboarding.
+- `src/app/onboarding/page.tsx`: `redirect('/album')` si ya onboardeó (para que `/onboarding` no lo deje colgado).
+- Tests actualizados en `resolve-destination.test.ts` y `callback/route.test.ts`.
+
+**RF-121 — Logo navbar → `/album`:**
+- `src/components/layout/app-navbar.tsx`: wordmark `href="/album"` (antes `"/"`).
+- `AppNavbar` solo se monta en páginas autenticadas (verificado: `/album`, `/matches`, `/matches/[id]`, `/conversations`, `/settings`, `/u/[username]`). No hace falta lógica condicional.
+- Test nuevo: `src/components/layout/__tests__/app-navbar.test.tsx` — mocks de `getTranslations`, `getSession`, `notificationService`, `NotificationBell` y `next/link`; llama `await AppNavbar()` y verifica con `renderToStaticMarkup` que `href="/album"` y no `href="/"`.
+
+### Próximo paso
+
+En orden de BACKLOG (primer ítem `[ ]` de SPRINT 1 en adelante que no sea 🔒/⏸️ RESERVADO):
+1. **RF-214b** (M) — Auditar catálogo vs álbum oficial (980 vs 896 figuritas). Solo datos, seed idempotente.
+2. **RF-215** (M) — Nombres de país en headers del álbum (mapping código→nombre + bandera emoji).
+3. **RF-809** (S) — Schema.org JSON-LD (`Person` en perfiles, `WebSite`/`Organization` en landing).
+4. **S3.1** (M) — PWA: manifest + service worker.
+
+### Bloqueos conocidos
+
+- RF-320 ⏸️ RESERVADO — match engine en runtime (bloqueante #1 de launch, pero marcado como ola supervisada).
+- RF-406 🔒 Resend — email transaccional (código ya disponible cuando Gonza confirme).
+- RF-112 ⚠️ Avatar upload — pendiente decisión Supabase Storage vs URL externa.
+
+---
+
+## 2026-06-07 — Ola RF-213: Guardado del álbum en bulk (perf)
+
+- **Ítem**: RF-213 — una ráfaga de clicks en el álbum se manda en **1 request + 1 query de escritura** (antes: 1 PATCH por figurita).
+- **Rama**: `feat/album-bulk` (desde `develop`). **PR de código → SIN auto-merge** (lo revisás vos con gstack).
+- **Estado**: ✅ completo. Gate local verde (format/lint/type-check/format:check/prisma:generate/test:coverage + build mock). **343 tests** (36 archivos).
+
+### Qué se hizo (TDD: schema → repo → service → route → cliente)
+
+- **Schema** `BulkUpdateStickersSchema` (`src/lib/validations/sticker.schema.ts`): `changes` array 1..200 de `{stickerId, count 0..99}` + tests.
+- **Repository** (`src/repositories/sticker.repository.ts`): `getExistingStickerIds(ids)` (clasifica válidos/ignorados) + `bulkUpsertCounts(userId, changes)` = **UN** `$executeRaw` parametrizado: `INSERT … SELECT … FROM unnest(ids, stickerIds, counts) ON CONFLICT ("userId","stickerId") DO UPDATE SET count, updatedAt`. IDs de filas nuevas con **`@paralleldrive/cuid2`** (`createId()`) — nueva dep; convivencia cuid v1 (filas viejas) / cuid2 (nuevas), documentada en el repo.
+- **Service** (`src/services/sticker.service.ts`): `bulkUpdateCounts` dedupea (último gana), ignora ids fuera del catálogo (evita romper la FK), devuelve `{applied, ignored}`. Es el **único punto de escritura** del álbum → RF-320 cuelga acá el recompute síncrono.
+- **Route** nueva `PATCH /api/album/stickers` (`src/app/api/album/stickers/route.ts`): session → Zod → service → `{ok, applied, ignored}`; 401/400.
+- **Cliente** (`src/app/album/AlbumClient.tsx`): buffer compartido (`Map`, último count gana) + **1 timer global 800ms** + guard `isFlushing` (no superpone requests) + snapshot/partial-clear (preserva clicks en vuelo) + reintento 1 vez sin vaciar buffer + flush en `visibilitychange`/`pagehide` con `keepalive`. Un solo ciclo de toast por flush.
+- **Limpieza**: borrado el endpoint `PATCH /api/album/stickers/[stickerId]` + su test, y el código muerto (`updateStickerCount`, `StickerNotFoundError`, `upsertUserStickerCount`, `getStickerById`, `UpdateStickerCountSchema`).
+
+### ⚠️ A verificar (review de Gonza)
+
+- La query raw se testea a nivel de **parámetros** (mock de `$executeRaw`); **no se ejecuta contra Postgres en CI** (no hay DB). **Validar 1 vez contra Supabase real** (o vía /qa): que upsertea, que `count`/`updatedAt` se actualizan, y que `UserSticker` no rompe por columna faltante (verificado en schema: NOT NULL sin default DB = `id`+`updatedAt`, ambos provistos; no hay `createdAt`).
+- Criterio de aceptación manual: en `/album`, ráfaga de clicks → **un solo** PATCH a `/api/album/stickers` en Network.
+
+### Review de gstack aplicado (PR #68)
+
+- Se corrió el review multi-lente (6 lentes, 39 hallazgos: 0 críticos, 6 high, 7 medium, 15 low, 11 nit). Gonza trió; aplicados en `feat/album-bulk`:
+  - **Lote 1 (pérdida de datos):** NUNCA vaciar el buffer antes de confirmar; `visibilitychange:hidden` → flush awaiteable (respeta `isFlushing`); `pagehide` → keepalive sin clear, solo keys que no están en vuelo; cleanup de timers + flush del remanente en unmount; chunking ≤200; reintento ante throw de red; 4xx purga / 5xx-red conserva; un reintento con backoff (~5s); estado de error **persistente con "Reintentar"** + aviso si `ignored>0`.
+  - **Lote 2 (hardening):** `stickerId .max(32)`; orden por stickerId antes del `unnest` (anti-deadlock); `Request` (no `NextRequest`); guard de array vacío; comentario del `updatedAt` manual.
+  - **Lote 3 (tests):** AlbumClient en jsdom (ráfaga→1 fetch, clicks en vuelo, retry red/5xx, 4xx purga, error+Reintentar, unmount flushea) + `chunkChanges` + bordes service/repo/schema → **359 tests**.
+  - **Lote 4 (docs):** **§15 de CLAUDE.md** ahora permite `$executeRaw` parametrizado para bulk upserts sin equivalente tipado (nunca `*Unsafe`); marcadores `⏸️ RESERVADO` en RF-318/320/321/406/407/408/824/825; follow-ups RF-338 (scoping albumId) y RF-339 (perf render); notas en RF-320 (M7/N5) y RF-324 (L5).
+  - **Descartados:** N1, N8, N10, N11.
+
+### ✅ Validación contra Supabase (HECHA, 2026-06-07)
+
+- `bulkUpsertCounts` validada a mano contra Supabase real por Gonza: ráfagas → **1 request por ráfaga**, filas upserteadas, `count`/`updatedAt` actualizados. **Merge desbloqueado.**
+
+### ⚠️ Limitación conocida de RF-213 (aceptada en MVP)
+
+- **Cierre inmediato pierde clicks**: cerrar la pestaña justo después de clickear (antes del debounce de 800ms / flush) puede perder esos cambios — el `pagehide`+keepalive no siempre alcanza a salvarlos (visto en dev). La ventana es <800ms; el camino mobile común (cambiar de app/pestaña) va por `visibilitychange`, que sí hace flush awaiteable. Fix propuesto: **RF-340** (persistir el buffer en `localStorage` + rehidratar).
+
+### Próximo paso
+
+- Tras el merge (validación Supabase ✅): **Ola RF-320 + RF-318 + RF-321** (`feat/matching-runtime`) — recompute síncrono colgado de `bulkUpdateCounts` (revive el core).
+
+---
+
+## 2026-06-06 — Etapa 0: Auditoría gstack post-landing (solo mapeo, sin código)
+
+- **Ítem**: Etapa 0 del "Plan maestro" — auditoría gstack multi-agente del repo. **No se tocó código** (read-only).
+- **Rama**: `docs/gstack-audit-etapa0` (desde `develop`). PR de **docs** (auto-merge OK por ser solo docs).
+- **PR**: (ver abajo).
+- **Estado**: ✅ completo. Gate local verde (lint/type-check/format:check/test:coverage/build); 330 tests.
+
+### Qué se hizo
+
+- Suite gstack multi-agente sobre el repo (6 lentes: Producto/CEO, Arquitectura, Testing, Seguridad, DevEx, Diseño/A11y) con verificación adversarial de cada hallazgo crítico/alto. **36 hallazgos, 9 críticos/altos verificados, 0 refutados.**
+- Informe completo en **`reports/gstack-audit-2026-06-06.md`**.
+- **21 ítems nuevos** en `BACKLOG.md` (sección "Deuda y hallazgos — Auditoría gstack 2026-06-06"): RF-320..337 + D-001..003.
+
+### 🔥 Hallazgo crítico (acción de Gonza)
+
+- **RF-320 — el match engine NUNCA se ejecuta en runtime.** `findMatchesForUser`/`saveMatchResult` tienen 100% cobertura pero **cero callers fuera de tests**; nada escribe la tabla `Match` → `/matches` siempre vacío para usuarios reales (re-verificado a mano). **Bloqueante #1 de launch.** Fix propuesto: recompute **SÍNCRONO** tras el flush del álbum (Inngest/RF-307 queda para F2). Tratarlo antes que el resto.
+- 2do bloqueante: email transaccional (RF-406, Resend 🔒) — los avisos que promete la landing no salen.
+
+### Doc-drift detectado (D-001/2/3)
+
+- CLAUDE.md §2/§12/§22 todavía declara que Auth es stub `return null` / "próximo gran hito" → **FALSO**, está 100% cerrado (magic link + OTP + Google OAuth). (D-001)
+- README peligroso: deploy a `main` + squash vs `develop`=prod + rebase; Next 14 vs 16; scripts/docker-compose inexistentes. (D-002)
+- CONTRIBUTING contra ADR-021 + nits ya resueltos en §21. (D-003)
+
+### Lo que está bien (confirmado)
+
+- Arquitectura en capas impecable (4 límites verificados), seguridad sólida en lo crítico (cero IDOR, validación Zod server-side, secretos fuera de git, RLS), suite verde.
+
+### Próximo paso
+
+- Gonza revisa el informe + los 21 ítems → decide secuencia (**RF-320 primero**). Luego arrancar **Ola 1** (`feat/nav-destinos`, RF-120 + RF-121) en plan mode.
+
+### Bloqueos conocidos
+
+- Sin cambios: Inngest / Resend / Google OAuth (branding) / avatar siguen 🔒.
+
+---
+
+## 2026-06-06 — Landing v2 (RF-820/821/822/823)
+
+- **Ítem**: RF-820 + RF-821 + RF-822 + RF-823 — reposicionamiento de la landing (el match es el héroe).
+- **Rama**: `feat/landing-v2` (desde `develop`). Antes: PR de docs `docs/backlog-landing-v2` (#64) mergeado a develop (RF-215 + nota fuente RF-214b).
+- **PR**: (ver abajo) — abierto con auto-merge, **NO mergeado** (lo revisa Gonza).
+- **Estado**: ✅ completo. Gate verde + Lighthouse prod Perf **97** / A11y **95**.
+
+### Qué se hizo
+
+- **RF-820** — Hero a dos columnas: H1 value-prop "Te encontramos con quién cambiar tus figuritas" (`t.rich`, resalte en accent), subtítulo nuevo. Componente `match-card-mock` **1:1 con `MatchCard`** (campos separados: avatar/nombre/barrio/score/te da-le das/reputación), aparece como **desenlace** de la animación.
+- **RF-821** — `exchange-animation` (client, `aria-hidden`): escena tilteada, dos figuritas retrato que vuelan, se cruzan y encajan; "¡Match!" → match card → reposo → reset. **Loop 100% CSS, período compartido 12s, SOLO transform/opacity** (glow del hueco = overlay por opacity, sin animar box-shadow). `prefers-reduced-motion` = estado final estático; pausa offscreen con IntersectionObserver. Keyframes en `globals.css`.
+  - **Anclaje estructural (fix alineación)**: cada figurita voladora vive DENTRO de la celda-hueco del álbum destino (`absolute inset-0`) → con `transform:none` encaja perfecto a cualquier viewport, rotada como su álbum. El despegue lo cubre una copia ESTÁTICA de la repe en el álbum origen que se desvanece. Transforms del vuelo en **%** (escalan con el álbum). Verificado en 390 y 1440.
+  - **Hero balanceado**: se quitó el `min-height` grande (eliminaba el mar de espacio vacío → la stats bar asoma) y el scroll hint huérfano; escena agrandada (~520px) y centrada para equilibrar el peso con el copy.
+- **RF-822** — `why-section`: 3 diferenciales (match por barrio / reputación real / gratis sin publicidad), íconos lucide, render test.
+- **RF-823** — `Metadata` title/description al reposicionamiento + OpenGraph/Twitter en `layout.tsx`; H1/H2 con keywords; `/como-funciona` con el matching de protagonista.
+- **Infra de tests**: `vitest.config.ts` con `test.projects` (node + jsdom acotado a `src/components/landing/**`) + `src/test/render-intl.tsx`. 330 tests verdes (3 nuevos de render).
+- **Tooling**: `scripts/landing-shots.mjs` (Playwright standalone, 390/1440 × light/dark, output a `.shots/` gitignored).
+
+### Decisiones / notas
+
+- **Se quitó Motion (framer-motion)**: bajaba Performance (LCP 3.4s→2.8s, TBT 310→40ms al sacarlo). El reveal al scroll quedó en **CSS + IntersectionObserver** (sin librería). `package.json` sin cambios netos.
+- **Lighthouse CI está deshabilitado** en el repo (necesita preview de Vercel + secrets) → se autoverificó local contra `pnpm build && pnpm start`.
+- **A11y 95** (no 100): el `color-contrast` restante es el **naranja de marca `text-accent`** sobre fondo claro (wordmark "La", resalte del H1, eyebrows celeste) — tradeoff de marca preexistente en toda la app — y la escena decorativa `aria-hidden`. No se tocó la paleta (CLAUDE.md §7).
+- **RF-824 (bottom tab bar mobile) NO entra acá** (es app, no landing). Va en rama/PR aparte.
+
+### Próximo paso
+
+1. **RF-824** — Navbar mobile bottom tab bar (rama `feat/mobile-tab-bar`).
+2. **RF-121** — Logo navbar → `/album` con sesión.
+3. **RF-809** — Schema.org JSON-LD.
+
+### ⚠️ Bloqueos conocidos
+
+- Sin cambios respecto a Corrida 36 (Inngest/Resend/Google OAuth/avatar siguen igual).
+
+---
+
 ## 2026-06-01 — Corrida 36
 
 - **Ítem**: RF-810 — Canonical URLs en páginas indexables

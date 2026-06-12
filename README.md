@@ -1,189 +1,146 @@
 # CambiaLa
 
-> Cambiá las figuritas que te faltan. Sin caos.
-> Plataforma web para que coleccionistas uruguayos intercambien figuritas del Mundial 2026.
-> Cargá tu álbum, te avisamos cuando aparece alguien de tu barrio con las que necesitás.
+> **Te encontramos con quién cambiar tus figuritas del Mundial 2026.**
+> Plataforma web **C2C** para que coleccionistas uruguayos intercambien figuritas del álbum Panini Mundial 2026.
+> Cargá tu álbum y te avisamos cuando alguien de tu barrio tiene las que te faltan — y quiere las que te sobran.
+
+**Producción**: https://cambiala.uy (deploy en Vercel; `cambia-la.vercel.app` es alias técnico)
+
+> ℹ️ La fuente de verdad de **cómo se construye este repo** es [`CLAUDE.md`](./CLAUDE.md) (arquitectura en capas, design tokens, i18n, el gate). Qué construir y en qué orden está en [`BACKLOG.md`](./BACKLOG.md); la bitácora, en [`HANDOFF.md`](./HANDOFF.md).
 
 ## Stack
 
-- **Framework**: Next.js 14 (App Router) + TypeScript strict
-- **UI**: Tailwind CSS + shadcn/ui
-- **DB**: PostgreSQL via Supabase + Prisma ORM
-- **Auth**: Supabase Auth (magic link + Google OAuth)
-- **Jobs**: Inngest (matchmaking, notificaciones)
-- **Email**: Resend (React Email)
-- **Hosting**: Vercel
-- **Monitoring**: Sentry + PostHog
+- **Framework**: Next.js 16 (App Router) + React 19, TypeScript strict
+- **UI**: Tailwind CSS v4 + shadcn/ui — colores **solo por tokens** (ver `CLAUDE.md` §7)
+- **DB**: PostgreSQL en Supabase + Prisma 6
+- **Auth**: Supabase Auth — código OTP de 6 dígitos + magic link de respaldo + Google OAuth (✅ implementado y probado E2E)
+- **Jobs async**: Inngest (matchmaking, notificaciones, crons) — keys cargadas, código pendiente (RF-307)
+- **Email**: Resend (React Email) — configurado (dominio `cambiala.uy` verificado), código pendiente (RF-406)
+- **Validación**: Zod (client + server)
+- **Estado client**: TanStack Query + useState/useReducer
+- **i18n**: next-intl (locale `es`, mono-idioma en el MVP)
+- **Hosting**: Vercel · **Monitoring**: Sentry + PostHog (pendientes de keys)
+- **Runtime**: Node 20 (`.nvmrc`) · pnpm 10 (`packageManager: pnpm@10.34.1`, vía corepack)
 
-## Setup local rápido
+## Setup local
 
 ```bash
-# 1. Clonar y entrar
-git clone https://github.com/[org]/figus-uy.git
-cd figus-uy
+git clone https://github.com/gonzalocvv/CambiaLa.git
+cd CambiaLa            # el directorio local del repo es figus-uy
 
-# 2. Instalar dependencias (Node 20+)
+corepack enable        # respeta pnpm 10 (campo packageManager)
 pnpm install
 
-# 3. Variables de entorno
 cp .env.example .env.local
-# Editar .env.local con tus credenciales (pedirlas al equipo)
+# Completar .env.local con las credenciales (pedírselas a Gonza).
+# Sin ellas, varias features quedan no-op.
 
-# 4. DB local con Docker
-docker compose up -d
-
-# 5. Migraciones + seed
-pnpm prisma migrate dev
-pnpm db:seed         # Carga las ~900 figuritas del Mundial 2026
-
-# 6. Correr en dev
-pnpm dev             # http://localhost:3000
-
-# 7. Inngest local (en otra terminal)
-pnpm inngest:dev     # http://localhost:8288
+pnpm prisma:generate
+pnpm dev               # http://localhost:3000
 ```
 
-## Scripts disponibles
+> La DB es **Supabase (cloud)** — no hay Postgres local con Docker. Las **migraciones y el seed contra la DB real las corre Gonza** (no el agente autónomo), para no tocar datos de producción (ver `CLAUDE.md` §10). Cuando exista RF-307, el matchmaking local se prueba con `pnpm inngest:dev`.
 
-| Comando              | Qué hace                         |
-| -------------------- | -------------------------------- |
-| `pnpm dev`           | Dev server con hot reload        |
-| `pnpm build`         | Build de producción              |
-| `pnpm start`         | Servir el build                  |
-| `pnpm lint`          | ESLint                           |
-| `pnpm type-check`    | TypeScript sin emit              |
-| `pnpm test`          | Vitest unit tests                |
-| `pnpm test:e2e`      | Playwright E2E                   |
-| `pnpm db:seed`       | Cargar álbum Mundial 2026        |
-| `pnpm db:reset`      | Reset DB local (CUIDADO en prod) |
-| `pnpm prisma studio` | UI para inspeccionar DB          |
+## Scripts
+
+| Comando                | Qué hace                                   |
+| ---------------------- | ------------------------------------------ |
+| `pnpm dev`             | Dev server con Turbopack (hot reload)      |
+| `pnpm build`           | Build de producción                        |
+| `pnpm start`           | Servir el build                            |
+| `pnpm lint`            | ESLint (incluye `no-console`)              |
+| `pnpm lint:fix`        | ESLint con autofix                         |
+| `pnpm type-check`      | `tsc --noEmit` (strict)                    |
+| `pnpm format`          | Prettier `--write`                         |
+| `pnpm format:check`    | Prettier `--check` (lo corre el CI)        |
+| `pnpm test`            | Vitest (unit)                              |
+| `pnpm test:watch`      | Vitest en watch                            |
+| `pnpm test:coverage`   | Vitest + coverage (match engine 100%)      |
+| `pnpm test:e2e`        | Playwright E2E                             |
+| `pnpm prisma:generate` | Generar Prisma Client                      |
+| `pnpm prisma:migrate`  | `prisma migrate dev` (local)               |
+| `pnpm prisma:studio`   | UI para inspeccionar la DB                 |
+| `pnpm prisma:seed`     | Cargar el álbum Mundial 2026 (idempotente) |
+| `pnpm db:reset`        | Reset de la DB (⚠️ jamás en prod)          |
+| `pnpm inngest:dev`     | Inngest local (cuando exista RF-307)       |
+
+## El GATE (idéntico al CI) — antes de pushear
+
+```bash
+pnpm format && pnpm lint && pnpm type-check && pnpm format:check && pnpm prisma:generate && pnpm test:coverage
+# + build con las MISMAS env mock que el CI (ver CLAUDE.md §13)
+```
+
+CI (`.github/workflows/ci.yml`): jobs `lint-and-type`, `test`, `build` (este con env mock). La branch protection en `develop` exige el check verde para el auto-merge. Existe un `lighthouse.yml` pero está **deshabilitado** (necesita preview de Vercel + secrets).
 
 ## Estructura del proyecto
 
 ```
 src/
-├── app/                    # Next.js App Router
-│   ├── [locale]/
-│   │   ├── (marketing)/    # Landing y páginas estáticas (SSG)
-│   │   ├── (app)/          # Rutas autenticadas
-│   │   └── u/[username]/   # Perfiles públicos (SSR)
-│   └── api/                # API Routes
-├── components/             # React components (album/, match/, chat/, ui/)
-├── hooks/                  # Custom hooks (useAlbum, useMatches)
-├── services/               # Service Layer (lógica de negocio)
-├── repositories/           # Repository Layer (único acceso a Prisma)
+├── app/                 # Next.js App Router (UI + API routes). Locale `es`, sin segmento [locale].
+│   ├── album/  matches/  conversations/  settings/  onboarding/  u/[username]/  ...
+│   ├── como-funciona/  precios/  privacidad/  terminos/  contacto/   # estáticas
+│   └── api/             # REST API routes (no Server Actions — ADR-018)
+├── components/          # React components (album/, chat/, matches/, notifications/, profile/, landing/, layout/, ui/)
+├── services/            # Service Layer (lógica de negocio; sin HTTP)
+├── repositories/        # Repository Layer (ÚNICO acceso a Prisma)
 ├── lib/
-│   ├── match-engine.ts     # Algoritmo de matchmaking (funciones puras)
-│   ├── prisma.ts
-│   ├── supabase/
-│   ├── inngest/
-│   ├── email/
-│   └── validations/        # Schemas Zod
-├── types/                  # Tipos del dominio
-└── middleware.ts           # Auth guard + i18n routing
+│   ├── match-engine.ts  # Algoritmo de matchmaking (función pura, sin I/O)
+│   ├── prisma.ts        # Singleton de PrismaClient
+│   ├── logger.ts        # Logger estructurado
+│   ├── auth/  supabase/  validations/   # auth helpers, clientes Supabase, schemas Zod
+├── types/               # Tipos del dominio
+├── i18n/                # config next-intl
+└── middleware.ts        # refresh de cookie de sesión (@supabase/ssr)
 
-prisma/
-├── schema.prisma
-├── migrations/
-└── seed.ts
-
-messages/                   # i18n: es.json, en.json
-public/                     # Assets estáticos, manifest, iconos
+prisma/    schema.prisma · migrations/ · seed.ts · data/mundial-2026.json
+messages/  es.json        # i18n (mono-idioma; estructura lista para `en` en F2)
 ```
 
-Detalle completo en la documentación de Notion: sección **4.9 Diagrama de Paquetes**.
+Detalle de arquitectura y decisiones en Notion (4.2 Arquitectura, 4.6 ADRs).
 
-## Documentación
+## Flujo de trabajo (resumen)
 
-Toda la documentación del producto, arquitectura, decisiones, requerimientos y plan vive en **Notion**:
-
-📚 [App TBD] — Documentación Completa del Proyecto: https://www.notion.so/36de548e6cdd81cda047e4a5c0f4ad91
-
-Páginas clave para arrancar:
-
-- **2.1 Requerimientos Funcionales** — qué hace el producto
-- **4.2 Arquitectura de Software** — cómo está organizado el código
-- **4.3 Modelo de Datos** — schema Prisma comentado
-- **4.4 Algoritmo de Matchmaking** — core del producto
-- **4.6 ADRs** — por qué se eligió cada cosa del stack
-- **4.7 Contrato de API** — endpoints
-- **8.9 Pasos para Arrancar** — checklist de bootstrap
-
-## Convenciones
-
-- **Archivos**: `kebab-case` (ej: `match-card.tsx`, `sticker.service.ts`)
-- **Componentes**: `PascalCase`, default export
-- **Funciones**: `camelCase`
-- **Constantes globales**: `SCREAMING_SNAKE_CASE`
-- **Imports**: absolutos con `@/` (ej: `@/services/match.service`)
-- **TypeScript**: strict mode, cero `any`
-- **Estilo**: ESLint + Prettier en pre-commit (Husky)
-
-Más detalle en `CONTRIBUTING.md` y en la sección **8.8 Proceso de Trabajo** de Notion.
-
-## Flujo de trabajo
-
-1. Sacar issue de GitHub Projects (o de la matriz de trazabilidad 2.5).
-2. Crear branch: `feat/[id]-descripcion`, `fix/[id]-descripcion`, etc.
-3. Hacer commits siguiendo Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`).
-4. Abrir PR usando la plantilla `.github/PULL_REQUEST_TEMPLATE.md`.
-5. CI debe pasar (lint + type-check + tests).
-6. Code review obligatorio de al menos otra persona.
-7. Squash & merge a `main`.
-8. Deploy automático a producción.
-
-Detalle en **7.3 Git Workflow y Branching** de Notion.
+- **`develop` = PRODUCCIÓN.** Vercel deploya prod desde `develop` (no `main`). **Nunca pushear directo.**
+- Rama `claude/<rf>-<slug>` (agente autónomo) o `feat/<slug>` (manual) desde `develop` → PR contra `develop` → CI verde → **merge por rebase** (commits atómicos).
+- **Docs PRs**: auto-merge OK. **Code PRs**: NO auto-merge — los revisa Gonza (gstack + humano) antes de mergear.
+- Detalle en [`CONTRIBUTING.md`](./CONTRIBUTING.md) y `CLAUDE.md` §4.
 
 ## Testing
 
-- **Unit**: Vitest. Match engine al 100%.
-- **Integration**: Vitest + DB de test en Docker.
-- **E2E**: Playwright para flujos críticos.
-- **Performance**: Lighthouse CI por PR.
+- **Unit**: Vitest. Match engine al 100% (regla no-negociable, `CLAUDE.md` §11).
+- **E2E**: Playwright (`pnpm test:e2e`) para flujos críticos.
+- **Coverage**: `pnpm test:coverage`.
 
 ```bash
-pnpm test:watch              # Unit en modo watch
-pnpm test:integration        # Tests de integración con DB
-pnpm test:e2e                # E2E con Playwright
-pnpm test:coverage           # Coverage report
+pnpm test:watch       # unit en watch
+pnpm test:e2e         # Playwright
+pnpm test:coverage    # coverage report
 ```
 
-Detalle en **7.2 Plan de Testing Detallado**.
+## Documentación
+
+- [`CLAUDE.md`](./CLAUDE.md) — cómo se construye el repo (capas, tokens, i18n, gate, ADRs resumidos).
+- [`BACKLOG.md`](./BACKLOG.md) — qué construir, en orden. [`HANDOFF.md`](./HANDOFF.md) — bitácora.
+- [`reports/`](./reports) — auditorías de estado real.
+- **Notion** — doc completa de producto/arquitectura/ADRs: https://www.notion.so/36de548e6cdd81cda047e4a5c0f4ad91
 
 ## Seguridad
 
-- Variables sensibles solo en `.env.local` (gitignored) o Vercel dashboard.
-- Nunca commitear secretos. Si pasó, rotar inmediatamente.
-- Cualquier cambio de auth/RLS requiere review extra.
-- Si encontrás una vulnerabilidad, contactar al maintainer **en privado**.
-
-Detalle en **5.1 Seguridad y Auth** y **5.2 Threat Model**.
-
-## Para devs nuevos
-
-1. Leer este README completo.
-2. Setear ambiente local (los pasos de arriba).
-3. Leer en Notion: 1.1 Visión, 4.2 Arquitectura, 4.6 ADRs.
-4. Hacer un "onboarding PR" pequeño (typo, mejora visual menor) para validar el flujo.
-5. Pedir un walkthrough de 30min con el founder para preguntas.
+- Variables sensibles solo en `.env.local` (gitignored) o en Vercel. **Nunca** commitear secretos; si pasó, rotar de inmediato.
+- RLS habilitado en todas las tablas; el acceso va por Prisma server-side. Cualquier cambio de auth/RLS requiere review extra.
+- Vulnerabilidades: contactar al maintainer **en privado**.
 
 ## Despliegue
 
-- **Producción**: `main` deploya automáticamente a Vercel.
-- **Preview**: cada PR genera URL preview de Vercel.
-- **Rollback**: Vercel dashboard → Deployments → "Promote to Production" en versión estable anterior.
-
-Detalle en **8.10 Runbook de Incidentes** para emergencias.
-
-## Licencia
-
-Propiedad conjunta del equipo. Ver acuerdo en **8.11 Acuerdo de Equipo**.
+- **Producción**: cada merge a `develop` deploya a Vercel y sale en `https://cambiala.uy` (`cambia-la.vercel.app` = alias técnico).
+- **Preview**: cada PR genera una URL preview de Vercel.
+- **Rollback**: Vercel dashboard → Deployments → "Promote to Production" en una versión estable anterior.
 
 ## Soporte y contacto
 
-- **Issues técnicos**: GitHub Issues con plantilla.
-- **Bugs en producción**: ver Runbook en Notion.
-- **Contacto general**: `contacto@figus.uy` (configurar).
+- **Issues técnicos**: GitHub Issues con plantilla (`.github/ISSUE_TEMPLATE/`).
+- **Contacto**: `consultas@cambiala.uy`.
 
 ---
 

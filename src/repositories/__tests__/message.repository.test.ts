@@ -5,6 +5,7 @@ const mockPrisma = vi.hoisted(() => ({
     create: vi.fn(),
     findMany: vi.fn(),
     count: vi.fn(),
+    updateMany: vi.fn(),
   },
 }));
 
@@ -96,6 +97,32 @@ describe('messageRepository.countUnread', () => {
     mockPrisma.message.count.mockResolvedValue(0);
 
     const result = await messageRepository.countUnread('match-1', 'user-a');
+
+    expect(result).toBe(0);
+  });
+});
+
+describe('messageRepository.markMessagesRead', () => {
+  it('marks unread messages from other users as read', async () => {
+    mockPrisma.message.updateMany.mockResolvedValue({ count: 3 });
+
+    const result = await messageRepository.markMessagesRead('match-1', 'user-b');
+
+    expect(mockPrisma.message.updateMany).toHaveBeenCalledWith({
+      where: {
+        matchId: 'match-1',
+        fromUserId: { not: 'user-b' },
+        readAt: null,
+      },
+      data: { readAt: expect.any(Date) },
+    });
+    expect(result).toBe(3);
+  });
+
+  it('returns 0 when there are no unread messages', async () => {
+    mockPrisma.message.updateMany.mockResolvedValue({ count: 0 });
+
+    const result = await messageRepository.markMessagesRead('match-1', 'user-a');
 
     expect(result).toBe(0);
   });

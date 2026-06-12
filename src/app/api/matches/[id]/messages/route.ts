@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 
-import { SendMessageSchema } from '@/lib/validations/message.schema';
 import { getSession } from '@/lib/auth';
+import { logger } from '@/lib/logger';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { SendMessageSchema } from '@/lib/validations/message.schema';
 import { MatchNotFoundError, MessageAccessError, messageService } from '@/services/message.service';
 
 type Params = { params: Promise<{ id: string }> };
@@ -19,6 +21,7 @@ export async function GET(_req: Request, { params }: Params) {
     if (err instanceof MatchNotFoundError || err instanceof MessageAccessError) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
+    logger.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });
     throw err;
   }
 }
@@ -26,6 +29,12 @@ export async function GET(_req: Request, { params }: Params) {
 export async function POST(req: Request, { params }: Params) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // Anti-spam: 60 mensajes por minuto por usuario
+  const rl = checkRateLimit(`msg:${session.userId}`, 60, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
+  }
 
   const { id: matchId } = await params;
 
@@ -45,6 +54,7 @@ export async function POST(req: Request, { params }: Params) {
     if (err instanceof MatchNotFoundError || err instanceof MessageAccessError) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
+    logger.error('Unhandled error', { error: err instanceof Error ? err.message : String(err) });
     throw err;
   }
 }

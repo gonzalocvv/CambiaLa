@@ -21,10 +21,12 @@
   --muted-foreground: #64748b;
   --accent: #f97316; /* naranja = acento */
   --accent-foreground: #1a1206; /* texto oscuro sobre naranja (AA) */
+  --accent-text: #c2410c; /* naranja oscuro para texto sobre fondo claro (≈4.5:1 sobre blanco, WCAG AA) */
   --special: #d97706; /* dorado para figuritas especiales (amber-600) */
   --special-foreground: #ffffff;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
+  --overlay: #0f172a; /* dialog/modal scrim — always dark regardless of theme */
   --border: #e2e8f0;
   --input: #e2e8f0;
   --ring: #0284c7;
@@ -47,6 +49,7 @@
   --muted-foreground: #a1a1aa;
   --accent: #f97316; /* naranja */
   --accent-foreground: #1a1206;
+  --accent-text: #f97316; /* en dark el naranja ya pasa AA (6.8:1) — mismo valor que accent */
   --special: #fbbf24; /* dorado para figuritas especiales (amber-400) */
   --special-foreground: #1a1206;
   --destructive: #991b1b;
@@ -75,6 +78,7 @@
     --muted-foreground: #a1a1aa;
     --accent: #f97316;
     --accent-foreground: #1a1206;
+    --accent-text: #f97316;
     --special: #fbbf24;
     --special-foreground: #1a1206;
     --destructive: #991b1b;
@@ -103,6 +107,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-text: var(--accent-text);
   --color-special: var(--special);
   --color-special-foreground: var(--special-foreground);
   --color-destructive: var(--destructive);
@@ -110,6 +115,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-overlay: var(--overlay);
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
@@ -128,5 +134,605 @@ body {
 @layer base {
   * {
     border-color: var(--border);
+  }
+}
+
+/* RF-824 — el bottom tab bar (mobile) lo marca con data-has-tabbar en mount.
+   Reservamos su alto + safe-area para que no tape el contenido. En desktop la
+   barra no existe (md:hidden), así que liberamos el padding. */
+body[data-has-tabbar] {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 768px) {
+  body[data-has-tabbar] {
+    padding-bottom: 0;
+  }
+}
+
+/* ===========================================================================
+   Landing — animación "el intercambio" (RF-821)
+   Loop 100% CSS, período compartido de 12s, SOLO transform/opacity (composite).
+   El estado base de cada elemento = estado final "encajado" → es lo que se ve
+   con prefers-reduced-motion (animation: none).
+   =========================================================================== */
+
+.exchange-scene {
+  perspective: 800px;
+  perspective-origin: 50% 40%;
+}
+
+/* Mini-álbumes tilteados en 3D */
+.album {
+  position: absolute;
+  width: 48%;
+  max-width: 215px;
+  aspect-ratio: 3 / 4;
+  /* Look "de papel": esquina filosa + sombra recortada (no blanda/cartoon) +
+     degradé sutil de página (token-based con color-mix → theme-aware). */
+  border-radius: 5px;
+  backface-visibility: hidden;
+  background: linear-gradient(
+    155deg,
+    var(--card) 0%,
+    color-mix(in srgb, var(--card) 88%, var(--muted)) 100%
+  );
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.12),
+    0 10px 26px -8px rgb(0 0 0 / 0.22);
+}
+
+/* Brillo de papel impreso de cada figurita: reflejo diagonal sutil. Material
+   (blanco/negro neutro a baja opacidad, análogo a las box-shadow), no color de marca.
+   LIGHT: highlight blanco arriba (visible sobre la franja de color) + falloff oscuro
+   abajo (visible sobre el cuerpo blanco → da la curvatura glossy). DARK: el blanco ya
+   resalta sobre la card oscura, así que basta el highlight. */
+.sticker-sheen {
+  background: linear-gradient(
+    142deg,
+    rgb(255 255 255 / 0.5) 0%,
+    rgb(255 255 255 / 0.12) 16%,
+    transparent 40%,
+    rgb(0 0 0 / 0.07) 100%
+  );
+}
+.dark .sticker-sheen {
+  background: linear-gradient(
+    135deg,
+    rgb(255 255 255 / 0.16) 0%,
+    rgb(255 255 255 / 0.05) 20%,
+    transparent 46%
+  );
+}
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) .sticker-sheen {
+    background: linear-gradient(
+      135deg,
+      rgb(255 255 255 / 0.16) 0%,
+      rgb(255 255 255 / 0.05) 20%,
+      transparent 46%
+    );
+  }
+}
+.album-a {
+  top: 2%;
+  left: 1%;
+  transform: rotateX(12deg) rotateY(38deg);
+  animation: cl-breathe-a 12s linear infinite;
+}
+.album-b {
+  bottom: 13%;
+  right: 1%;
+  transform: rotateX(12deg) rotateY(-38deg);
+  animation: cl-breathe-b 12s linear infinite;
+}
+/* Recede sutil mientras las voladoras están en el aire (parallax real bajo la
+   perspective: translateZ primero) + micro-thud al recibir el impacto. Vuelve a
+   pose base ANTES del crossfade (60/62) para no desplazar las copias estáticas. */
+@keyframes cl-breathe-a {
+  0%,
+  12% {
+    transform: translateZ(0) rotateX(12deg) rotateY(38deg);
+  }
+  40% {
+    transform: translateZ(-10px) rotateX(11.5deg) rotateY(38deg);
+  }
+  51%,
+  55% {
+    transform: translateZ(0) rotateX(12deg) rotateY(38deg);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.5);
+  }
+  56.5% {
+    /* recibe a BRA (impacto de cl-sfb a 55%) */
+    transform: translateZ(-7px) rotateX(13deg) rotateY(38deg);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  61%,
+  100% {
+    transform: translateZ(0) rotateX(12deg) rotateY(38deg);
+  }
+}
+@keyframes cl-breathe-b {
+  0%,
+  12% {
+    transform: translateZ(0) rotateX(12deg) rotateY(-38deg);
+  }
+  40% {
+    transform: translateZ(-10px) rotateX(11.5deg) rotateY(-38deg);
+  }
+  49%,
+  53% {
+    transform: translateZ(0) rotateX(12deg) rotateY(-38deg);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.5);
+  }
+  54.5% {
+    /* recibe a URU (impacto de cl-sfa a 53%) */
+    transform: translateZ(-7px) rotateX(13deg) rotateY(-38deg);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  59%,
+  100% {
+    transform: translateZ(0) rotateX(12deg) rotateY(-38deg);
+  }
+}
+
+/* Hueco completado: overlay pre-renderizado, aparece solo por opacity */
+.hole-fill {
+  opacity: 1;
+}
+.hole-fill-a {
+  animation: cl-hole-a 12s linear infinite;
+}
+.hole-fill-b {
+  animation: cl-hole-b 12s linear infinite;
+}
+/* El relleno+ring del hueco flashea EN el impacto (no en el crossfade): entra grande
+   y se comprime → energía del golpe disipándose en el slot (scale = composite). */
+@keyframes cl-hole-b {
+  0%,
+  52% {
+    opacity: 0;
+    transform: scale(1.28);
+  }
+  54.5% {
+    opacity: 1;
+    transform: scale(1.16);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  60%,
+  90% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  95% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scale(1.28);
+  }
+}
+@keyframes cl-hole-a {
+  0%,
+  54% {
+    opacity: 0;
+    transform: scale(1.28);
+  }
+  56.5% {
+    opacity: 1;
+    transform: scale(1.16);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  62%,
+  90% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  95% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: scale(1.28);
+  }
+}
+
+/* Copia estática en la celda ORIGEN (despegue exacto): se desvanece en el takeoff,
+   en crossfade simultáneo y co-ubicado con la voladora de escena. */
+.static-src {
+  opacity: 1;
+}
+.static-src-a,
+.static-src-b {
+  animation: cl-src 12s linear infinite;
+}
+@keyframes cl-src {
+  0%,
+  14% {
+    opacity: 1;
+  }
+  18%,
+  94% {
+    opacity: 0;
+  }
+  99%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Copia estática en el hueco DESTINO (aterrizaje exacto): aparece en crossfade
+   cuando la voladora llega, con la misma inclinación del álbum destino. */
+.static-dst {
+  opacity: 1;
+}
+.static-dst-a {
+  animation: cl-dst-a 12s linear infinite;
+}
+.static-dst-b {
+  animation: cl-dst-b 12s linear infinite;
+}
+@keyframes cl-dst-b {
+  0%,
+  60% {
+    opacity: 0;
+  }
+  64%,
+  90% {
+    opacity: 1;
+  }
+  95%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes cl-dst-a {
+  0%,
+  62% {
+    opacity: 0;
+  }
+  66%,
+  90% {
+    opacity: 1;
+  }
+  95%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Voladoras a NIVEL ESCENA: hermanas de los álbumes, z por encima de ambos (nunca
+   ocluidas). Interpolan la inclinación del álbum origen al destino (3D real bajo la
+   `perspective` de la escena) y hacen crossfade co-ubicado con las copias estáticas. */
+.scene-fly {
+  position: absolute;
+  width: clamp(46px, 11.5%, 60px);
+  aspect-ratio: 3 / 4;
+  border-radius: 1.5px;
+  opacity: 0;
+  backface-visibility: hidden;
+  /* Sombra base estática (no animada): da peso y eleva la voladora sobre la escena. */
+  box-shadow:
+    0 10px 22px -8px rgb(0 0 0 / 0.5),
+    0 2px 6px -2px rgb(0 0 0 / 0.3);
+  will-change: transform, opacity;
+}
+.scene-fly-a {
+  top: 9%;
+  left: 11.5%;
+  z-index: 51;
+  animation: cl-sfa 12s linear infinite;
+}
+.scene-fly-b {
+  top: 67%;
+  left: 84%;
+  z-index: 50;
+  animation: cl-sfb 12s linear infinite;
+}
+/* scene-fly-a (URU): A(+38°) → B(−38°). Vuela ALTO (Z 190px). Impacto a 53%.
+   Lista de transform normalizada (translate→translateZ→rotateX→rotateY→rotateZ→scale)
+   para interpolación función-por-función (sin descomposición de matrices = sin wobble). */
+@keyframes cl-sfa {
+  0%,
+  14% {
+    opacity: 0;
+    transform: translate(0%, 0%) translateZ(0) rotateX(12deg) rotateY(38deg) rotateZ(0deg) scale(1);
+  }
+  /* crossfade co-ubicado con .static-src (14→18): pose origen EXACTA */
+  18% {
+    opacity: 1;
+    transform: translate(0%, 0%) translateZ(0) rotateX(12deg) rotateY(38deg) rotateZ(0deg) scale(1);
+    /* peel: despegue suave de la superficie */
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  21% {
+    opacity: 1;
+    transform: translate(0%, 0%) translateZ(18px) rotateX(12deg) rotateY(38deg) rotateZ(0deg)
+      scale(1.03);
+    /* ascenso: ease-out fuerte → flota al ápex */
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  40% {
+    opacity: 1;
+    transform: translate(234%, -40%) translateZ(190px) rotateX(6deg) rotateY(-2deg) rotateZ(-3deg)
+      scale(1.16);
+    /* caída: gravedad */
+    animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0.4);
+  }
+  /* IMPACTO: pasada de largo, comprimida contra el hueco */
+  53% {
+    opacity: 1;
+    transform: translate(468%, 96%) translateZ(-10px) rotateX(13deg) rotateY(-41deg) rotateZ(0deg)
+      scale(0.975);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  /* rebote */
+  56.5% {
+    opacity: 1;
+    transform: translate(468%, 96%) translateZ(6px) rotateX(11.5deg) rotateY(-36.5deg) rotateZ(0deg)
+      scale(1.015);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  /* reposo: pose EXACTA de .static-dst-b para el crossfade 60→64 */
+  60% {
+    opacity: 1;
+    transform: translate(468%, 96%) translateZ(0) rotateX(12deg) rotateY(-38deg) rotateZ(0deg)
+      scale(1);
+  }
+  64% {
+    opacity: 0;
+    transform: translate(468%, 96%) translateZ(0) rotateX(12deg) rotateY(-38deg) rotateZ(0deg)
+      scale(1);
+  }
+  65%,
+  100% {
+    opacity: 0;
+    transform: translate(0%, 0%) translateZ(0) rotateX(12deg) rotateY(38deg) rotateZ(0deg) scale(1);
+  }
+}
+/* scene-fly-b (BRA): B(−38°) → A(+38°). Vuela BAJO (Z 150px). Impacto a 55%. */
+@keyframes cl-sfb {
+  0%,
+  14% {
+    opacity: 0;
+    transform: translate(0%, 0%) translateZ(0) rotateX(12deg) rotateY(-38deg) rotateZ(0deg) scale(1);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(0%, 0%) translateZ(0) rotateX(12deg) rotateY(-38deg) rotateZ(0deg) scale(1);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  21% {
+    opacity: 1;
+    transform: translate(0%, 0%) translateZ(18px) rotateX(12deg) rotateY(-38deg) rotateZ(0deg)
+      scale(1.03);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  42% {
+    opacity: 1;
+    transform: translate(-307%, -48%) translateZ(150px) rotateX(6deg) rotateY(2deg) rotateZ(3deg)
+      scale(1.12);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0.4);
+  }
+  55% {
+    opacity: 1;
+    transform: translate(-615%, -126%) translateZ(-10px) rotateX(13deg) rotateY(41deg) rotateZ(0deg)
+      scale(0.975);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  58.5% {
+    opacity: 1;
+    transform: translate(-615%, -126%) translateZ(6px) rotateX(11.5deg) rotateY(36.5deg)
+      rotateZ(0deg) scale(1.015);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  62% {
+    opacity: 1;
+    transform: translate(-615%, -126%) translateZ(0) rotateX(12deg) rotateY(38deg) rotateZ(0deg)
+      scale(1);
+  }
+  66% {
+    opacity: 0;
+    transform: translate(-615%, -126%) translateZ(0) rotateX(12deg) rotateY(38deg) rotateZ(0deg)
+      scale(1);
+  }
+  67%,
+  100% {
+    opacity: 0;
+    transform: translate(0%, 0%) translateZ(0) rotateX(12deg) rotateY(-38deg) rotateZ(0deg) scale(1);
+  }
+}
+
+/* Sombra de piso de cada voladora: elipse pre-renderizada (rgba neutra, estática),
+   animada SOLO con transform/opacity. Viaja recta por la "cuerda" origen→destino
+   mientras la figurita arquea por arriba: el gap vende el alto, el reencuentro vende
+   el contacto. Lockstep con su voladora (mismos % y beziers por tramo). */
+.fly-shadow {
+  position: absolute;
+  width: clamp(46px, 11.5%, 60px);
+  aspect-ratio: 3 / 4;
+  opacity: 0;
+  background: radial-gradient(50% 16% at 50% 88%, rgb(0 0 0 / 0.45), transparent 70%);
+  will-change: transform, opacity;
+}
+.fly-shadow-a {
+  top: 9%;
+  left: 11.5%;
+  z-index: 40;
+  animation: cl-fsa 12s linear infinite;
+}
+.fly-shadow-b {
+  top: 67%;
+  left: 84%;
+  z-index: 40;
+  animation: cl-fsb 12s linear infinite;
+}
+@keyframes cl-fsa {
+  0%,
+  18% {
+    opacity: 0;
+    transform: translate(0%, 14%) scale(0.9);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  21% {
+    opacity: 0.35;
+    transform: translate(0%, 14%) scale(1);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  40% {
+    opacity: 0.12;
+    transform: translate(234%, 62%) scale(0.62);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0.4);
+  }
+  53% {
+    opacity: 0.4;
+    transform: translate(468%, 110%) scale(1.02);
+  }
+  56% {
+    opacity: 0;
+    transform: translate(468%, 110%) scale(1);
+  }
+  57%,
+  100% {
+    opacity: 0;
+    transform: translate(0%, 14%) scale(0.9);
+  }
+}
+@keyframes cl-fsb {
+  0%,
+  18% {
+    opacity: 0;
+    transform: translate(0%, 14%) scale(0.9);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  21% {
+    opacity: 0.35;
+    transform: translate(0%, 14%) scale(1);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  42% {
+    opacity: 0.12;
+    transform: translate(-307%, -49%) scale(0.66);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0.4);
+  }
+  55% {
+    opacity: 0.4;
+    transform: translate(-615%, -112%) scale(1.02);
+  }
+  58% {
+    opacity: 0;
+    transform: translate(-615%, -112%) scale(1);
+  }
+  59%,
+  100% {
+    opacity: 0;
+    transform: translate(0%, 14%) scale(0.9);
+  }
+}
+
+/* Badge "¡Match!" */
+.match-badge {
+  position: absolute;
+  left: 50%;
+  top: 4%;
+  z-index: 25;
+  transform: translateX(-50%);
+  opacity: 1;
+  animation: cl-badge 12s linear infinite;
+}
+@keyframes cl-badge {
+  0%,
+  66% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.8);
+  }
+  72%,
+  90% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+  95%,
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.8);
+  }
+}
+
+/* Match card: desenlace del loop */
+.match-reveal {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  z-index: 30;
+  width: min(82%, 280px);
+  transform: translateX(-50%);
+  opacity: 1;
+  animation: cl-card 12s linear infinite;
+}
+@keyframes cl-card {
+  0%,
+  70% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(14px) scale(0.96);
+  }
+  78%,
+  90% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  95%,
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px) scale(0.96);
+  }
+}
+
+/* Pausar el loop cuando la escena sale del viewport */
+.exchange-scene.is-paused .album,
+.exchange-scene.is-paused .static-src,
+.exchange-scene.is-paused .scene-fly,
+.exchange-scene.is-paused .fly-shadow,
+.exchange-scene.is-paused .static-dst,
+.exchange-scene.is-paused .hole-fill,
+.exchange-scene.is-paused .match-badge,
+.exchange-scene.is-paused .match-reveal {
+  animation-play-state: paused;
+}
+
+/* Reduced motion: sin loop → todo en su estado final (encajado + match card).
+   .fly-shadow base opacity:0 → invisible en estático. */
+@media (prefers-reduced-motion: reduce) {
+  .album,
+  .static-src,
+  .scene-fly,
+  .fly-shadow,
+  .static-dst,
+  .hole-fill,
+  .match-badge,
+  .match-reveal {
+    animation: none !important;
+  }
+}
+
+/* Reveal al scroll (CSS + IntersectionObserver, sin librería) */
+.cl-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.5s ease-out,
+    transform 0.5s ease-out;
+}
+.cl-reveal-in {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cl-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

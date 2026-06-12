@@ -29,4 +29,16 @@ export const messageRepository = {
       },
     });
   },
+
+  async markMessagesRead(matchId: string, userId: string): Promise<number> {
+    const result = await prisma.message.updateMany({
+      where: {
+        matchId,
+        fromUserId: { not: userId },
+        readAt: null,
+      },
+      data: { readAt: new Date() },
+    });
+    return result.count;
+  },
 };

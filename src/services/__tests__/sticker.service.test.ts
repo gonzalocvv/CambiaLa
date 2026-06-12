@@ -2,17 +2,41 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockRepo = vi.hoisted(() => ({
   getAlbumWithUserCounts: vi.fn(),
-  upsertUserStickerCount: vi.fn(),
-  getStickerById: vi.fn(),
+  getExistingStickerIds: vi.fn(),
+  bulkUpsertCounts: vi.fn(),
+}));
+
+// RF-307: sticker.service ahora encola el evento en Inngest en vez de llamar
+// directamente a matchService. Mockeamos el cliente para verificar el encolado.
+const mockInngest = vi.hoisted(() => ({
+  send: vi.fn().mockResolvedValue(undefined),
+}));
+
+const mockLogger = vi.hoisted(() => ({
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
 }));
 
 vi.mock('@/repositories/sticker.repository', () => ({
   stickerRepository: mockRepo,
 }));
 
-import { StickerNotFoundError, stickerService } from '../sticker.service';
+vi.mock('@/inngest/client', () => ({
+  inngest: mockInngest,
+}));
 
-beforeEach(() => vi.clearAllMocks());
+vi.mock('@/lib/logger', () => ({
+  logger: mockLogger,
+}));
+
+import { stickerService } from '../sticker.service';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockInngest.send.mockResolvedValue(undefined);
+});
 
 const USER_ID = 'user-1';
 const STICKER_ID = 'sticker-1';
@@ -95,23 +119,128 @@ describe('stickerService.getUserAlbum', () => {
   });
 });
 
-describe('stickerService.updateStickerCount', () => {
-  it('updates count when sticker exists', async () => {
-    mockRepo.getStickerById.mockResolvedValue({ id: STICKER_ID, albumId: ALBUM_ID });
-    mockRepo.upsertUserStickerCount.mockResolvedValue({ count: 2 });
+describe('stickerService.bulkUpdateCounts', () => {
+  it('dedupes repeated stickerIds keeping the last count', async () => {
+    mockRepo.getExistingStickerIds.mockResolvedValue(new Set(['s1']));
 
-    const result = await stickerService.updateStickerCount(USER_ID, STICKER_ID, 2);
+    const result = await stickerService.bulkUpdateCounts(USER_ID, [
+      { stickerId: 's1', count: 1 },
+      { stickerId: 's1', count: 5 },
+    ]);
 
-    expect(result).toEqual({ count: 2 });
-    expect(mockRepo.upsertUserStickerCount).toHaveBeenCalledWith(USER_ID, STICKER_ID, 2);
+    expect(mockRepo.getExistingStickerIds).toHaveBeenCalledWith(['s1']);
+    expect(mockRepo.bulkUpsertCounts).toHaveBeenCalledWith(USER_ID, [
+      { stickerId: 's1', count: 5 },
+    ]);
+    expect(result).toEqual({ applied: 1, ignored: 0 });
   });
 
-  it('throws StickerNotFoundError when sticker does not exist', async () => {
-    mockRepo.getStickerById.mockResolvedValue(null);
+  it('ignores stickerIds not in the catalog and reports them', async () => {
+    mockRepo.getExistingStickerIds.mockResolvedValue(new Set(['s1']));
 
-    await expect(stickerService.updateStickerCount(USER_ID, 'bad-id', 1)).rejects.toBeInstanceOf(
-      StickerNotFoundError,
+    const result = await stickerService.bulkUpdateCounts(USER_ID, [
+      { stickerId: 's1', count: 2 },
+      { stickerId: 'ghost', count: 3 },
+    ]);
+
+    expect(mockRepo.bulkUpsertCounts).toHaveBeenCalledWith(USER_ID, [
+      { stickerId: 's1', count: 2 },
+    ]);
+    expect(result).toEqual({ applied: 1, ignored: 1 });
+  });
+
+  it('does not write when all stickerIds are ignored', async () => {
+    mockRepo.getExistingStickerIds.mockResolvedValue(new Set());
+
+    const result = await stickerService.bulkUpdateCounts(USER_ID, [
+      { stickerId: 'ghost', count: 1 },
+    ]);
+
+    expect(mockRepo.bulkUpsertCounts).not.toHaveBeenCalled();
+    expect(result).toEqual({ applied: 0, ignored: 1 });
+  });
+
+  it('applies multiple valid changes (happy path) with count 0 and 99 passthrough', async () => {
+    mockRepo.getExistingStickerIds.mockResolvedValue(new Set(['s1', 's2']));
+
+    const result = await stickerService.bulkUpdateCounts(USER_ID, [
+      { stickerId: 's1', count: 0 },
+      { stickerId: 's2', count: 99 },
+    ]);
+
+    expect(mockRepo.bulkUpsertCounts).toHaveBeenCalledWith(USER_ID, [
+      { stickerId: 's1', count: 0 },
+      { stickerId: 's2', count: 99 },
+    ]);
+    expect(result).toEqual({ applied: 2, ignored: 0 });
+  });
+
+  it('dedupe intercalado: preserva orden de 1ra aparición con el último valor', async () => {
+    mockRepo.getExistingStickerIds.mockResolvedValue(new Set(['a', 'b']));
+
+    const result = await stickerService.bulkUpdateCounts(USER_ID, [
+      { stickerId: 'a', count: 1 },
+      { stickerId: 'b', count: 2 },
+      { stickerId: 'a', count: 3 },
+    ]);
+
+    expect(mockRepo.getExistingStickerIds).toHaveBeenCalledWith(['a', 'b']);
+    expect(mockRepo.bulkUpsertCounts).toHaveBeenCalledWith(USER_ID, [
+      { stickerId: 'a', count: 3 },
+      { stickerId: 'b', count: 2 },
+    ]);
+    expect(result).toEqual({ applied: 2, ignored: 0 });
+  });
+
+  it('aplica 200 cambios válidos en una sola llamada al repo', async () => {
+    const ids = Array.from({ length: 200 }, (_, i) => `s${i}`);
+    mockRepo.getExistingStickerIds.mockResolvedValue(new Set(ids));
+
+    const changes = ids.map((stickerId, i) => ({ stickerId, count: i % 100 }));
+    const result = await stickerService.bulkUpdateCounts(USER_ID, changes);
+
+    expect(mockRepo.bulkUpsertCounts).toHaveBeenCalledOnce();
+    expect(mockRepo.bulkUpsertCounts.mock.calls[0][1]).toHaveLength(200);
+    expect(result).toEqual({ applied: 200, ignored: 0 });
+  });
+
+  // RF-307: el recompute se encola en Inngest (evento 'match/recompute') en vez de ejecutarse
+  // síncronamente en el request. Verificamos que inngest.send se llama con los parámetros correctos.
+  it('enqueues a match/recompute Inngest event after a successful flush (applied > 0)', async () => {
+    mockRepo.getExistingStickerIds.mockResolvedValue(new Set(['s1']));
+
+    await stickerService.bulkUpdateCounts(USER_ID, [{ stickerId: 's1', count: 2 }]);
+
+    expect(mockInngest.send).toHaveBeenCalledOnce();
+    expect(mockInngest.send).toHaveBeenCalledWith({
+      name: 'match/recompute',
+      data: { userId: USER_ID },
+    });
+  });
+
+  it('does NOT enqueue recompute event when nothing was applied (all ids ignored)', async () => {
+    mockRepo.getExistingStickerIds.mockResolvedValue(new Set());
+
+    const result = await stickerService.bulkUpdateCounts(USER_ID, [
+      { stickerId: 'ghost', count: 1 },
+    ]);
+
+    expect(result).toEqual({ applied: 0, ignored: 1 });
+    expect(mockInngest.send).not.toHaveBeenCalled();
+  });
+
+  it('logs and swallows inngest.send failure without failing the album save', async () => {
+    mockRepo.getExistingStickerIds.mockResolvedValue(new Set(['s1']));
+    mockInngest.send.mockRejectedValue(new Error('inngest down'));
+
+    const result = await stickerService.bulkUpdateCounts(USER_ID, [{ stickerId: 's1', count: 1 }]);
+
+    // album write still succeeded; enqueue failure is logged, not thrown
+    expect(result).toEqual({ applied: 1, ignored: 0 });
+    expect(mockRepo.bulkUpsertCounts).toHaveBeenCalledOnce();
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'inngest send match/recompute failed',
+      expect.objectContaining({ userId: USER_ID, error: 'inngest down' }),
     );
-    expect(mockRepo.upsertUserStickerCount).not.toHaveBeenCalled();
   });
 });

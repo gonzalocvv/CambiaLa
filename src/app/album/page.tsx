@@ -6,7 +6,7 @@ import { AppNavbar } from '@/components/layout/app-navbar';
 import { getSession } from '@/lib/auth';
 import { stickerService } from '@/services/sticker.service';
 
-import { AlbumClient } from './AlbumClient';
+import { AlbumClient } from './album-client';
 
 export default async function AlbumPage() {
   const session = await getSession();

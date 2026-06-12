@@ -9,6 +9,10 @@ const mockRepo = vi.hoisted(() => ({
   updateProfile: vi.fn(),
   updateLocation: vi.fn(),
   findByUsername: vi.fn(),
+  deleteUserCascade: vi.fn(),
+  findAllForAdmin: vi.fn(),
+  findByIdForAdmin: vi.fn(),
+  updateSuspension: vi.fn(),
 }));
 
 vi.mock('@/repositories/user.repository', () => ({
@@ -191,5 +195,88 @@ describe('userService.getPublicProfileUser', () => {
     await expect(userService.getPublicProfileUser('private')).rejects.toBeInstanceOf(
       PublicProfileNotFoundError,
     );
+  });
+});
+
+describe('userService.deleteAccount', () => {
+  it('calls deleteUserCascade after verifying user exists', async () => {
+    mockRepo.findById.mockResolvedValue({ id: 'cuid-user-1' });
+    mockRepo.deleteUserCascade.mockResolvedValue(undefined);
+
+    await userService.deleteAccount('cuid-user-1');
+
+    expect(mockRepo.findById).toHaveBeenCalledWith('cuid-user-1');
+    expect(mockRepo.deleteUserCascade).toHaveBeenCalledWith('cuid-user-1');
+  });
+
+  it('throws UserNotFoundError when user does not exist', async () => {
+    mockRepo.findById.mockResolvedValue(null);
+
+    await expect(userService.deleteAccount('nonexistent')).rejects.toBeInstanceOf(
+      UserNotFoundError,
+    );
+    expect(mockRepo.deleteUserCascade).not.toHaveBeenCalled();
+  });
+});
+
+describe('userService.listUsersForAdmin', () => {
+  it('delegates to findAllForAdmin', async () => {
+    const page = { users: [{ id: 'u1' }], total: 1 };
+    mockRepo.findAllForAdmin.mockResolvedValue(page);
+
+    const result = await userService.listUsersForAdmin({ page: 1, pageSize: 20 });
+    expect(result).toEqual(page);
+    expect(mockRepo.findAllForAdmin).toHaveBeenCalledWith({ page: 1, pageSize: 20 });
+  });
+
+  it('passes search filter through', async () => {
+    mockRepo.findAllForAdmin.mockResolvedValue({ users: [], total: 0 });
+    await userService.listUsersForAdmin({ search: 'gonza', page: 1, pageSize: 10 });
+    expect(mockRepo.findAllForAdmin).toHaveBeenCalledWith({
+      search: 'gonza',
+      page: 1,
+      pageSize: 10,
+    });
+  });
+});
+
+describe('userService.getUserDetailForAdmin', () => {
+  it('returns user detail when found', async () => {
+    const user = { id: 'u1', email: 'a@test.com', role: 'user' };
+    mockRepo.findByIdForAdmin.mockResolvedValue(user);
+
+    const result = await userService.getUserDetailForAdmin('u1');
+    expect(result).toEqual(user);
+  });
+
+  it('throws UserNotFoundError when user does not exist', async () => {
+    mockRepo.findByIdForAdmin.mockResolvedValue(null);
+    await expect(userService.getUserDetailForAdmin('nope')).rejects.toBeInstanceOf(
+      UserNotFoundError,
+    );
+  });
+});
+
+describe('userService.toggleSuspension', () => {
+  it('suspends an existing user', async () => {
+    mockRepo.findByIdForAdmin.mockResolvedValue({
+      id: 'u1',
+      email: 'a@test.com',
+      role: 'user',
+      isSuspended: false,
+    });
+    mockRepo.updateSuspension.mockResolvedValue({ id: 'u1', isSuspended: true });
+
+    const result = await userService.toggleSuspension('u1', true);
+    expect(result.isSuspended).toBe(true);
+    expect(mockRepo.updateSuspension).toHaveBeenCalledWith('u1', true);
+  });
+
+  it('throws UserNotFoundError when user does not exist', async () => {
+    mockRepo.findByIdForAdmin.mockResolvedValue(null);
+    await expect(userService.toggleSuspension('nope', true)).rejects.toBeInstanceOf(
+      UserNotFoundError,
+    );
+    expect(mockRepo.updateSuspension).not.toHaveBeenCalled();
   });
 });

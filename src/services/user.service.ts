@@ -4,7 +4,10 @@ import {
   type OnboardingData,
   type UpdateProfileData,
   type UpdateLocationData,
+  type UpdateNotificationsData,
+  type UpdateMatchmakingData,
 } from '@/repositories/user.repository';
+import type { ListUsersQuery } from '@/lib/validations/admin.schema';
 
 export class UsernameConflictError extends Error {
   constructor() {
@@ -68,5 +71,39 @@ export const userService = {
     const user = await userRepository.findByUsername(username);
     if (!user || !user.publicProfile) throw new PublicProfileNotFoundError();
     return user;
+  },
+
+  async updateNotifications(userId: string, data: UpdateNotificationsData): Promise<void> {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new UserNotFoundError();
+    await userRepository.updateNotifications(userId, data);
+  },
+
+  async updateMatchmaking(userId: string, data: UpdateMatchmakingData): Promise<void> {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new UserNotFoundError();
+    await userRepository.updateMatchmaking(userId, data);
+  },
+
+  async deleteAccount(userId: string): Promise<void> {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new UserNotFoundError();
+    await userRepository.deleteUserCascade(userId);
+  },
+
+  async listUsersForAdmin(opts: ListUsersQuery) {
+    return userRepository.findAllForAdmin(opts);
+  },
+
+  async getUserDetailForAdmin(userId: string) {
+    const user = await userRepository.findByIdForAdmin(userId);
+    if (!user) throw new UserNotFoundError();
+    return user;
+  },
+
+  async toggleSuspension(userId: string, isSuspended: boolean) {
+    const user = await userRepository.findByIdForAdmin(userId);
+    if (!user) throw new UserNotFoundError();
+    return userRepository.updateSuspension(userId, isSuspended);
   },
 };

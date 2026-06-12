@@ -40,6 +40,23 @@ export const UpdateLocationSchema = z
 
 export type UpdateLocationInput = z.infer<typeof UpdateLocationSchema>;
 
+export const UpdateNotificationsSchema = z.object({
+  notifyOnMatch: z.boolean().optional(),
+  emailFrequency: z.enum(['instant', 'daily', 'weekly', 'never']).optional(),
+  pushEnabled: z.boolean().optional(),
+});
+
+export type UpdateNotificationsInput = z.infer<typeof UpdateNotificationsSchema>;
+
+export const UpdateMatchmakingSchema = z.object({
+  participatesInMatchmaking: z.boolean().optional(),
+  matchRadius: z.enum(['neighborhood', 'department', 'country']).optional(),
+  offerUniques: z.boolean().optional(),
+  acceptUnbalanced: z.boolean().optional(),
+});
+
+export type UpdateMatchmakingInput = z.infer<typeof UpdateMatchmakingSchema>;
+
 export const GetSettingsResponseSchema = z.object({
   username: z.string().nullable(),
   name: z.string().nullable(),
@@ -49,6 +66,13 @@ export const GetSettingsResponseSchema = z.object({
   neighborhood: z.string().nullable(),
   whatsapp: z.string().nullable(),
   publicProfile: z.boolean(),
+  notifyOnMatch: z.boolean(),
+  emailFrequency: z.string(),
+  pushEnabled: z.boolean(),
+  participatesInMatchmaking: z.boolean(),
+  matchRadius: z.string(),
+  offerUniques: z.boolean(),
+  acceptUnbalanced: z.boolean(),
 });
 
 export type GetSettingsResponse = z.infer<typeof GetSettingsResponseSchema>;

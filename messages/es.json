@@ -1,7 +1,8 @@
 {
   "Metadata": {
-    "title": "CambiaLa — Cambia tus figuritas del Mundial 2026",
-    "description": "Plataforma para coleccionistas uruguayos. Cargá tu álbum, te avisamos cuando aparece alguien para cambiar."
+    "title": "CambiaLa — Cambiar figuritas del Mundial 2026 en Uruguay",
+    "description": "Cargá tu álbum del Mundial 2026 y te encontramos coleccionistas de tu barrio para cambiar las figuritas que te faltan. Gratis y sin publicidad.",
+    "ogSiteName": "CambiaLa"
   },
   "Rating": {
     "title": "¿Cómo fue el cambio?",
@@ -45,7 +46,9 @@
   },
   "MatchesList": {
     "title": "Mis matches",
-    "empty": "Todavía no tenés matches activos. Cargá tu álbum y te avisamos cuando aparezca un cambio.",
+    "emptyTitle": "Todavía no tenés matches",
+    "emptyDescription": "Cargá tu álbum y te avisamos cuando alguien de tu barrio tenga las que te faltan.",
+    "emptyCta": "Cargar mi álbum",
     "notAuthenticated": "Iniciá sesión para ver tus matches."
   },
   "MatchCard": {
@@ -107,7 +110,11 @@
       "errorInvalidEmail": "El email no parece válido.",
       "errorInvalidCode": "El código no es correcto o venció. Pedí uno nuevo.",
       "backToHome": "← Volver al inicio",
-      "callbackError": "Hubo un problema al iniciar sesión. Intentá de nuevo."
+      "callbackError": "Hubo un problema al iniciar sesión. Intentá de nuevo.",
+      "titleSignup": "Creá tu cuenta",
+      "subtitleSignup": "Sin contraseña. Te mandamos un código por mail.",
+      "switchToLogin": "¿Ya tenés cuenta? Iniciá sesión",
+      "switchToSignup": "¿Primera vez? Creá tu cuenta"
     }
   },
   "Album": {
@@ -118,7 +125,6 @@
     "statsPercent": "completo",
     "progressLabel": "{percent}% del álbum completo",
     "clickHint": "Hacé click para marcar. Click derecho para restar.",
-    "teamFWC": "Copa del Mundo",
     "saving": "Guardando…",
     "saved": "Guardado ✓",
     "saveError": "Error al guardar",
@@ -127,11 +133,13 @@
     "filterHave": "Tengo",
     "filterDuplicates": "Repetidas",
     "filterSpecials": "Especiales",
-    "searchPlaceholder": "Buscar por número (URU9) o nombre (Suárez)…",
+    "searchPlaceholder": "Buscar por número (URU9) o nombre (Valverde)…",
     "searchClear": "Limpiar búsqueda",
     "teamFilterAll": "Todos los equipos",
     "emptyFilter": "No hay figuritas que coincidan con ese filtro.",
-    "resultsCount": "{count, plural, one {1 figurita} other {# figuritas}}"
+    "resultsCount": "{count, plural, one {1 figurita} other {# figuritas}}",
+    "retry": "Reintentar",
+    "ignoredNotice": "{count, plural, one {1 figurita no se guardó (no está en el catálogo)} other {# figuritas no se guardaron (no están en el catálogo)}}"
   },
   "Settings": {
     "title": "Mi configuración",
@@ -153,6 +161,7 @@
     "saving": "Guardando…",
     "saved": "¡Guardado!",
     "saveError": "Algo salió mal. Intentá de nuevo.",
+    "adminPanelButton": "Panel de admin",
     "accountTitle": "Cuenta",
     "logoutButton": "Cerrar sesión",
     "loggingOut": "Saliendo…",
@@ -161,17 +170,69 @@
     "whatsappHint": "Para que tus matches puedan contactarte directo.",
     "whatsappError": "No parece un celular válido. Probá con el formato 099 123 456.",
     "publicProfileLabel": "Perfil público",
-    "publicProfileSubtitle": "Otros coleccionistas pueden ver tu perfil en /u/usuario."
+    "publicProfileSubtitle": "Otros coleccionistas pueden ver tu perfil en /u/usuario.",
+    "notificationsTitle": "Notificaciones",
+    "notificationsSubtitle": "Controlá cómo y cuándo te avisamos.",
+    "notifyOnMatchLabel": "Avisarme cuando encuentre un match",
+    "notifyOnMatchSubtitle": "Recibís un aviso cuando aparece un coleccionista compatible.",
+    "emailFrequencyLabel": "Frecuencia de emails",
+    "emailFrequencyInstant": "Al instante",
+    "emailFrequencyDaily": "Resumen diario",
+    "emailFrequencyWeekly": "Resumen semanal",
+    "emailFrequencyNever": "Nunca",
+    "pushEnabledLabel": "Notificaciones push",
+    "pushEnabledSubtitle": "Recibí alertas aunque la app esté cerrada (próximamente).",
+    "matchmakingTitle": "Matchmaking",
+    "matchmakingSubtitle": "Controlá cómo participás en el sistema de matches.",
+    "participatesLabel": "Participar en el matchmaking",
+    "participatesSubtitle": "Desactivá si no estás disponible para cambiar.",
+    "matchRadiusLabel": "Radio de búsqueda",
+    "matchRadiusNeighborhood": "Solo mi barrio",
+    "matchRadiusDepartment": "Todo mi departamento",
+    "matchRadiusCountry": "Todo Uruguay",
+    "offerUniquesLabel": "Ofrecer figuritas únicas",
+    "offerUniquesSubtitle": "Permitir ofrecer figuritas que tenés de a una (sin repetidas).",
+    "acceptUnbalancedLabel": "Aceptar matches desequilibrados",
+    "acceptUnbalancedSubtitle": "Aceptar cuando uno da más figuritas que el otro.",
+    "dangerZoneTitle": "Zona de peligro",
+    "dangerZoneSubtitle": "Estas acciones no tienen vuelta atrás.",
+    "deleteAccountButton": "Borrar mi cuenta",
+    "deleteAccountModalTitle": "¿Querés borrar tu cuenta?",
+    "deleteAccountModalBody": "Se borrarán permanentemente todos tus datos: tu perfil, álbum, matches y conversaciones. Esta acción no se puede deshacer.",
+    "deleteAccountModalConfirm": "Sí, borrar definitivamente",
+    "deleteAccountModalCancel": "Cancelar",
+    "deleteAccountDeleting": "Borrando...",
+    "deleteAccountError": "No se pudo borrar la cuenta. Intentá de nuevo."
   },
   "AppNav": {
     "album": "Mi álbum",
     "matches": "Mis matches",
     "conversations": "Chats",
-    "settings": "Configuración"
+    "activities": "Actividades",
+    "settings": "Configuración",
+    "primary": "Navegación principal"
+  },
+  "Activities": {
+    "title": "Actividades",
+    "subtitle": "Juntadas para cambiar figuritas en tu departamento.",
+    "departmentLabel": "Departamento",
+    "notAuthenticated": "Iniciá sesión para ver las actividades.",
+    "chooseDepartmentTitle": "Elegí un departamento",
+    "chooseDepartmentDescription": "Seleccioná un departamento para ver las juntadas de intercambio.",
+    "emptyTitle": "No hay actividades por ahora",
+    "emptyDescription": "Cuando se organice una juntada en {department}, la vas a ver acá.",
+    "dateLabel": "Cuándo",
+    "locationLabel": "Dónde",
+    "untilDate": "hasta {date}",
+    "backToList": "← Actividades",
+    "organizedBy": "Organiza {name}",
+    "detailNotFound": "Esta actividad no existe o fue eliminada."
   },
   "Conversations": {
     "title": "Mis chats",
-    "empty": "Todavía no tenés chats. Cuando coordines un cambio, los mensajes aparecen acá.",
+    "emptyTitle": "Todavía no tenés chats",
+    "emptyDescription": "Cuando coordines un cambio con alguien, los mensajes aparecen acá.",
+    "emptyCta": "Ver mis matches",
     "notAuthenticated": "Iniciá sesión para ver tus chats.",
     "unknownUser": "Usuario",
     "youPrefix": "Vos:",
@@ -189,10 +250,12 @@
     "new_message": "Nuevo mensaje",
     "trade_completed": "Cambio completado",
     "rating_received": "Reseña recibida",
+    "new_activity": "Nueva actividad",
     "new_matchDetail": "Apareciste en un match con score {score}",
     "new_messageDetail": "Te mandaron un mensaje",
     "trade_completedDetail": "El intercambio fue marcado como completado",
-    "rating_receivedDetail": "Alguien te dejó una reseña"
+    "rating_receivedDetail": "Alguien te dejó una reseña",
+    "new_activityDetail": "Nueva actividad en {department}"
   },
   "Home": {
     "nav": {
@@ -200,13 +263,17 @@
       "cta": "Registrate"
     },
     "hero": {
-      "titlePrefix": "Cambia",
-      "titleHighlight": "La",
-      "subtitle": "Cambiá tus figuritas del Mundial 2026 con coleccionistas de tu barrio.",
+      "title": "Te encontramos con quién <hl>cambiar tus figuritas</hl>",
+      "subtitle": "Cargá tu álbum del Mundial 2026 y te avisamos cuando alguien de tu barrio tiene las que te faltan — y quiere las que te sobran.",
       "badge": "Mundial 2026 · Uruguay",
       "cta": "Registrate",
       "ctaSecondary": "¿Cómo funciona?",
-      "scrollHint": "Seguir leyendo"
+      "scrollHint": "Seguir leyendo",
+      "matchMock": {
+        "matchBadge": "¡Match!",
+        "name": "Juan",
+        "neighborhood": "Pocitos"
+      }
     },
     "stats": {
       "stickersValue": "~900",
@@ -229,7 +296,7 @@
     },
     "useCases": {
       "eyebrow": "¿Para quién es?",
-      "title": "Hecho para coleccionistas como vos",
+      "title": "Hecho para coleccionistas uruguayos del Mundial 2026",
       "case1Emoji": "😩",
       "case1Title": "Tenés repetidas sin destino",
       "case1Desc": "Cargá lo que te sobra y encontrá quién lo necesita cerca tuyo. Sin posteos en grupos, sin spam.",
@@ -239,6 +306,16 @@
       "case3Emoji": "📍",
       "case3Title": "Querés cambiar cerca de casa",
       "case3Desc": "Filtramos por tu barrio o ciudad. Coordinás por chat y arreglan el punto de encuentro."
+    },
+    "why": {
+      "eyebrow": "Por qué CambiaLa",
+      "title": "Cambiá las figuritas del Mundial 2026 con tu barrio",
+      "card1Title": "Match automático por barrio",
+      "card1Desc": "No buscás vos — nosotros te avisamos cuando hay un cambio posible cerca tuyo.",
+      "card2Title": "Reputación real",
+      "card2Desc": "Reseñas y estrellas después de cada cambio. Cambiá con desconocidos sin miedo.",
+      "card3Title": "Gratis y sin publicidad",
+      "card3Desc": "Sin banners, sin sponsors, sin vender tus datos."
     },
     "finalCta": {
       "title": "¿Listo para completar tu álbum?",
@@ -256,10 +333,10 @@
     "contactLink": "Contacto"
   },
   "ComoFunciona": {
-    "metaTitle": "Cómo funciona — CambiaLa",
+    "metaTitle": "Cómo funciona — Cambiar figuritas del Mundial 2026 | CambiaLa",
     "eyebrow": "El proceso",
-    "title": "Cómo funciona",
-    "subtitle": "Del álbum incompleto al cambio arreglado en tres pasos.",
+    "title": "Cómo te encontramos con quién cambiar",
+    "subtitle": "Cargás tu álbum del Mundial 2026, cruzamos el tuyo con el de coleccionistas de tu barrio y te avisamos cuando hay match.",
     "step1Title": "Cargá tu álbum",
     "step1Desc": "Ingresá y marcá cada figurita: cuáles tenés, cuáles te faltan y cuántas repetidas tenés de cada una. El sistema lo guarda automáticamente sin que tengas que hacer nada extra.",
     "step2Title": "Buscamos tu match",
@@ -376,6 +453,16 @@
     "missingTitle": "Le faltan",
     "missingHint": "Estas está buscando — si las tenés, podés hacer match."
   },
+  "ErrorPages": {
+    "notFoundTitle": "Página no encontrada",
+    "notFoundSubtitle": "El link que seguiste no existe o ya no está disponible.",
+    "notFoundCta": "Volver al álbum",
+    "notFoundCtaAlt": "Ir al inicio",
+    "errorTitle": "Algo salió mal",
+    "errorSubtitle": "Ocurrió un error inesperado. Podés intentar de nuevo o volver al inicio.",
+    "errorRetry": "Intentar de nuevo",
+    "errorCta": "Ir al inicio"
+  },
   "Contact": {
     "metaTitle": "Contacto — CambiaLa",
     "eyebrow": "¿Necesitás ayuda?",
@@ -391,5 +478,85 @@
     "bugDesc": "Si encontraste un problema en la plataforma, describílo con el mayor detalle posible: qué hiciste, qué esperabas y qué pasó.",
     "socialsTitle": "Redes sociales",
     "socialsDesc": "Próximamente estaremos en redes. Por ahora, el mail es el canal directo."
+  },
+  "Errors": {
+    "rateLimited": "Demasiados intentos. Esperá unos minutos e intentá de nuevo."
+  },
+  "Admin": {
+    "title": "Panel de administración",
+    "usersTitle": "Usuarios",
+    "searchPlaceholder": "Buscar por email o username...",
+    "noResults": "No se encontraron usuarios.",
+    "colEmail": "Email",
+    "colUsername": "Username",
+    "colName": "Nombre",
+    "colCity": "Ciudad",
+    "colRole": "Rol",
+    "colStatus": "Estado",
+    "colJoined": "Registro",
+    "colActions": "Acciones",
+    "statusSuspended": "Suspendido",
+    "statusActive": "Activo",
+    "roleAdmin": "Admin",
+    "roleUser": "Usuario",
+    "viewProfile": "Ver",
+    "backToList": "← Usuarios",
+    "suspendButton": "Suspender",
+    "unsuspendButton": "Reactivar",
+    "suspendConfirm": "¿Suspender este usuario? No podrá iniciar sesión.",
+    "unsuspendConfirm": "¿Reactivar este usuario?",
+    "suspending": "Guardando...",
+    "detailTitle": "Perfil completo",
+    "detailEmail": "Email",
+    "detailUsername": "Username",
+    "detailName": "Nombre",
+    "detailCity": "Ciudad",
+    "detailReputation": "Reputación",
+    "detailTrades": "Cambios",
+    "detailJoined": "Registro",
+    "detailLastSeen": "Última actividad",
+    "detailRole": "Rol",
+    "detailStatus": "Estado",
+    "page": "Página {current} de {total}",
+    "prevPage": "Anterior",
+    "nextPage": "Siguiente",
+    "accessDenied": "Acceso denegado",
+    "accessDeniedDesc": "No tenés permisos para acceder a esta sección.",
+    "activities": {
+      "title": "Actividades",
+      "navLink": "Ver actividades",
+      "uploadButton": "Subir actividad",
+      "newButton": "Nueva actividad",
+      "backToPanel": "← Panel",
+      "backToList": "← Actividades",
+      "empty": "Todavía no hay actividades.",
+      "colTitle": "Título",
+      "colDepartment": "Departamento",
+      "colDate": "Fecha",
+      "colStatus": "Estado",
+      "colActions": "Acciones",
+      "statusPublished": "Publicada",
+      "statusDraft": "Borrador",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "deleteConfirm": "¿Eliminar esta actividad? No se puede deshacer.",
+      "deleting": "Eliminando…",
+      "formTitleNew": "Nueva actividad",
+      "formTitleEdit": "Editar actividad",
+      "fieldTitle": "Título",
+      "fieldDescription": "Descripción",
+      "fieldLocation": "Lugar",
+      "fieldDepartment": "Departamento",
+      "fieldStartsAt": "Empieza",
+      "fieldEndsAt": "Termina (opcional)",
+      "fieldBanner": "Banner (opcional)",
+      "bannerHint": "JPG, PNG o WebP. Máx. 2MB.",
+      "departmentPlaceholder": "Elegí un departamento",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "cancel": "Cancelar",
+      "errorGeneric": "No se pudo guardar. Revisá los campos.",
+      "errorBanner": "El banner no es válido (formato o tamaño)."
+    }
   }
 }

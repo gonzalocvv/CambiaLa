@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
@@ -30,7 +31,21 @@ export default async function MatchesPage() {
         <h1 className="text-foreground mb-6 text-2xl font-bold">{t('title')}</h1>
 
         {matches.length === 0 ? (
-          <p className="text-muted-foreground">{t('empty')}</p>
+          <div className="py-16 text-center">
+            <div className="text-5xl" aria-hidden="true">
+              🤝
+            </div>
+            <h2 className="text-foreground mt-4 mb-2 text-lg font-semibold">{t('emptyTitle')}</h2>
+            <p className="text-muted-foreground mx-auto mb-6 max-w-xs text-sm">
+              {t('emptyDescription')}
+            </p>
+            <Link
+              href="/album"
+              className="bg-primary text-primary-foreground inline-flex items-center rounded-lg px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-90"
+            >
+              {t('emptyCta')}
+            </Link>
+          </div>
         ) : (
           <div className="space-y-3">
             {matches.map((match) => (

@@ -29,11 +29,24 @@ export type UpdateReputationData = {
   tradesCompleted: number;
 };
 
+export type UpdateNotificationsData = {
+  notifyOnMatch?: boolean;
+  emailFrequency?: 'instant' | 'daily' | 'weekly' | 'never';
+  pushEnabled?: boolean;
+};
+
+export type UpdateMatchmakingData = {
+  participatesInMatchmaking?: boolean;
+  matchRadius?: 'neighborhood' | 'department' | 'country';
+  offerUniques?: boolean;
+  acceptUnbalanced?: boolean;
+};
+
 export const userRepository = {
   findByEmail(email: string) {
     return prisma.user.findUnique({
       where: { email },
-      select: { id: true, email: true, username: true, onboardingDoneAt: true },
+      select: { id: true, email: true, username: true, onboardingDoneAt: true, role: true },
     });
   },
 
@@ -85,7 +98,23 @@ export const userRepository = {
         neighborhood: true,
         whatsapp: true,
         publicProfile: true,
+        notifyOnMatch: true,
+        emailFrequency: true,
+        pushEnabled: true,
+        participatesInMatchmaking: true,
+        matchRadius: true,
+        offerUniques: true,
+        acceptUnbalanced: true,
       },
+    });
+  },
+
+  // RF-406: datos mínimos para mandar un mail transaccional a un usuario por id
+  // (el resto del repo no expone el email en findById).
+  findEmailRecipient(userId: string) {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, name: true, username: true, emailFrequency: true },
     });
   },
 
@@ -141,5 +170,153 @@ export const userRepository = {
       },
       select: { id: true, reputation: true, tradesCompleted: true },
     });
+  },
+
+  updateNotifications(userId: string, data: UpdateNotificationsData) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.notifyOnMatch !== undefined ? { notifyOnMatch: data.notifyOnMatch } : {}),
+        ...(data.emailFrequency !== undefined ? { emailFrequency: data.emailFrequency } : {}),
+        ...(data.pushEnabled !== undefined ? { pushEnabled: data.pushEnabled } : {}),
+      },
+      select: { id: true, notifyOnMatch: true, emailFrequency: true, pushEnabled: true },
+    });
+  },
+
+  updateMatchmaking(userId: string, data: UpdateMatchmakingData) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.participatesInMatchmaking !== undefined
+          ? { participatesInMatchmaking: data.participatesInMatchmaking }
+          : {}),
+        ...(data.matchRadius !== undefined ? { matchRadius: data.matchRadius } : {}),
+        ...(data.offerUniques !== undefined ? { offerUniques: data.offerUniques } : {}),
+        ...(data.acceptUnbalanced !== undefined ? { acceptUnbalanced: data.acceptUnbalanced } : {}),
+      },
+      select: {
+        id: true,
+        participatesInMatchmaking: true,
+        matchRadius: true,
+        offerUniques: true,
+        acceptUnbalanced: true,
+      },
+    });
+  },
+
+  async findAllForAdmin(opts: { search?: string; page: number; pageSize: number }) {
+    const { search, page, pageSize } = opts;
+    const where = search
+      ? {
+          OR: [
+            { email: { contains: search, mode: 'insensitive' as const } },
+            { username: { contains: search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {};
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          name: true,
+          city: true,
+          role: true,
+          isSuspended: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.user.count({ where }),
+    ]);
+    return { users, total };
+  },
+
+  findByIdForAdmin(userId: string) {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        name: true,
+        bio: true,
+        avatarUrl: true,
+        city: true,
+        neighborhood: true,
+        role: true,
+        isSuspended: true,
+        publicProfile: true,
+        reputation: true,
+        tradesCompleted: true,
+        createdAt: true,
+        lastSeenAt: true,
+        onboardingDoneAt: true,
+      },
+    });
+  },
+
+  updateSuspension(userId: string, isSuspended: boolean) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { isSuspended },
+      select: { id: true, isSuspended: true },
+    });
+  },
+
+  // RF-307: usuarios con emailFrequency dado que tienen notificaciones new_match sin leer.
+  // Usado por el cron de digest diario/semanal.
+  async findUsersForMatchDigest(frequency: 'daily' | 'weekly'): Promise<
+    {
+      id: string;
+      email: string;
+      name: string | null;
+      username: string | null;
+      matchCount: number;
+    }[]
+  > {
+    const users = await prisma.user.findMany({
+      where: { emailFrequency: frequency },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        username: true,
+        _count: {
+          select: {
+            notifications: { where: { type: 'new_match', readAt: null } },
+          },
+        },
+      },
+    });
+    return users
+      .filter((u) => u._count.notifications > 0)
+      .map((u) => ({
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        username: u.username,
+        matchCount: u._count.notifications,
+      }));
+  },
+
+  async deleteUserCascade(userId: string): Promise<void> {
+    // Delete in FK-safe order (Match/Rating/Message have no cascade from User)
+    await prisma.rating.deleteMany({
+      where: { OR: [{ raterId: userId }, { ratedId: userId }] },
+    });
+    // Deleting matches cascades their messages (Message.matchId onDelete: Cascade)
+    await prisma.match.deleteMany({
+      where: { OR: [{ userAId: userId }, { userBId: userId }] },
+    });
+    // Safety net for any messages sent by user not covered by match cascade
+    await prisma.message.deleteMany({ where: { fromUserId: userId } });
+    // User delete cascades UserSticker and Notification
+    await prisma.user.delete({ where: { id: userId } });
   },
 };

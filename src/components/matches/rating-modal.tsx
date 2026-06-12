@@ -68,7 +68,7 @@ export function RatingModal({ matchId, partnerName }: Props) {
             aria-label={t('starN', { n })}
             aria-pressed={stars === n}
             className={`text-2xl transition-transform hover:scale-110 focus:outline-none ${
-              n <= displayStars ? 'text-accent' : 'text-muted-foreground'
+              n <= displayStars ? 'text-accent-text' : 'text-muted-foreground'
             }`}
             onClick={() => setStars(n)}
             onMouseEnter={() => setHovered(n)}

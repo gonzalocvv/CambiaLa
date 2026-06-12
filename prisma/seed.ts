@@ -60,6 +60,17 @@ async function main(): Promise<void> {
     );
   }
 
+  // Prune: el catálogo es la fuente de verdad. Borra figuritas del álbum que ya
+  // no están en el catálogo (ej. las estrellas FWC del seed viejo). Los conteos
+  // de usuario (UserSticker) caen por cascade (onDelete: Cascade en el schema).
+  const validNumbers = stickers.map((s) => s.number);
+  const pruned = await prisma.sticker.deleteMany({
+    where: { albumId: album.id, number: { notIn: validNumbers } },
+  });
+  if (pruned.count > 0) {
+    logger.info('Figuritas huérfanas eliminadas (prune)', { count: pruned.count });
+  }
+
   logger.info('Seed completado', {
     album: album.name,
     totalStickers: stickers.length,
