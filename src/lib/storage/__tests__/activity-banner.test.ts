@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUpload = vi.fn();
 const mockGetPublicUrl = vi.fn();
+const mockCreateBucket = vi.fn();
 const mockFrom = vi.fn(() => ({ upload: mockUpload, getPublicUrl: mockGetPublicUrl }));
 
 vi.mock('@/lib/supabase/admin', () => ({
-  createAdminClient: () => ({ storage: { from: mockFrom } }),
+  createAdminClient: () => ({ storage: { from: mockFrom, createBucket: mockCreateBucket } }),
 }));
 vi.mock('@/lib/logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
@@ -28,6 +29,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockUpload.mockResolvedValue({ error: null });
   mockGetPublicUrl.mockReturnValue({ data: { publicUrl: 'https://cdn/x.png' } });
+  mockCreateBucket.mockResolvedValue({ error: null });
 });
 
 describe('uploadActivityBanner', () => {
@@ -45,13 +47,26 @@ describe('uploadActivityBanner', () => {
     expect(mockUpload).not.toHaveBeenCalled();
   });
 
-  it('uploads a valid file and returns the public URL', async () => {
+  it('uploads a valid file and returns the public URL without creating a bucket', async () => {
     const url = await uploadActivityBanner(makeFile('image/png', 1000));
     expect(mockUpload).toHaveBeenCalledOnce();
+    expect(mockCreateBucket).not.toHaveBeenCalled();
     expect(url).toBe('https://cdn/x.png');
   });
 
-  it('returns null (does not throw) when storage upload fails', async () => {
+  it('creates the public bucket and retries when the first upload fails', async () => {
+    mockUpload
+      .mockResolvedValueOnce({ error: new Error('Bucket not found') })
+      .mockResolvedValueOnce({ error: null });
+
+    const url = await uploadActivityBanner(makeFile('image/png', 1000));
+
+    expect(mockCreateBucket).toHaveBeenCalledWith('activity-banners', { public: true });
+    expect(mockUpload).toHaveBeenCalledTimes(2);
+    expect(url).toBe('https://cdn/x.png');
+  });
+
+  it('returns null (does not throw) when the upload keeps failing', async () => {
     mockUpload.mockResolvedValue({ error: new Error('bucket not found') });
     const url = await uploadActivityBanner(makeFile('image/webp', 1000));
     expect(url).toBeNull();

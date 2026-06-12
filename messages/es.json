@@ -161,6 +161,7 @@
     "saving": "Guardando…",
     "saved": "¡Guardado!",
     "saveError": "Algo salió mal. Intentá de nuevo.",
+    "adminPanelButton": "Panel de admin",
     "accountTitle": "Cuenta",
     "logoutButton": "Cerrar sesión",
     "loggingOut": "Saliendo…",
@@ -523,7 +524,8 @@
     "accessDeniedDesc": "No tenés permisos para acceder a esta sección.",
     "activities": {
       "title": "Actividades",
-      "navLink": "Actividades",
+      "navLink": "Ver actividades",
+      "uploadButton": "Subir actividad",
       "newButton": "Nueva actividad",
       "backToPanel": "← Panel",
       "backToList": "← Actividades",
