@@ -24,9 +24,17 @@ export default async function AdminPage({ searchParams }: Props) {
       <AppNavbar />
       <main className="mx-auto max-w-5xl px-4 py-8">
         <h1 className="text-foreground mb-2 text-2xl font-bold">{t('title')}</h1>
-        <p className="text-muted-foreground mb-6 text-sm">
+        <p className="text-muted-foreground mb-4 text-sm">
           {t('usersTitle')}: {total}
         </p>
+        <nav className="mb-6">
+          <Link
+            href="/admin/activities"
+            className="text-primary text-sm font-medium hover:underline"
+          >
+            {t('activities.navLink')} →
+          </Link>
+        </nav>
 
         {/* Search form */}
         <form method="GET" className="mb-6 flex gap-2">
