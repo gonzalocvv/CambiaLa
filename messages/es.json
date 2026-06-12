@@ -161,6 +161,7 @@
     "saving": "Guardando…",
     "saved": "¡Guardado!",
     "saveError": "Algo salió mal. Intentá de nuevo.",
+    "adminPanelButton": "Panel de admin",
     "accountTitle": "Cuenta",
     "logoutButton": "Cerrar sesión",
     "loggingOut": "Saliendo…",
@@ -207,8 +208,25 @@
     "album": "Mi álbum",
     "matches": "Mis matches",
     "conversations": "Chats",
+    "activities": "Actividades",
     "settings": "Configuración",
     "primary": "Navegación principal"
+  },
+  "Activities": {
+    "title": "Actividades",
+    "subtitle": "Juntadas para cambiar figuritas en tu departamento.",
+    "departmentLabel": "Departamento",
+    "notAuthenticated": "Iniciá sesión para ver las actividades.",
+    "chooseDepartmentTitle": "Elegí un departamento",
+    "chooseDepartmentDescription": "Seleccioná un departamento para ver las juntadas de intercambio.",
+    "emptyTitle": "No hay actividades por ahora",
+    "emptyDescription": "Cuando se organice una juntada en {department}, la vas a ver acá.",
+    "dateLabel": "Cuándo",
+    "locationLabel": "Dónde",
+    "untilDate": "hasta {date}",
+    "backToList": "← Actividades",
+    "organizedBy": "Organiza {name}",
+    "detailNotFound": "Esta actividad no existe o fue eliminada."
   },
   "Conversations": {
     "title": "Mis chats",
@@ -232,10 +250,12 @@
     "new_message": "Nuevo mensaje",
     "trade_completed": "Cambio completado",
     "rating_received": "Reseña recibida",
+    "new_activity": "Nueva actividad",
     "new_matchDetail": "Apareciste en un match con score {score}",
     "new_messageDetail": "Te mandaron un mensaje",
     "trade_completedDetail": "El intercambio fue marcado como completado",
-    "rating_receivedDetail": "Alguien te dejó una reseña"
+    "rating_receivedDetail": "Alguien te dejó una reseña",
+    "new_activityDetail": "Nueva actividad en {department}"
   },
   "Home": {
     "nav": {
@@ -501,6 +521,42 @@
     "prevPage": "Anterior",
     "nextPage": "Siguiente",
     "accessDenied": "Acceso denegado",
-    "accessDeniedDesc": "No tenés permisos para acceder a esta sección."
+    "accessDeniedDesc": "No tenés permisos para acceder a esta sección.",
+    "activities": {
+      "title": "Actividades",
+      "navLink": "Ver actividades",
+      "uploadButton": "Subir actividad",
+      "newButton": "Nueva actividad",
+      "backToPanel": "← Panel",
+      "backToList": "← Actividades",
+      "empty": "Todavía no hay actividades.",
+      "colTitle": "Título",
+      "colDepartment": "Departamento",
+      "colDate": "Fecha",
+      "colStatus": "Estado",
+      "colActions": "Acciones",
+      "statusPublished": "Publicada",
+      "statusDraft": "Borrador",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "deleteConfirm": "¿Eliminar esta actividad? No se puede deshacer.",
+      "deleting": "Eliminando…",
+      "formTitleNew": "Nueva actividad",
+      "formTitleEdit": "Editar actividad",
+      "fieldTitle": "Título",
+      "fieldDescription": "Descripción",
+      "fieldLocation": "Lugar",
+      "fieldDepartment": "Departamento",
+      "fieldStartsAt": "Empieza",
+      "fieldEndsAt": "Termina (opcional)",
+      "fieldBanner": "Banner (opcional)",
+      "bannerHint": "JPG, PNG o WebP. Máx. 2MB.",
+      "departmentPlaceholder": "Elegí un departamento",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "cancel": "Cancelar",
+      "errorGeneric": "No se pudo guardar. Revisá los campos.",
+      "errorBanner": "El banner no es válido (formato o tamaño)."
+    }
   }
 }
