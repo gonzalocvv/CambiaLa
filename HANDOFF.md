@@ -3,6 +3,38 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-12 — RF-1101..1108: Actividades de intercambio por departamento (módulo 1100)
+
+- **Ítem**: Módulo 1100 completo — actividades presenciales por departamento (admin publica, usuarios logueados ven, notificación in-app al depto).
+- **Rama**: `feat/activities` (sesión supervisada, construido en esta sesión por Claude, no por la rutina).
+- **Estado**: ✅ código completo, **GATE en verde** (format ✅ lint ✅ type-check ✅ format:check ✅ prisma:generate ✅ test:coverage ✅ **744 tests** / 77 archivos · build ✅). 9 rutas nuevas compilan.
+
+### Qué se hizo (TDD, commits atómicos)
+
+- **DB** (`prisma/schema.prisma`): modelo `Activity` (FK `Album` + `User` autor, `department`, `bannerUrl`, `startsAt/endsAt`, `isPublished`) + relaciones inversas. `new_activity` documentado en `Notification.type`.
+- **Validations** (`activity.schema.ts`): create/update/list + DTOs + constantes de banner.
+- **Repositories**: `album.repository` (`findActiveAlbum`) + `activity.repository` (CRUD, `findPublishedByDepartment`, `findAllForAdmin`, `findUserIdsByDepartment`).
+- **Storage** (`lib/supabase/admin.ts` + `lib/storage/activity-banner.ts`): cliente service-role + upload con validación MIME/size; si el bucket falta, loguea y crea sin banner.
+- **Service** (`activity.service.ts`): CRUD + fan-out in-app `new_activity` (excluye autor, tolerante a fallos).
+- **API**: `GET/POST /api/admin/activities`, `PATCH/DELETE /api/admin/activities/[id]`, `GET /api/activities`, `GET /api/activities/[id]`.
+- **UI usuario**: `/activities` (selector de depto, default el del usuario) + `/activities/[id]`. `/activities` en `PROTECTED_PATHS`. Link en navbar + bottom-tab-bar.
+- **UI admin**: `/admin/activities` (tabla) + alta/edición/baja con banner. Link en el panel `/admin`.
+- **Notificaciones**: `new_activity` en el enum + render en la campanita (link a `/activities/[id]`). NO entra en `EMAILABLE_NOTIFICATION_TYPES` (solo in-app, decisión del owner).
+- **Numeración**: el rango `RF-1101–1106` (antes "Plan Pro / monetización") se movió a `RF-1301–1306` para liberar el módulo 1100 (decisión del owner en esta sesión).
+
+### ⚠️ Pendiente de Gonza (infra — el código no rompe sin esto)
+
+1. **Migración Prisma**: generar/aplicar la migración del modelo `Activity` contra la DB real (`pnpm prisma:migrate --name add_activity`). El build/test usan DB mock, no la requieren.
+2. **Bucket de Storage**: crear `activity-banners` en Supabase con **lectura pública**. Sin él, la subida loguea error y la actividad se crea sin banner.
+
+### Próximos pasos / deuda
+
+- Validar/allowlistear el host de `bannerUrl` antes de renderizarlo (igual que el TODO de RF-112 avatar).
+- F2: email a usuarios del depto, RSVP/cupos, selector de álbum en UI.
+- PR **SIN auto-merge** (es código): lo revisa Gonza (gstack + humano) antes del merge por rebase.
+
+---
+
 ## 2026-06-12 — Infra: metodología auto-builder instalada como config ejecutable
 
 - **Ítem**: Tooling — dejar la metodología del pipeline autónomo (ADR-021) instalada como **configuración versionada** de Claude Code (antes vivía solo como texto en `CLAUDE.md`/`CONTRIBUTING.md`).

@@ -389,24 +389,27 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
   - `.github/workflows/auto-builder.yml` — cron horario + `workflow_dispatch`, `claude-code-action@v1`, `--effort max`.
   - **🔒 Dependencia (Gonza):** cargar `ANTHROPIC_API_KEY` en Secrets del repo (el workflow está inerte hasta entonces) + confirmar push a ramas `claude/*`. Ver `HANDOFF.md` (entrada 2026-06-12).
 
-## Actividades de intercambio por departamento — _próximo ítem autónomo_
+## Actividades de intercambio por departamento (módulo 1100)
 
-> **Nota de numeración:** el plan original llamaba a esta feature `RF-1101..1108`, pero `RF-1101–1106`
-> ya está asignado a **Plan Pro / monetización** (F2, abajo). Para evitar colisión se reasigna a
-> **RF-1201..1208**. Detalle de diseño en `plan-sesion3-actividades-departamento.md`.
+> **Implementado 2026-06-12** (rama `feat/activities`, sesión supervisada). Diseño en
+> `plan-sesion3-actividades-departamento.md`. Numeración: el rango `RF-1101–1106` que antes
+> apuntaba a "Plan Pro / monetización" se movió a **RF-1301–1306** (F2) para liberar el módulo 1100.
+> **Pendiente de Gonza (infra):** aplicar la migración Prisma del modelo `Activity` y crear el
+> bucket `activity-banners` (lectura pública) en Supabase Storage. El código no rompe sin ellos
+> (build/test con DB mock; sin bucket la actividad se crea sin banner). Ver `HANDOFF.md`.
 
-- [ ] **RF-1201** Modelo Prisma `Activity` (FK a `Album` → extensible multi-álbum; UI acotada a Mundial 2026). (M) — _requiere migración Prisma → la corre Gonza (§10)._
-- [ ] **RF-1202** Banner de la actividad a Supabase Storage (validar/allowlistear host, igual que RF-112). (M) — _requiere bucket en Storage (Gonza)._
-- [ ] **RF-1203** Crear actividad (form + Zod + Service + Repository + API route). (M)
-- [ ] **RF-1204** Listado de actividades visible para todos los registrados, con **selector de departamento** (default el del usuario). (M)
-- [ ] **RF-1205** Detalle de actividad. (S)
-- [ ] **RF-1206** Notificación in-app `new_activity` a los usuarios del depto. (S)
-- [ ] **RF-1207** Editar/eliminar actividad (owner). (S)
-- [ ] **RF-1208** Estados vacíos + loading/error + i18n + tokens. (S)
+- [x] **RF-1101** Modelo Prisma `Activity` + relaciones (FK a `Album` → multi-álbum; UI acotada a Mundial 2026). (M) — _schema listo + `prisma:generate`; **la migración la aplica Gonza** (§10)._
+- [x] **RF-1102** Schemas Zod (create/update/list + DTOs + límites de banner). (S)
+- [x] **RF-1103** Repositories `album.repository` (`findActiveAlbum`) + `activity.repository`. (M)
+- [x] **RF-1104** Storage de banner a Supabase Storage (cliente admin service-role + upload con validación MIME/size). (M) — _**bucket `activity-banners` lo crea Gonza**._
+- [x] **RF-1105** `activity.service` (CRUD + fan-out de notificaciones in-app `new_activity`). (M)
+- [x] **RF-1106** API routes REST (usuario + admin, multipart en el alta). (M)
+- [x] **RF-1107** UI usuario: lista `/activities` (selector de depto, default el del usuario) + detalle. (M)
+- [x] **RF-1108** UI admin (ABM con banner) + render de `new_activity` en la campanita + nav. (S)
 
 ## F2 (post-MVP, NO construir hasta MVP estable)
 
-RF-117, RF-118 (cuentas), RF-212/213/214 (multi-álbum UI, import por foto/CSV), RF-314/315/316 (hint de valor, packs, mapa), RF-410 (Web Push), RF-507/508/509 (chat realtime, typing, read receipts), RF-605/606 (reportes, moderación), RF-811/812 (blog, páginas por álbum), RF-1006/1007/1008 (cola reportes, flagged, métricas), RF-1101–1106 (Plan Pro / monetización).
+RF-117, RF-118 (cuentas), RF-212/213/214 (multi-álbum UI, import por foto/CSV), RF-314/315/316 (hint de valor, packs, mapa), RF-410 (Web Push), RF-507/508/509 (chat realtime, typing, read receipts), RF-605/606 (reportes, moderación), RF-811/812 (blog, páginas por álbum), RF-1006/1007/1008 (cola reportes, flagged, métricas), RF-1301–1306 (Plan Pro / monetización) — _renumerados desde RF-1101–1106, que ahora es el módulo Actividades_.
 
 ## F3 (experimental)
 
