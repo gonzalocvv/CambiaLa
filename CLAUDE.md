@@ -290,7 +290,7 @@ CI: job `lint-and-type` (lint + type-check + format:check), `test` (prisma:gener
 
 `.env.example` lista todas. Estado actual:
 
-- **Supabase**: ✅ configurado (URL, anon, service role, DATABASE_URL, DIRECT_URL). Migrado y seedeado.
+- **Supabase**: ✅ configurado (URL, anon, service role, DATABASE_URL, DIRECT_URL). Migrado y seedeado. **Storage**: el módulo Actividades (RF-1101..1108) usa el bucket `activity-banners` (lectura pública) — **lo crea Gonza** en el dashboard; sin él, las actividades se crean sin banner (no rompe). Nuevo tipo de notificación **`new_activity`** (solo in-app, NO en `EMAILABLE_NOTIFICATION_TYPES`).
 - **Resend**: ✅ configurado (2026-06-06) — `RESEND_API_KEY` en `.env.local` + Vercel, dominio `cambiala.uy` verificado, SMTP propio cableado en Supabase y probado E2E (los códigos de login salen de `consultas@cambiala.uy`). Falta solo el **código** de envío de transaccionales (RF-406).
 - **Inngest**: ✅ keys cargadas (2026-06-06) — `INNGEST_EVENT_KEY` + `INNGEST_SIGNING_KEY` en `.env.local` + Vercel. Falta solo el **código** (RF-307, optimización post-RF-320).
 - **🔒 pendientes (keys vacías → el feature es no-op hasta cargarlas):** Sentry (`SENTRY_DSN`), PostHog (`NEXT_PUBLIC_POSTHOG_KEY`).
