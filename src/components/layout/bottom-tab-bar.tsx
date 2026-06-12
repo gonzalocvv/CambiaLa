@@ -4,18 +4,19 @@ import { useEffect } from 'react';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutGrid, ArrowLeftRight, MessageCircle, Settings } from 'lucide-react';
+import { LayoutGrid, ArrowLeftRight, CalendarDays, MessageCircle, Settings } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 type Tab = {
   href: string;
-  labelKey: 'album' | 'matches' | 'conversations' | 'settings';
+  labelKey: 'album' | 'matches' | 'activities' | 'conversations' | 'settings';
   Icon: typeof LayoutGrid;
 };
 
 const TABS: Tab[] = [
   { href: '/album', labelKey: 'album', Icon: LayoutGrid },
   { href: '/matches', labelKey: 'matches', Icon: ArrowLeftRight },
+  { href: '/activities', labelKey: 'activities', Icon: CalendarDays },
   { href: '/conversations', labelKey: 'conversations', Icon: MessageCircle },
   { href: '/settings', labelKey: 'settings', Icon: Settings },
 ];

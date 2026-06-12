@@ -5,6 +5,7 @@ const PROTECTED_PATHS = [
   '/album',
   '/matches',
   '/conversations',
+  '/activities',
   '/settings',
   '/onboarding',
   '/admin',
