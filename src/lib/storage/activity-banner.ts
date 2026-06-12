@@ -45,10 +45,19 @@ export async function uploadActivityBanner(file: File): Promise<string | null> {
   try {
     const admin = createAdminClient();
     const bytes = await file.arrayBuffer();
-    const { error } = await admin.storage
-      .from(ACTIVITY_BANNER_BUCKET)
-      .upload(key, bytes, { contentType: file.type, upsert: true });
+    const opts = { contentType: file.type, upsert: true };
+
+    let { error } = await admin.storage.from(ACTIVITY_BANNER_BUCKET).upload(key, bytes, opts);
+    if (error) {
+      // El bucket puede no existir todavía: lo creamos público (idempotente; si ya
+      // existe, createBucket devuelve error que ignoramos) y reintentamos una vez.
+      await admin.storage
+        .createBucket(ACTIVITY_BANNER_BUCKET, { public: true })
+        .catch(() => undefined);
+      ({ error } = await admin.storage.from(ACTIVITY_BANNER_BUCKET).upload(key, bytes, opts));
+    }
     if (error) throw error;
+
     const { data } = admin.storage.from(ACTIVITY_BANNER_BUCKET).getPublicUrl(key);
     return data.publicUrl;
   } catch (error) {
