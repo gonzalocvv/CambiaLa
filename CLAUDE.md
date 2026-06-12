@@ -71,6 +71,8 @@ El MVP lo construye un agente autónomo (routine de Claude Code en la nube, ~1 c
 - **Saltá los `🔒`** (necesitan credenciales/servicios que el agente no tiene). Documentá el bloqueo.
 - Al terminar: actualizá `BACKLOG.md` (tildá `[x]` solo si quedó 100%) y `HANDOFF.md` (entrada nueva arriba). `BACKLOG.md`/`HANDOFF.md` están en `.prettierignore`, no rompen `format:check`.
 
+**Config ejecutable de la rutina** (instalada en el repo): el prompt/metodología vive en **`.claude/auto-builder.md`**; el runner se configura en **`.claude/settings.json`** (`model: "fable"` = Fable 5, `effortLevel: "xhigh"`, hook `SessionStart` → `.claude/hooks/session-start.sh` con pnpm install + identidad git, y `permissions` allow/deny). El disparo horario es **`.github/workflows/auto-builder.yml`** (cron `0 * * * *` + `workflow_dispatch`, modelo `fable` con `--effort max` y `CLAUDE_CODE_EFFORT_LEVEL=max`). Queda **inerte hasta que Gonza cargue el secreto `ANTHROPIC_API_KEY`** (🔒). Alternativa nativa documentada: Routines de `claude.ai/code` (config web, no versionable).
+
 ---
 
 ## 5. Reglas de oro (no negociables)
@@ -360,4 +362,5 @@ Decisiones recientes que viven acá: **paleta celeste(light)/grafito(dark)+naran
 - Antes de construir un RF, verificá que esté en `BACKLOG.md` / `2.1 Requerimientos Funcionales` de Notion. Si no está, escribilo primero.
 - Modularizá (200–300 líneas/archivo). Diffs chicos y revisables.
 - Cuando tomes una decisión importante: actualizá este `CLAUDE.md` y agregá un ADR en Notion 4.6.
-- **Última actualización**: 2026-06-07 — Auth CERRADO + Landing v2 mergeada + Auditoría gstack Etapa 0 hecha + **matching runtime cableado (RF-320, Ola A mergeada)**. **Próximo gran hito: RF-406** (emails transaccionales, en review). Ver `BACKLOG.md` (sección auditoría) y `reports/gstack-audit-2026-06-06.md`.
+- **Metodología auto-builder instalada como config ejecutable** (2026-06-12): ver `.claude/auto-builder.md` (prompt), `.claude/settings.json` (`model=fable`, `effortLevel=xhigh`), `.claude/hooks/session-start.sh` y `.github/workflows/auto-builder.yml` (cron horario, `--effort max` / `CLAUDE_CODE_EFFORT_LEVEL=max`). Inerte hasta cargar `ANTHROPIC_API_KEY` (🔒).
+- **Última actualización**: 2026-06-12 — Metodología auto-builder instalada como config versionada (settings + hook + workflow + prompt). Previo: Auth CERRADO + Landing v2 + matching runtime (RF-320). Ver `BACKLOG.md`.

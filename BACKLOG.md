@@ -380,6 +380,30 @@ Prioridad MoSCoW: **M** Must · **S** Should · **C** Could. Fase: MVP / F2 / F3
 
 ---
 
+## INFRA / TOOLING — pipeline autónomo
+
+- [x] **INFRA-001** 🆕 **Metodología auto-builder instalada como config ejecutable** (S) — _2026-06-12, rama `feat/activities`._ Antes la metodología del pipeline (ADR-021) vivía solo como texto; ahora es config versionada de Claude Code:
+  - `.claude/auto-builder.md` — prompt/metodología de la rutina (runtime **Fable 5 + effort máximo**).
+  - `.claude/settings.json` — `model: "fable"`, `effortLevel: "xhigh"`, hook `SessionStart`, `permissions` allow/deny.
+  - `.claude/hooks/session-start.sh` — pnpm install + `prisma:generate` + identidad git del runner.
+  - `.github/workflows/auto-builder.yml` — cron horario + `workflow_dispatch`, `claude-code-action@v1`, `--effort max`.
+  - **🔒 Dependencia (Gonza):** cargar `ANTHROPIC_API_KEY` en Secrets del repo (el workflow está inerte hasta entonces) + confirmar push a ramas `claude/*`. Ver `HANDOFF.md` (entrada 2026-06-12).
+
+## Actividades de intercambio por departamento — _próximo ítem autónomo_
+
+> **Nota de numeración:** el plan original llamaba a esta feature `RF-1101..1108`, pero `RF-1101–1106`
+> ya está asignado a **Plan Pro / monetización** (F2, abajo). Para evitar colisión se reasigna a
+> **RF-1201..1208**. Detalle de diseño en `plan-sesion3-actividades-departamento.md`.
+
+- [ ] **RF-1201** Modelo Prisma `Activity` (FK a `Album` → extensible multi-álbum; UI acotada a Mundial 2026). (M) — _requiere migración Prisma → la corre Gonza (§10)._
+- [ ] **RF-1202** Banner de la actividad a Supabase Storage (validar/allowlistear host, igual que RF-112). (M) — _requiere bucket en Storage (Gonza)._
+- [ ] **RF-1203** Crear actividad (form + Zod + Service + Repository + API route). (M)
+- [ ] **RF-1204** Listado de actividades visible para todos los registrados, con **selector de departamento** (default el del usuario). (M)
+- [ ] **RF-1205** Detalle de actividad. (S)
+- [ ] **RF-1206** Notificación in-app `new_activity` a los usuarios del depto. (S)
+- [ ] **RF-1207** Editar/eliminar actividad (owner). (S)
+- [ ] **RF-1208** Estados vacíos + loading/error + i18n + tokens. (S)
+
 ## F2 (post-MVP, NO construir hasta MVP estable)
 
 RF-117, RF-118 (cuentas), RF-212/213/214 (multi-álbum UI, import por foto/CSV), RF-314/315/316 (hint de valor, packs, mapa), RF-410 (Web Push), RF-507/508/509 (chat realtime, typing, read receipts), RF-605/606 (reportes, moderación), RF-811/812 (blog, páginas por álbum), RF-1006/1007/1008 (cola reportes, flagged, métricas), RF-1101–1106 (Plan Pro / monetización).

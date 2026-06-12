@@ -3,6 +3,37 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-12 — Infra: metodología auto-builder instalada como config ejecutable
+
+- **Ítem**: Tooling — dejar la metodología del pipeline autónomo (ADR-021) instalada como **configuración versionada** de Claude Code (antes vivía solo como texto en `CLAUDE.md`/`CONTRIBUTING.md`).
+- **Rama**: `feat/activities` (sesión manual).
+- **Estado**: ✅ archivos creados y validados (JSON/bash/YAML OK, Prettier limpio). **No se tocó código de app.**
+
+### Qué se instaló
+
+- **`.claude/auto-builder.md`** — prompt/metodología de la rutina: objetivo, fuentes de verdad, reglas críticas, los 9 pasos, el GATE, formato del PR (sin footers de atribución), identidad de commits, y la alternativa Routines (web). Encabezado fija el runtime: **Fable 5 (`fable`) + effort máximo**.
+- **`.claude/settings.json`** — `model: "fable"` (Fable 5), `effortLevel: "xhigh"` (máximo persistible en settings; `max` es session-only → va por env/CLI), hook `SessionStart` (`startup` → `.claude/hooks/session-start.sh`, timeout 900s), y `permissions` allow/deny (deny precede: bloquea `sudo`, `rm -rf`, lectura de `.env*`; allow: comandos del GATE + git/gh + writes a `src`/`messages`/`prisma`).
+- **`.claude/hooks/session-start.sh`** (ejecutable) — corepack + `pnpm install --frozen-lockfile` + `pnpm prisma:generate` + identidad git del runner (`Gonzalo Cabrera <gcabrera3210@gmail.com>`). Tolerante a fallos (no aborta la sesión).
+- **`.github/workflows/auto-builder.yml`** — `on: schedule` cron `0 * * * *` (horario) + `workflow_dispatch`; `concurrency: auto-builder` sin cancel; `permissions` contents/pull-requests write; `anthropics/claude-code-action@v1` con `prompt` → `.claude/auto-builder.md`, `claude_args: --model fable --effort max`, env `CLAUDE_CODE_EFFORT_LEVEL=max`.
+
+### Correcciones vs. el plan (verificadas contra docs de Claude Code)
+
+- Model: se usa el **alias `"fable"`** (confirmado válido), no el ID crudo `claude-fable-5`.
+- Effort: `"xhigh"` en `settings.json` (`"max"` **no** es válido como valor de settings — es session-only); `max` se aplica vía `--effort max` + `CLAUDE_CODE_EFFORT_LEVEL=max` en el runner.
+- `timeout` del hook va en **segundos** (900), no ms.
+
+### Dependencia (🔒 — la hace Gonza)
+
+- Cargar **`ANTHROPIC_API_KEY`** en los *Secrets* del repo (Settings → Secrets → Actions). **El workflow está inerte hasta entonces.**
+- Confirmar que el token de checkout permite **push a ramas `claude/*`** y abrir PRs (si el `GITHUB_TOKEN` por defecto no alcanza, configurar un PAT/GitHub App).
+- Verificar en el runner que el binario de Claude Code soporta `--effort max` / `effortLevel: "xhigh"` (si no, caer a `--effort high` / `"high"`).
+
+### Próximo objetivo de la rutina
+
+Primer ítem `[ ]` autónomo planificado: **Actividades de intercambio por departamento (RF-1101..1108)** — ver `BACKLOG.md` y `plan-sesion3-actividades-departamento.md`.
+
+---
+
 ## 2026-06-08 — Corrida de estado: todos los ítems autónomos siguen bloqueados
 
 - **Ítem**: Verificación de estado — no hay ítems autónomos pendientes sin bloqueo.
