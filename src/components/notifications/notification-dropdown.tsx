@@ -12,6 +12,10 @@ type Props = {
 };
 
 function getHref(type: NotificationType, payload: Record<string, unknown>): string {
+  if (type === 'new_activity') {
+    const activityId = typeof payload.activityId === 'string' ? payload.activityId : null;
+    return activityId ? `/activities/${activityId}` : '/activities';
+  }
   const matchId = typeof payload.matchId === 'string' ? payload.matchId : null;
   if (matchId && (type === 'new_match' || type === 'new_message' || type === 'trade_completed')) {
     return `/matches/${matchId}`;
@@ -66,6 +70,8 @@ export function NotificationDropdown({ notifications, onMarkRead, onClose }: Pro
                     <p className="text-muted-foreground mt-0.5 truncate text-xs">
                       {t(`${n.type}Detail` as Parameters<typeof t>[0], {
                         score: typeof n.payload.score === 'number' ? n.payload.score : 0,
+                        department:
+                          typeof n.payload.department === 'string' ? n.payload.department : '',
                       })}
                     </p>
                     <p className="text-muted-foreground mt-1 text-[10px]">

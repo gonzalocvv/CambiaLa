@@ -42,6 +42,12 @@ export async function AppNavbar() {
                 {t('matches')}
               </Link>
               <Link
+                href="/activities"
+                className="text-muted-foreground hover:text-foreground rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+              >
+                {t('activities')}
+              </Link>
+              <Link
                 href="/conversations"
                 className="text-muted-foreground hover:text-foreground rounded-lg px-3 py-2 text-sm font-medium transition-colors"
               >

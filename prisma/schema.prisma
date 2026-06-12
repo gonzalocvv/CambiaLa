@@ -68,13 +68,14 @@ model User {
   onboardingDoneAt DateTime?
 
   // Relaciones
-  stickers        UserSticker[]
-  matchesAsA      Match[]        @relation("UserA")
-  matchesAsB      Match[]        @relation("UserB")
-  ratingsGiven    Rating[]       @relation("Rater")
-  ratingsReceived Rating[]       @relation("Rated")
-  notifications   Notification[]
-  messages        Message[]
+  stickers          UserSticker[]
+  matchesAsA        Match[]        @relation("UserA")
+  matchesAsB        Match[]        @relation("UserB")
+  ratingsGiven      Rating[]       @relation("Rater")
+  ratingsReceived   Rating[]       @relation("Rated")
+  notifications     Notification[]
+  messages          Message[]
+  activitiesCreated Activity[]     @relation("ActivityAuthor")
 
   @@index([city, neighborhood])
   @@index([lastSeenAt])
@@ -92,7 +93,8 @@ model Album {
   releasedAt    DateTime?
   isActive      Boolean   @default(true)
 
-  stickers Sticker[]
+  stickers   Sticker[]
+  activities Activity[]
 
   @@index([isActive])
 }
@@ -214,7 +216,7 @@ model Rating {
 model Notification {
   id        String    @id @default(cuid())
   userId    String
-  type      String // new_match | new_message | trade_completed | rating_received
+  type      String // new_match | new_message | trade_completed | rating_received | new_activity
   payload   Json
   readAt    DateTime?
   createdAt DateTime  @default(now())
@@ -223,4 +225,30 @@ model Notification {
 
   @@index([userId, readAt])
   @@index([userId, createdAt])
+}
+
+// =====================================================
+// ACTIVITIES (eventos presenciales de intercambio por departamento)
+// =====================================================
+
+model Activity {
+  id          String    @id @default(cuid())
+  albumId     String // FK Album → extensible multi-álbum
+  department  String // uno de URUGUAY_DEPARTMENTS
+  createdById String // admin autor
+  title       String
+  description String?
+  location    String? // dirección / lugar legible
+  bannerUrl   String? // URL pública en Supabase Storage
+  startsAt    DateTime
+  endsAt      DateTime?
+  isPublished Boolean   @default(true) // borrador vs publicada
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  album     Album @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  createdBy User  @relation("ActivityAuthor", fields: [createdById], references: [id])
+
+  @@index([department, startsAt])
+  @@index([albumId, department])
 }
