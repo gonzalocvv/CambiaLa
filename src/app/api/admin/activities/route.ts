@@ -4,10 +4,7 @@ import { extractActivityForm } from '@/lib/activities/form';
 import { getSession } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { BannerValidationError } from '@/lib/storage/activity-banner';
-import {
-  CreateActivitySchema,
-  ListActivitiesQuerySchema,
-} from '@/lib/validations/activity.schema';
+import { CreateActivitySchema, ListActivitiesQuerySchema } from '@/lib/validations/activity.schema';
 import { activityService, NoActiveAlbumError } from '@/services/activity.service';
 
 // GET /api/admin/activities — lista admin (todas, publicadas o no).

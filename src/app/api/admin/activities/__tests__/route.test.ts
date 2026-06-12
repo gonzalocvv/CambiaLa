@@ -6,10 +6,9 @@ const mockListForAdmin = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/auth', () => ({ getSession: mockGetSession }));
 vi.mock('@/services/activity.service', async () => {
-  const actual =
-    await vi.importActual<typeof import('@/services/activity.service')>(
-      '@/services/activity.service',
-    );
+  const actual = await vi.importActual<typeof import('@/services/activity.service')>(
+    '@/services/activity.service',
+  );
   return {
     ...actual,
     activityService: { createActivity: mockCreate, listForAdmin: mockListForAdmin },
