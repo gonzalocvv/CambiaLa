@@ -121,9 +121,7 @@ export function ActivityForm({ mode, activityId, initial }: Props) {
           />
         </label>
         <label className="block">
-          <span className="text-foreground mb-1 block text-sm font-medium">
-            {t('fieldEndsAt')}
-          </span>
+          <span className="text-foreground mb-1 block text-sm font-medium">{t('fieldEndsAt')}</span>
           <input
             name="endsAt"
             type="datetime-local"
@@ -152,7 +150,12 @@ export function ActivityForm({ mode, activityId, initial }: Props) {
 
       <label className="block">
         <span className="text-foreground mb-1 block text-sm font-medium">{t('fieldBanner')}</span>
-        <input name="banner" type="file" accept="image/jpeg,image/png,image/webp" className="text-foreground text-sm" />
+        <input
+          name="banner"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="text-foreground text-sm"
+        />
         <span className="text-muted-foreground mt-1 block text-xs">{t('bannerHint')}</span>
       </label>
 
