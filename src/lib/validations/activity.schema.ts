@@ -26,7 +26,7 @@ function endsAfterStarts(data: { startsAt?: Date; endsAt?: Date }): boolean {
 }
 const endsAfterStartsIssue = {
   message: 'endsAt debe ser posterior a startsAt',
-  path: ['endsAt'] as const,
+  path: ['endsAt'],
 };
 
 export const CreateActivitySchema = z
