@@ -1,0 +1,50 @@
+name: Auto Builder
+
+# Rutina autónoma de CambiaLa (ADR-021). Cada hora intenta shippear el próximo ítem del
+# backlog vía PR contra `develop`, siguiendo `.claude/auto-builder.md`.
+#
+# INERTE hasta que Gonza cargue el secreto `ANTHROPIC_API_KEY` en el repo (🔒).
+# Modelo: Fable 5 (`fable`). Effort: máximo (`--effort max` + CLAUDE_CODE_EFFORT_LEVEL=max).
+
+on:
+  schedule:
+    - cron: '0 * * * *' # cada hora, en punto (UTC)
+  workflow_dispatch: # disparo manual desde la pestaña Actions
+
+# No solapar corridas horarias: si una sigue corriendo, la nueva espera (no se cancela).
+concurrency:
+  group: auto-builder
+  cancel-in-progress: false
+
+permissions:
+  contents: write # crear/pushear ramas claude/*
+  pull-requests: write # abrir PRs contra develop
+
+jobs:
+  build:
+    name: Auto Builder
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout (develop)
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0 # historial completo para rebase
+
+      - name: Run Claude Code auto-builder
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Sos el auto-builder de CambiaLa. Leé `.claude/auto-builder.md` y seguí esa
+            metodología al pie de la letra para shippear el PRÓXIMO ítem accionable del
+            backlog en esta corrida. Reglas innegociables: un solo ítem por corrida, nunca
+            pushear a `develop`, saltar lo marcado 🔒/⛔/⏸️ RESERVADO, dejar el GATE en verde
+            antes de abrir el PR, y actualizar `BACKLOG.md` + `HANDOFF.md`. Auto-merge solo
+            para PRs de docs; los PRs de código NO llevan auto-merge.
+          claude_args: |
+            --model fable
+            --effort max
+        env:
+          CLAUDE_CODE_EFFORT_LEVEL: max
