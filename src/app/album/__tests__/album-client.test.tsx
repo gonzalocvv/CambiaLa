@@ -348,6 +348,6 @@ describe('AlbumClient — team header (RF-215)', () => {
     renderWithIntl(<AlbumClient stickers={stickers} initialStats={stats} />);
 
     const headings = screen.getAllByRole('heading', { level: 2 });
-    expect(headings.map((h) => h.textContent)).toContain('🏆 Copa del Mundo · FWC');
+    expect(headings.map((h) => h.textContent)).toContain('🏆 Copa del Mundo');
   });
 });

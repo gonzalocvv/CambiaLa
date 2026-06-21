@@ -57,8 +57,16 @@ export const TEAM_NAMES: Record<string, TeamInfo> = {
   VEN: { name: 'Venezuela', flag: '🇻🇪' },
 };
 
+// Secciones especiales del álbum que no son selecciones nacionales. Su nombre
+// ya es descriptivo, así que no mostramos el código técnico (que sí sirve como
+// referencia rápida para las selecciones, ej. URU/ARG).
+const SPECIAL_SECTION_CODES = new Set(['FWC', 'LEG', 'COKE']);
+
 export function getTeamDisplay(code: string): string {
   const info = TEAM_NAMES[code];
   if (!info) return code;
+  if (SPECIAL_SECTION_CODES.has(code)) {
+    return `${info.flag} ${info.name}`;
+  }
   return `${info.flag} ${info.name} · ${code}`;
 }
