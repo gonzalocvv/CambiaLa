@@ -34,10 +34,18 @@ describe('getTeamDisplay', () => {
     expect(getTeamDisplay('URU')).toBe('🇺🇾 Uruguay · URU');
   });
 
-  it('returns FWC with trophy and full name', () => {
-    const result = getTeamDisplay('FWC');
-    expect(result).toContain('Copa del Mundo');
-    expect(result).toContain('FWC');
+  it('returns special sections with a friendly name and no raw code suffix', () => {
+    const fwc = getTeamDisplay('FWC');
+    expect(fwc).toContain('Copa del Mundo');
+    expect(fwc).not.toContain('· FWC');
+
+    const leg = getTeamDisplay('LEG');
+    expect(leg).toContain('Leyendas');
+    expect(leg).not.toContain('· LEG');
+
+    const coke = getTeamDisplay('COKE');
+    expect(coke).toContain('Coca-Cola');
+    expect(coke).not.toContain('· COKE');
   });
 
   it('falls back to the raw code for unknown teams', () => {

@@ -3,6 +3,42 @@
 > Bitácora del auto-builder. Cada corrida agrega una entrada **ARRIBA** (más reciente primero).
 > Claude Code lo lee al inicio de cada corrida para saber dónde seguir.
 
+## 2026-06-21 — RF-215b: etiquetas de las secciones especiales del álbum (FWC/LEG/COKE)
+
+- **Ítem**: RF-215b — que las secciones que no son selecciones (`FWC`, `LEG`, `COKE`) no muestren su código crudo en los headers/dropdown del álbum.
+- **Rama**: `claude/blissful-shannon-ju7f93`.
+- **Estado**: ✅ completo. Gate verde. **745 tests** (77 archivos). PR con auto-merge REBASE.
+
+### Qué se hizo
+
+Al verificar contra la realidad, las tres secciones especiales **ya tenían** nombre lindo + emoji en `src/lib/team-names.ts` (`FWC` → 🏆 Copa del Mundo, `LEG` → ⭐ Leyendas, `COKE` → 🥤 Estrellas Coca-Cola) y el test `team-names.test.ts` ya garantizaba que **todo** código del catálogo tiene mapping. El único resto era cosmético: `getTeamDisplay` colgaba el código técnico al final también para estas secciones ("🏆 Copa del Mundo · FWC"), que es justo el "código crudo" que el RF quiere fuera de los headers.
+
+- **`src/lib/team-names.ts`**: nuevo `SPECIAL_SECTION_CODES = new Set(['FWC', 'LEG', 'COKE'])`. `getTeamDisplay` omite el sufijo `· {code}` para esas secciones; las selecciones nacionales lo mantienen (el código FIFA — URU/ARG — es referencia útil).
+- **Tests**: `team-names.test.ts` — caso que verifica que FWC/LEG/COKE muestran el nombre amigable y **no** contienen `· FWC`/`· LEG`/`· COKE`. `album-client.test.tsx` — assertion del header FWC actualizada a "🏆 Copa del Mundo" (sin `· FWC`).
+
+### Próximo paso
+
+En orden del BACKLOG, los `[ ]` restantes siguen bloqueados (ver tabla más abajo):
+- **RF-112** (M) ⚠️ — Avatar upload: necesita bucket `avatars` en Supabase Storage + decisión de resize (Gonza).
+- **RF-115** (C) ⚠️ — Geo opt-in: requiere migración Prisma (`geoConsent` en `User`) — dominio de Gonza.
+- **RF-344** (S) ⛔ — Toggles email por tipo: requiere migración Prisma (`notifyOnMessage`/`notifyOnReview`) — Gonza.
+- **RF-607** (S) — Notificar "dejá tu reseña" al completar el trade: autónomo, candidato para la próxima corrida.
+- **RF-1005** (S) 🔒 — Link a Sentry: requiere `SENTRY_DSN`.
+- **RF-824 / RF-825** ⏸️ RESERVADO (ola supervisada).
+
+### Bloqueos conocidos
+
+- RF-112 ⚠️ — bucket de storage + decisión de resize (Gonza).
+- RF-115 ⚠️ — migración Geo opt-in (Gonza).
+- RF-214b / RF-344 ⛔ — checklist Panini / migración toggles email (Gonza).
+- RF-1005 🔒 — Sentry DSN.
+
+### Nota de corrida
+
+Los únicos PRs abiertos sobre `develop` son de **dependabot** (#113–#117, bumps de deps), no del routine — no se tocaron.
+
+---
+
 ## 2026-06-12 — RF-1101..1108: Actividades de intercambio por departamento (módulo 1100)
 
 - **Ítem**: Módulo 1100 completo — actividades presenciales por departamento (admin publica, usuarios logueados ven, notificación in-app al depto).
